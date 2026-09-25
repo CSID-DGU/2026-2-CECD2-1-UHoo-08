@@ -65,5 +65,10 @@ def test_노드가_계약을_지킨다(path):
     fn = _node_function(tree, name)
     assert fn is not None, f"{path.name}: `async def {name}(state)` 가 없다"
 
-    args = [a.arg for a in fn.args.args]
-    assert args == ["state"], f"{path.name}: 인자는 state 하나여야 한다 (현재 {args})"
+    args = fn.args
+    assert (
+        [a.arg for a in args.posonlyargs + args.args] == ["state"]
+        and not args.vararg
+        and not args.kwonlyargs
+        and not args.kwarg
+    ), f"{path.name}: 인자는 state 하나여야 한다 (현재 {ast.unparse(args)})"
