@@ -61,7 +61,18 @@ class BundleStep(BaseModel):
 
     category: Category | None = None
     product_type: str | None = None  # "토너", "세럼" 처럼 카테고리 안의 종류
-    label: str                       # 사용자가 쓴 표현 그대로. 화면에 그대로 보여준다
+    # 사용자가 쓴 표현 그대로. 화면에 그대로 보여준다.
+    # 빈 값을 허용하면 무엇을 찾아야 하는지 모르는 단계가 세트에 들어가고,
+    # bundle_steps 가 비어 있지 않다는 이유로 필수 필드 검사도 통과한다.
+    label: str = Field(min_length=1)
+
+    @field_validator("label")
+    @classmethod
+    def _공백_거부(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("label 은 공백일 수 없다")
+        return v
 
 
 class QuerySpec(BaseModel):

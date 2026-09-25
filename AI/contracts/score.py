@@ -55,8 +55,8 @@ class ScoreContext(BaseModel):
 
     # 리뷰 점수는 job 에 묶인 값을 읽는다. 이게 없으면 조용히 0점이 나온다.
     # 선택 값으로 두면 같은 사고가 반복되므로 필수로 받는다.
-    job_id: str
-    user_id: str
+    job_id: str = Field(min_length=1)
+    user_id: str = Field(min_length=1)
     query_spec: QuerySpec
     user_profile: dict[str, Any] = Field(default_factory=dict)
     inventory: list[dict[str, Any]] = Field(default_factory=list)

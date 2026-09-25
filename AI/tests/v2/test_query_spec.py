@@ -103,3 +103,15 @@ def test_필수_필드가_비면_확신이_높아도_되묻는다():
 def test_confidence_는_0에서_1_사이다():
     with pytest.raises(ValidationError):
         QuerySpec(request_type=RequestType.SEARCH, confidence=1.5)
+
+
+def test_빈_라벨의_세트_단계를_거부한다():
+    """무엇을 찾아야 하는지 모르는 단계가 세트에 들어가면 안 된다.
+    bundle_steps 가 비어 있지 않다는 이유로 필수 필드 검사도 통과해버린다."""
+    from contracts.query_spec import BundleStep
+
+    with pytest.raises(ValidationError):
+        BundleStep(label="")
+    with pytest.raises(ValidationError):
+        BundleStep(label="   ")
+    assert BundleStep(label=" 토너 ").label == "토너"

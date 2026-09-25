@@ -22,8 +22,11 @@ from graph.registry import (
 
 @pytest.mark.parametrize("시나리오", 시나리오_목록)
 def test_모르는_단계_이름이_없다(시나리오):
-    """이름이 곧 파일명이라, 오타는 없는 파일을 가리킨다."""
-    모르는 = [단계 for 단계 in SCENARIOS[시나리오] if 단계 not in KNOWN_NODES]
+    """이름이 곧 파일명이라, 오타는 없는 파일을 가리킨다.
+
+    빌더가 실제로 조립하는 건 full_path 다. SCENARIOS 만 보면 공통
+    앞단·뒷단의 오타를 놓친다."""
+    모르는 = [단계 for 단계 in full_path(시나리오) if 단계 not in KNOWN_NODES]
     assert 모르는 == [], f"{시나리오}: {모르는}"
 
 
