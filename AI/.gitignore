@@ -6,9 +6,11 @@ __pycache__/
 .pytest_cache/
 
 # Virtual env
-venv/
-.venv/
-env/
+# 앞의 /는 AI 루트만 가리킨다. 빼면 data/synthetic/env 처럼
+# 하위에 있는 같은 이름의 디렉터리까지 같이 무시된다.
+/venv/
+/.venv/
+/env/
 
 # IDE
 .vscode/

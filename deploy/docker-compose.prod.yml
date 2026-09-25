@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/csid-dgu/2026-1-cecd1-3-uhoo-08/be:latest
+    image: ghcr.io/csid-dgu/2026-2-cecd2-1-uhoo-08/be:latest
     restart: always
     env_file:
       - ./backend.env
@@ -16,7 +16,7 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   ai:
-    image: ghcr.io/csid-dgu/2026-1-cecd1-3-uhoo-08/ai:latest
+    image: ghcr.io/csid-dgu/2026-2-cecd2-1-uhoo-08/ai:latest
     restart: always
     env_file:
       - ./ai.env
