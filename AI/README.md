@@ -83,12 +83,18 @@ job을 실패로 기록한다. 조용히 빈 값을 넘기면 다음 노드가 0
 항목을 추가할 때 Score 노드를 고치지 않는다.
 
 ```python
-def env_fit(product: dict, ctx: ScoreContext) -> float | None:
+async def env_fit(products: list[dict], ctx: ScoreContext) -> dict[str, float | None]:
 ```
 
-0~100을 돌려준다. **적용할 수 없는 후보에는 `None`을 돌려준다.** 0점이 아니다.
+후보를 하나씩이 아니라 한꺼번에 받고 `{product_id: 점수}` 를 돌려준다.
+리뷰 일치도나 가성비는 후보 하나만 봐서는 계산할 수 없고 코퍼스 통계가
+필요한데, 하나씩 받으면 후보 수만큼 조회가 나간다.
+
+점수는 0~100이다. **적용할 수 없는 후보에는 `None`을 돌려준다.** 0점이 아니다.
 0점은 "환경에 안 맞는 제품"이고 `None`은 "이 요청에서는 따지지 않는 항목"이다.
-`None`인 항목은 가중치 계산에서 빠진다.
+`None`인 항목은 가중치 계산에서 빠지고, 남은 항목의 가중치가 다시 1로 맞춰진다.
+빠뜨린 `product_id` 는 `None` 으로 본다. 정확한 계약은 `contracts/score.py` 의
+`Scorer` 를 본다.
 
 ## rules 작성 규칙
 

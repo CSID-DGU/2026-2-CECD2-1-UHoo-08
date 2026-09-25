@@ -98,3 +98,11 @@ def test_컨텍스트는_job_id를_반드시_받는다():
         job_id="j1", user_id="u1", query_spec=QuerySpec(request_type=RequestType.SEARCH)
     )
     assert ctx.env_summary is None
+
+
+def test_빈_job_id를_거부한다():
+    """필드를 넣기만 하고 빈 문자열을 보내면 같은 사고가 난다."""
+    with pytest.raises(ValidationError):
+        ScoreContext(
+            job_id="", user_id="u1", query_spec=QuerySpec(request_type=RequestType.SEARCH)
+        )
