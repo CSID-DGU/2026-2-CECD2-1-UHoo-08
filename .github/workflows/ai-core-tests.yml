@@ -1,0 +1,38 @@
+name: AI 코어 테스트
+
+# v2 코어(계약·규칙·노드 구조)만 검사한다. requirements-core.txt 만 설치하므로
+# 임베딩 모델을 받지 않고 시크릿도 필요 없어서, PR마다 1분 안에 끝난다.
+# 무거운 의존성과 .env 가 필요한 tests/ 전체는 여기서 돌리지 않는다.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'AI/**'
+      - '.github/workflows/ai-core-tests.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'AI/**'
+      - '.github/workflows/ai-core-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: AI/requirements-core.txt
+
+      - name: 의존성 설치
+        run: pip install -r requirements-core.txt
+
+      - name: v2 코어 테스트
+        run: pytest tests/v2 -q
