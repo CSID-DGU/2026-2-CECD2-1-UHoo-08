@@ -27,8 +27,11 @@ public class Recommendation {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /**
+     * 평가 기준이 되는 상품. 조건 탐색처럼 기준 상품 없이 시작하는 요청에서는 비어 있다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "base_product_id", nullable = false)
+    @JoinColumn(name = "base_product_id")
     private Product product;
 
     @Column(name = "search_purpose", length = 20)
