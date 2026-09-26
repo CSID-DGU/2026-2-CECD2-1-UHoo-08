@@ -7,6 +7,7 @@
 단계 이름 = graph/nodes/ 의 파일 이름 = 그 파일의 함수 이름이다.
 """
 from contracts.query_spec import RequestType
+from contracts.scenario import Scenario
 
 # 그래프 안에서 쓰는 노드 전부. 여기 없는 이름을 배열에 적으면 테스트가 막는다.
 # 오타로 만들어진 단계가 조용히 건너뛰어지는 일을 없애기 위해서다.
@@ -48,7 +49,7 @@ SEARCH_ENTRY: tuple[str, ...] = ("normalize", "router")
 # 모든 시나리오의 끝. 결과를 만든 뒤 표현을 검사한다.
 COMMON_EXIT: tuple[str, ...] = ("guard",)
 
-SCENARIOS: dict[str, tuple[str, ...]] = {
+SCENARIOS: dict[Scenario, tuple[str, ...]] = {
     # 이 제품 어때? → 평가하고 대체 후보까지
     "S1_EVALUATE": (
         "discovery", "inventory", "prefilter", "score",
@@ -84,11 +85,11 @@ SCENARIOS: dict[str, tuple[str, ...]] = {
 }
 
 # 홈은 검색창을 거치지 않는다. 배치가 직접 시나리오를 지정해 돌린다.
-HOME_SCENARIOS: frozenset[str] = frozenset({"HOME_ROUTINE", "HOME_ENV"})
+HOME_SCENARIOS: frozenset[Scenario] = frozenset({"HOME_ROUTINE", "HOME_ENV"})
 
 # 요청 유형 하나가 시나리오 하나로 간다. 같은 질문이 매번 같은 곳으로 가야
 # 하므로 LLM이 아니라 이 표가 정한다.
-ROUTE: dict[RequestType, str] = {
+ROUTE: dict[RequestType, Scenario] = {
     RequestType.SEARCH: "S2_SEARCH",
     RequestType.EVALUATE: "S1_EVALUATE",
     RequestType.BUNDLE: "S6_BUNDLE",

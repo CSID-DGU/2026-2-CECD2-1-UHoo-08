@@ -14,16 +14,15 @@ import s2Search from "./s2_search.json";
 import s6Bundle from "./s6_bundle.json";
 import s7Refine from "./s7_refine.json";
 
-// JSON 을 읽으면 문자열 필드가 전부 string 으로 추론돼 유니온 타입과 맞지 않는다.
-// 값 자체는 AI 테스트가 검증하므로 여기서는 단언한다.
-const asResult = (value: unknown) => value as RecommendationResult;
-
+// JSON 을 import 하면 "ENV" 같은 값이 string 으로 추론돼 유니온 타입과 맞지 않는다.
+// 좁히는 방향의 단언이라 구조가 틀리면 여기서 걸린다. unknown 을 거치지 않는
+// 이유가 그것이다. 값이 실제로 맞는지는 AI 쪽 테스트가 검사한다.
 export const recommendationV2Mocks = {
-  s1Evaluate: asResult(s1Evaluate),
-  s2Search: asResult(s2Search),
-  s6Bundle: asResult(s6Bundle),
-  s7Refine: asResult(s7Refine),
-  homeRoutine: asResult(homeRoutine),
-  homeEnv: asResult(homeEnv),
-  clarify: asResult(clarify),
+  s1Evaluate: s1Evaluate as RecommendationResult,
+  s2Search: s2Search as RecommendationResult,
+  s6Bundle: s6Bundle as RecommendationResult,
+  s7Refine: s7Refine as RecommendationResult,
+  homeRoutine: homeRoutine as RecommendationResult,
+  homeEnv: homeEnv as RecommendationResult,
+  clarify: clarify as RecommendationResult,
 } satisfies Record<string, RecommendationResult>;

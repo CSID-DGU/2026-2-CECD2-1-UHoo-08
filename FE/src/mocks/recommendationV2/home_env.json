@@ -25,19 +25,19 @@
         {
           "key": "env_fit",
           "label": "환경 적합",
-          "score": 94,
+          "score": 94.0,
           "weight": 0.4
         },
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 88,
+          "score": 88.0,
           "weight": 0.35
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 80,
+          "score": 80.0,
           "weight": 0.25
         }
       ],
@@ -47,7 +47,9 @@
           "text": "최근 4주 평균 습도 38% · 보습 제품이 필요해요"
         }
       ],
-      "reason": "가지고 계신 제품 중에 고보습 크림이 없어요."
+      "reason": "가지고 계신 제품 중에 고보습 크림이 없어요.",
+      "change": null,
+      "rankDelta": null
     },
     {
       "productId": "prd_4002",
@@ -60,19 +62,19 @@
         {
           "key": "env_fit",
           "label": "환경 적합",
-          "score": 86,
+          "score": 86.0,
           "weight": 0.4
         },
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 82,
+          "score": 82.0,
           "weight": 0.35
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 74,
+          "score": 74.0,
           "weight": 0.25
         }
       ],
@@ -81,7 +83,10 @@
           "type": "ENV",
           "text": "건조 일수가 지난달보다 9일 늘었어요"
         }
-      ]
+      ],
+      "reason": null,
+      "change": null,
+      "rankDelta": null
     }
   ],
   "alternatives": [],

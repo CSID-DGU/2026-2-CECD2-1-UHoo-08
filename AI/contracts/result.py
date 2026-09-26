@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from contracts.query_spec import Category, Target
+from contracts.scenario import Scenario
 from contracts.score import ScoreItem
 
 
@@ -126,7 +127,7 @@ class RecommendationResult(CamelModel):
     """job 하나의 최종 결과."""
 
     job_id: str = Field(min_length=1)
-    scenario: str = Field(min_length=1)
+    scenario: Scenario
     query: QuerySummary = Field(default_factory=QuerySummary)
 
     items: list[ResultItem] = Field(default_factory=list)
