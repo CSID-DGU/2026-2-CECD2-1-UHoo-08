@@ -1,0 +1,242 @@
+{
+  "jobId": "job_s6_0001",
+  "scenario": "S6_BUNDLE",
+  "query": {
+    "raw": "10만원으로 토너 세럼 크림 세트 짜줘",
+    "category": "skincare",
+    "conditions": [
+      "건성"
+    ],
+    "budgetMax": null,
+    "budgetTotal": 100000,
+    "target": "SELF",
+    "useEnv": false,
+    "valueSeeking": false
+  },
+  "items": [],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [
+    {
+      "label": "균형형",
+      "totalPrice": 97000,
+      "items": [
+        {
+          "productId": "prd_2001",
+          "name": "히알루론 토너",
+          "brand": "토리든",
+          "imageUrl": "https://cdn.example.com/prd_2001.jpg",
+          "price": 22000,
+          "totalScore": 85,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 88,
+              "weight": 0.6
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 80,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "productId": "prd_2002",
+          "name": "세라마이드 세럼",
+          "brand": "일리윤",
+          "imageUrl": "https://cdn.example.com/prd_2002.jpg",
+          "price": 35000,
+          "totalScore": 87,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 90,
+              "weight": 0.6
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 82,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "productId": "prd_2003",
+          "name": "배리어 크림",
+          "brand": "에스트라",
+          "imageUrl": "https://cdn.example.com/prd_2003.jpg",
+          "price": 40000,
+          "totalScore": 84,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 86,
+              "weight": 0.6
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 81,
+              "weight": 0.4
+            }
+          ]
+        }
+      ],
+      "overBudgetReason": null
+    },
+    {
+      "label": "알뜰형",
+      "totalPrice": 68000,
+      "items": [
+        {
+          "productId": "prd_2004",
+          "name": "약산성 토너",
+          "brand": "라운드랩",
+          "imageUrl": "https://cdn.example.com/prd_2004.jpg",
+          "price": 18000,
+          "totalScore": 80,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 78,
+              "weight": 0.5
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 92,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "productId": "prd_2005",
+          "name": "판테놀 세럼",
+          "brand": "아누아",
+          "imageUrl": "https://cdn.example.com/prd_2005.jpg",
+          "price": 24000,
+          "totalScore": 82,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 80,
+              "weight": 0.5
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 90,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "productId": "prd_2006",
+          "name": "수분 크림",
+          "brand": "메디힐",
+          "imageUrl": "https://cdn.example.com/prd_2006.jpg",
+          "price": 26000,
+          "totalScore": 79,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 77,
+              "weight": 0.5
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 88,
+              "weight": 0.5
+            }
+          ]
+        }
+      ],
+      "overBudgetReason": null
+    },
+    {
+      "label": "기능집중형",
+      "totalPrice": 112000,
+      "items": [
+        {
+          "productId": "prd_2007",
+          "name": "펩타이드 토너",
+          "brand": "닥터지",
+          "imageUrl": "https://cdn.example.com/prd_2007.jpg",
+          "price": 26000,
+          "totalScore": 83,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 87,
+              "weight": 0.7
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 72,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "productId": "prd_2008",
+          "name": "레티놀 세럼",
+          "brand": "구달",
+          "imageUrl": "https://cdn.example.com/prd_2008.jpg",
+          "price": 46000,
+          "totalScore": 90,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 94,
+              "weight": 0.7
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 75,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "productId": "prd_2009",
+          "name": "고보습 크림",
+          "brand": "아벤느",
+          "imageUrl": "https://cdn.example.com/prd_2009.jpg",
+          "price": 40000,
+          "totalScore": 86,
+          "breakdown": [
+            {
+              "key": "personalization",
+              "label": "내 피부 적합",
+              "score": 89,
+              "weight": 0.7
+            },
+            {
+              "key": "price_value",
+              "label": "가격 대비 가치",
+              "score": 74,
+              "weight": 0.3
+            }
+          ]
+        }
+      ],
+      "overBudgetReason": "주름 개선 성분이 들어간 조합만 모으면 예산을 1만 2천원 넘습니다."
+    }
+  ],
+  "excluded": [],
+  "clarify": null
+}
