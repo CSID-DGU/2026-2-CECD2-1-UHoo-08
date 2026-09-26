@@ -1,0 +1,65 @@
+{
+  "jobId": "job_home_routine_0001",
+  "scenario": "HOME_ROUTINE",
+  "query": {
+    "raw": "",
+    "category": "skincare",
+    "conditions": [],
+    "budgetMax": null,
+    "budgetTotal": null,
+    "target": "SELF",
+    "useEnv": false,
+    "valueSeeking": false
+  },
+  "items": [
+    {
+      "productId": "prd_3001",
+      "name": "시카 진정 세럼",
+      "brand": "라운드랩",
+      "imageUrl": "https://cdn.example.com/prd_3001.jpg",
+      "price": 21000,
+      "totalScore": 82,
+      "breakdown": [
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 85.0,
+          "weight": 0.7
+        },
+        {
+          "key": "price_value",
+          "label": "가격 대비 가치",
+          "score": 76.0,
+          "weight": 0.3
+        }
+      ],
+      "badges": [
+        {
+          "type": "CONFLICT_SEPARATE",
+          "text": "쓰고 계신 레티놀 세럼과 시간대를 나눠 쓰세요"
+        }
+      ],
+      "reason": "사용 중인 AHA 토너와 함께 써도 자극이 적은 제품이에요.",
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [],
+  "excluded": [
+    {
+      "productId": "prd_3009",
+      "name": "AHA 10% 필링 세럼",
+      "reason": "CONFLICT",
+      "detail": "보유하신 레티놀 세럼과 함께 쓰지 않는 게 좋아요."
+    },
+    {
+      "productId": "prd_3010",
+      "name": "글리콜릭 토너",
+      "reason": "CONFLICT",
+      "detail": "보유하신 레티놀 세럼과 함께 쓰지 않는 게 좋아요."
+    }
+  ],
+  "clarify": null
+}

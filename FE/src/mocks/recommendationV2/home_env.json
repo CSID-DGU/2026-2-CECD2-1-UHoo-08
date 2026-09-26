@@ -1,0 +1,97 @@
+{
+  "jobId": "job_home_env_0001",
+  "scenario": "HOME_ENV",
+  "query": {
+    "raw": "",
+    "category": "skincare",
+    "conditions": [
+      "고보습"
+    ],
+    "budgetMax": null,
+    "budgetTotal": null,
+    "target": "SELF",
+    "useEnv": true,
+    "valueSeeking": false
+  },
+  "items": [
+    {
+      "productId": "prd_4001",
+      "name": "세라마이드 배리어 크림",
+      "brand": "에스트라",
+      "imageUrl": "https://cdn.example.com/prd_4001.jpg",
+      "price": 38000,
+      "totalScore": 88,
+      "breakdown": [
+        {
+          "key": "env_fit",
+          "label": "환경 적합",
+          "score": 94.0,
+          "weight": 0.4
+        },
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 88.0,
+          "weight": 0.35
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 80.0,
+          "weight": 0.25
+        }
+      ],
+      "badges": [
+        {
+          "type": "ENV",
+          "text": "최근 4주 평균 습도 38% · 보습 제품이 필요해요"
+        }
+      ],
+      "reason": "가지고 계신 제품 중에 고보습 크림이 없어요.",
+      "change": null,
+      "rankDelta": null
+    },
+    {
+      "productId": "prd_4002",
+      "name": "수분 충전 앰플",
+      "brand": "아누아",
+      "imageUrl": "https://cdn.example.com/prd_4002.jpg",
+      "price": 26000,
+      "totalScore": 81,
+      "breakdown": [
+        {
+          "key": "env_fit",
+          "label": "환경 적합",
+          "score": 86.0,
+          "weight": 0.4
+        },
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 82.0,
+          "weight": 0.35
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 74.0,
+          "weight": 0.25
+        }
+      ],
+      "badges": [
+        {
+          "type": "ENV",
+          "text": "건조 일수가 지난달보다 9일 늘었어요"
+        }
+      ],
+      "reason": null,
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [],
+  "excluded": [],
+  "clarify": null
+}
