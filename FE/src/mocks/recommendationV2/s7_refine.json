@@ -28,31 +28,32 @@
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 95,
+          "score": 95.0,
           "weight": 0.35
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 88,
+          "score": 88.0,
           "weight": 0.3
         },
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 78,
+          "score": 78.0,
           "weight": 0.2
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 74,
+          "score": 74.0,
           "weight": 0.15
         }
       ],
+      "badges": [],
+      "reason": "새 예산 조건에 맞으면서 마무리감이 비슷한 제품이에요.",
       "change": "NEW",
-      "rankDelta": null,
-      "reason": "새 예산 조건에 맞으면서 마무리감이 비슷한 제품이에요."
+      "rankDelta": null
     },
     {
       "productId": "prd_1002",
@@ -65,31 +66,32 @@
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 70,
+          "score": 70.0,
           "weight": 0.35
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 90,
+          "score": 90.0,
           "weight": 0.3
         },
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 85,
+          "score": 85.0,
           "weight": 0.2
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 80,
+          "score": 80.0,
           "weight": 0.15
         }
       ],
+      "badges": [],
+      "reason": "적합도는 높지만 새 예산 상한을 넘어 순위가 내려갔어요.",
       "change": "DOWN",
-      "rankDelta": -1,
-      "reason": "적합도는 높지만 새 예산 상한을 넘어 순위가 내려갔어요."
+      "rankDelta": -1
     },
     {
       "productId": "prd_1001",
@@ -102,31 +104,32 @@
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 45,
+          "score": 45.0,
           "weight": 0.35
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 86,
+          "score": 86.0,
           "weight": 0.3
         },
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 92,
+          "score": 92.0,
           "weight": 0.2
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 88,
+          "score": 88.0,
           "weight": 0.15
         }
       ],
+      "badges": [],
+      "reason": "이전 1위였지만 예산 조건에서 크게 감점됐어요.",
       "change": "DOWN",
-      "rankDelta": -2,
-      "reason": "이전 1위였지만 예산 조건에서 크게 감점됐어요."
+      "rankDelta": -2
     }
   ],
   "alternatives": [],

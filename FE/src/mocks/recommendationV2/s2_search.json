@@ -27,25 +27,25 @@
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 92,
+          "score": 92.0,
           "weight": 0.3
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 88,
+          "score": 88.0,
           "weight": 0.25
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 86,
+          "score": 86.0,
           "weight": 0.25
         },
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 90,
+          "score": 90.0,
           "weight": 0.2
         }
       ],
@@ -55,7 +55,9 @@
           "text": "평소 쓰는 쿠션보다 약 18% 저렴 · 후기 21%가 가성비 언급"
         }
       ],
-      "reason": "여름에도 안 무너진다는 후기가 많고, 평소 구매하시는 가격대보다 저렴해요."
+      "reason": "여름에도 안 무너진다는 후기가 많고, 평소 구매하시는 가격대보다 저렴해요.",
+      "change": null,
+      "rankDelta": null
     },
     {
       "productId": "prd_1002",
@@ -68,25 +70,25 @@
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 85,
+          "score": 85.0,
           "weight": 0.3
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 80,
+          "score": 80.0,
           "weight": 0.25
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 90,
+          "score": 90.0,
           "weight": 0.25
         },
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 82,
+          "score": 82.0,
           "weight": 0.2
         }
       ],
@@ -96,7 +98,9 @@
           "text": "최근 2주 언급이 빠르게 늘고 있어요"
         }
       ],
-      "reason": "지성 피부 후기에서 피지 억제 만족도가 높아요."
+      "reason": "지성 피부 후기에서 피지 억제 만족도가 높아요.",
+      "change": null,
+      "rankDelta": null
     },
     {
       "productId": "prd_1003",
@@ -109,29 +113,32 @@
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 80,
+          "score": 80.0,
           "weight": 0.3
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 76,
+          "score": 76.0,
           "weight": 0.25
         },
         {
           "key": "value_signal",
           "label": "가성비",
-          "score": 70,
+          "score": 70.0,
           "weight": 0.25
         },
         {
           "key": "budget_fit",
           "label": "예산 적합",
-          "score": 88,
+          "score": 88.0,
           "weight": 0.2
         }
       ],
-      "reason": "지속력 평가가 높지만 가격대가 조건 상한에 가까워요."
+      "badges": [],
+      "reason": "지속력 평가가 높지만 가격대가 조건 상한에 가까워요.",
+      "change": null,
+      "rankDelta": null
     }
   ],
   "alternatives": [],
@@ -147,17 +154,20 @@
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 84,
+          "score": 84.0,
           "weight": 0.5
         },
         {
           "key": "review",
           "label": "후기 일치",
-          "score": 78,
+          "score": 78.0,
           "weight": 0.5
         }
       ],
-      "reason": "비슷한 피부 조건의 사용자들이 4점 이상 준 제품이에요."
+      "badges": [],
+      "reason": "비슷한 피부 조건의 사용자들이 4점 이상 준 제품이에요.",
+      "change": null,
+      "rankDelta": null
     }
   ],
   "bundles": [],

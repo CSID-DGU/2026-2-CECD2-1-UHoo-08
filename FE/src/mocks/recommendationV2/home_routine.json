@@ -23,13 +23,13 @@
         {
           "key": "personalization",
           "label": "내 피부 적합",
-          "score": 85,
+          "score": 85.0,
           "weight": 0.7
         },
         {
           "key": "price_value",
           "label": "가격 대비 가치",
-          "score": 76,
+          "score": 76.0,
           "weight": 0.3
         }
       ],
@@ -39,7 +39,9 @@
           "text": "쓰고 계신 레티놀 세럼과 시간대를 나눠 쓰세요"
         }
       ],
-      "reason": "사용 중인 AHA 토너와 함께 써도 자극이 적은 제품이에요."
+      "reason": "사용 중인 AHA 토너와 함께 써도 자극이 적은 제품이에요.",
+      "change": null,
+      "rankDelta": null
     }
   ],
   "alternatives": [],

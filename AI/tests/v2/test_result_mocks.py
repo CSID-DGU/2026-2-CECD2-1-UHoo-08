@@ -5,10 +5,12 @@ mock 을 AI 쪽에 한 벌 더 두지 않고 FE 아래 파일을 그대로 읽�
 """
 import json
 import pathlib
+import re
 
 import pytest
 
 from contracts.result import BadgeType, RecommendationResult
+from contracts.scenario import SCENARIO_NAMES
 from graph.registry import SCENARIOS
 
 MOCK_DIR = pathlib.Path(__file__).resolve().parents[3] / "FE" / "src" / "mocks" / "recommendationV2"
@@ -54,6 +56,29 @@ def test_키가_모두_camelCase다(path):
 @pytest.mark.parametrize("path", MOCK_FILES, ids=lambda p: p.stem)
 def test_아는_시나리오다(path):
     assert _읽기(path)["scenario"] in SCENARIOS
+
+
+@pytest.mark.parametrize("path", MOCK_FILES, ids=lambda p: p.stem)
+def test_선택_필드도_빠짐없이_적혀_있다(path):
+    """읽어서 다시 쓴 것과 파일이 정확히 같아야 한다.
+
+    mock 은 FE가 타입 검사를 받는 자료이기도 하다. badges 나 reason 처럼
+    비어 있어도 되는 필드를 아예 빼면, 파이썬 검증은 기본값으로 통과하지만
+    FE는 그 자리에서 undefined 를 받는다."""
+    원본 = _읽기(path)
+    다시 = RecommendationResult.model_validate(원본).model_dump(mode="json", by_alias=True)
+    assert 다시 == 원본
+
+
+def test_레지스트리와_시나리오_목록이_같다():
+    assert set(SCENARIOS) == SCENARIO_NAMES
+
+
+def test_FE_타입의_시나리오_목록이_같다():
+    """FE 유니온이 빠지면 화면이 그 시나리오를 표현할 수 없다."""
+    ts = (MOCK_DIR.parents[1] / "api" / "recommendationV2.ts").read_text(encoding="utf-8")
+    선언 = ts.split("export type Scenario =", 1)[1].split(";", 1)[0]
+    assert set(re.findall(r'"([A-Z0-9_]+)"', 선언)) == SCENARIO_NAMES
 
 
 def test_모든_배지_종류가_어딘가에_나온다():

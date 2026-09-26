@@ -32,16 +32,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 88,
+              "score": 88.0,
               "weight": 0.6
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 80,
+              "score": 80.0,
               "weight": 0.4
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2002",
@@ -54,16 +58,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 90,
+              "score": 90.0,
               "weight": 0.6
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 82,
+              "score": 82.0,
               "weight": 0.4
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2003",
@@ -76,16 +84,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 86,
+              "score": 86.0,
               "weight": 0.6
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 81,
+              "score": 81.0,
               "weight": 0.4
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         }
       ],
       "overBudgetReason": null
@@ -105,16 +117,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 78,
+              "score": 78.0,
               "weight": 0.5
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 92,
+              "score": 92.0,
               "weight": 0.5
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2005",
@@ -127,16 +143,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 80,
+              "score": 80.0,
               "weight": 0.5
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 90,
+              "score": 90.0,
               "weight": 0.5
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2006",
@@ -149,16 +169,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 77,
+              "score": 77.0,
               "weight": 0.5
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 88,
+              "score": 88.0,
               "weight": 0.5
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         }
       ],
       "overBudgetReason": null
@@ -178,16 +202,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 87,
+              "score": 87.0,
               "weight": 0.7
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 72,
+              "score": 72.0,
               "weight": 0.3
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2008",
@@ -200,16 +228,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 94,
+              "score": 94.0,
               "weight": 0.7
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 75,
+              "score": 75.0,
               "weight": 0.3
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         },
         {
           "productId": "prd_2009",
@@ -222,16 +254,20 @@
             {
               "key": "personalization",
               "label": "내 피부 적합",
-              "score": 89,
+              "score": 89.0,
               "weight": 0.7
             },
             {
               "key": "price_value",
               "label": "가격 대비 가치",
-              "score": 74,
+              "score": 74.0,
               "weight": 0.3
             }
-          ]
+          ],
+          "badges": [],
+          "reason": null,
+          "change": null,
+          "rankDelta": null
         }
       ],
       "overBudgetReason": "주름 개선 성분이 들어간 조합만 모으면 예산을 1만 2천원 넘습니다."
