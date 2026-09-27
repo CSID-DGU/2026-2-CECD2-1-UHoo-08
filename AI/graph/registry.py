@@ -97,9 +97,21 @@ ROUTE: dict[RequestType, Scenario] = {
 }
 
 
-def full_path(scenario: str) -> tuple[str, ...]:
-    """빌더가 실제로 조립할 단계 전부."""
+def full_path(scenario: str, *, use_env: bool = False) -> tuple[str, ...]:
+    """빌더가 실제로 조립할 단계 전부.
+
+    use_env 는 "요즘 날씨에 맞는" 같은 요청에서 켜진다. 그럴 때만 환경 집계를
+    앞에 끼운다. 항상 돌리면 환경을 따지지 않는 요청까지 4주 조회를 하게 되고,
+    그 비용이 가장 많이 쓰이는 조건 탐색 경로에 그대로 붙는다.
+    """
     if scenario not in SCENARIOS:
         raise KeyError(f"모르는 시나리오: {scenario}")
+
+    단계들 = SCENARIOS[scenario]
+    if use_env and "env_history" not in 단계들:
+        # 후보를 만들기 전에 끼운다. retrieve 가 환경에서 번역된 조건을 함께 본다.
+        기준 = 단계들.index("retrieve") if "retrieve" in 단계들 else 0
+        단계들 = 단계들[:기준] + ("env_history",) + 단계들[기준:]
+
     앞단 = () if scenario in HOME_SCENARIOS else SEARCH_ENTRY
-    return 앞단 + SCENARIOS[scenario] + COMMON_EXIT
+    return 앞단 + 단계들 + COMMON_EXIT

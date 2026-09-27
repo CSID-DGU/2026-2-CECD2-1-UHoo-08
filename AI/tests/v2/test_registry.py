@@ -89,3 +89,17 @@ def test_전체_경로는_guard로_끝난다(시나리오):
 def test_모르는_시나리오는_예외다():
     with pytest.raises(KeyError):
         full_path("S9_NOPE")
+
+
+def test_환경_요청이면_집계_단계가_앞에_끼워진다():
+    """use_env 가 아닐 때까지 4주 조회를 하면, 가장 많이 쓰이는 경로에
+    쓰지도 않을 비용이 붙는다."""
+    기본 = full_path("S2_SEARCH")
+    환경 = full_path("S2_SEARCH", use_env=True)
+    assert "env_history" not in 기본
+    assert 환경.index("env_history") < 환경.index("retrieve")
+
+
+def test_이미_환경_단계가_있으면_두_번_넣지_않는다():
+    경로 = full_path("HOME_ENV", use_env=True)
+    assert 경로.count("env_history") == 1
