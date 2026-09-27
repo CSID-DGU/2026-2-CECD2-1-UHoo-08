@@ -32,6 +32,14 @@ public class AiInternalClient {
     private static final Duration SYNC_TIMEOUT = Duration.ofSeconds(30);
     /** 사진 두 장을 읽는 호출이라 조금 더 준다. */
     private static final Duration RECOGNIZE_TIMEOUT = Duration.ofSeconds(60);
+    /**
+     * 비동기 호출에서 202 를 기다리는 시간.
+     *
+     * 실행이 끝나기를 기다리는 것이 아니라 "받았다"는 응답만 기다리므로 짧다.
+     * 이 제한이 없으면 AI 가 연결만 받고 응답하지 않을 때 구독이 무기한 살아
+     * 있고, job 마다 호출되므로 쌓이면 커넥션이 마른다.
+     */
+    private static final Duration ASYNC_ACK_TIMEOUT = Duration.ofSeconds(10);
 
     private final WebClient webClient;
 
@@ -92,6 +100,7 @@ public class AiInternalClient {
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(Accepted.class)
+                .timeout(ASYNC_ACK_TIMEOUT)
                 .subscribe(
                         accepted -> {
                             if (accepted != null && accepted.stub()) {
