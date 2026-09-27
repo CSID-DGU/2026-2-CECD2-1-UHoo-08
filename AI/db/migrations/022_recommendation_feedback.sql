@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS recommendation_feedback (
   id          BIGSERIAL PRIMARY KEY,
   job_id      UUID        NOT NULL REFERENCES recommendation_jobs (id) ON DELETE CASCADE,
   user_id     UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  product_id  UUID        NOT NULL REFERENCES products (id) ON DELETE CASCADE,
+  product_id  UUID        NOT NULL REFERENCES products (product_id) ON DELETE CASCADE,
   vote        VARCHAR(4)  NOT NULL CHECK (vote IN ('UP', 'DOWN')),
   reason_tags TEXT[]      NOT NULL DEFAULT '{}',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
