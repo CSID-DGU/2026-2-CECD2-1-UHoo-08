@@ -11,6 +11,7 @@
 -- 같은 뜻의 컬럼을 하나 더 두면 두 값이 언제든 어긋난다.
 --
 --   VIEWED      조회 이력. 보유가 아니다
+--   INTERESTED  위시리스트. 아직 가진 것이 아니다
 --   USING       쓰고 있다
 --   ONBOARDING  온보딩에서 등록했다. 쓰고 있는 것으로 본다
 --   USED        다 썼다
@@ -19,8 +20,8 @@
 -- Inventory 와 PreFilter 는 USING·ONBOARDING 만 읽는다.
 
 COMMENT ON COLUMN user_products.usage_type IS
-  'VIEWED(조회 이력)|USING|ONBOARDING|USED|DISCARDED. '
-  '보유 제품은 USING·ONBOARDING 이다. VIEWED 는 보유가 아니다';
+  'VIEWED(조회 이력)|INTERESTED(위시리스트)|USING|ONBOARDING|USED|DISCARDED. '
+  '지금 보유한 것은 USING·ONBOARDING 뿐이다. VIEWED 와 INTERESTED 는 보유가 아니다';
 
 ALTER TABLE user_products
     ADD COLUMN IF NOT EXISTS expiry_date     DATE,

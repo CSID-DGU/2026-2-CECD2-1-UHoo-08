@@ -14,9 +14,12 @@ import s2Search from "./s2_search.json";
 import s6Bundle from "./s6_bundle.json";
 import s7Refine from "./s7_refine.json";
 
-// JSON 을 import 하면 "ENV" 같은 값이 string 으로 추론돼 유니온 타입과 맞지 않는다.
-// 좁히는 방향의 단언이라 구조가 틀리면 여기서 걸린다. unknown 을 거치지 않는
-// 이유가 그것이다. 값이 실제로 맞는지는 AI 쪽 테스트가 검사한다.
+// JSON 을 import 하면 "ENV" 같은 값이 string 으로 추론돼 유니온 타입과 맞지 않아
+// 단언이 필요하다. 좁히는 방향의 단언이라 필드가 빠지면 여기서 걸리지만,
+// scenario 나 배지 종류가 잘못된 값인지까지는 tsc 가 보지 못한다.
+// 그쪽은 AI/tests/v2/test_result_mocks.py 가 스키마로 검사한다.
+//
+// 단언한 값에 satisfies 를 붙여 봐야 단언된 타입만 다시 볼 뿐이라 쓰지 않는다.
 export const recommendationV2Mocks = {
   s1Evaluate: s1Evaluate as RecommendationResult,
   s2Search: s2Search as RecommendationResult,
@@ -25,4 +28,4 @@ export const recommendationV2Mocks = {
   homeRoutine: homeRoutine as RecommendationResult,
   homeEnv: homeEnv as RecommendationResult,
   clarify: clarify as RecommendationResult,
-} satisfies Record<string, RecommendationResult>;
+};
