@@ -69,8 +69,9 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
                 .build();
         registered = registeredRepository.save(registered);
 
-        // 4. user_products 저장 (중복이면 SKIP)
-        if (!userProductRepository.existsByUserIdAndProductId(userId, product.getId())) {
+        // 4. user_products 저장. 다 썼거나 버렸던 제품이면 그 행을 되살린다.
+        userProductRepository.reactivateOwnedProduct(userId, product.getId());
+        if (!userProductRepository.existsOwnedByUserIdAndProductId(userId, product.getId())) {
             UserProduct userProduct = UserProduct.builder()
                     .userId(userId)
                     .productId(product.getId())
@@ -112,7 +113,8 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
                 saved++;
             }
 
-            if (!userProductRepository.existsByUserIdAndProductId(userId, productId)) {
+            userProductRepository.reactivateOwnedProduct(userId, productId);
+            if (!userProductRepository.existsOwnedByUserIdAndProductId(userId, productId)) {
                 userProductRepository.save(UserProduct.builder()
                         .userId(userId)
                         .productId(productId)
@@ -132,6 +134,6 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
 
         UUID productId = registered.getProduct().getId();
         registeredRepository.delete(registered);
-        userProductRepository.deleteByUserIdAndProductId(userId, productId);
+        userProductRepository.deleteOwnedByUserIdAndProductId(userId, productId);
     }
 }
