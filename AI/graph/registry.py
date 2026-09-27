@@ -11,36 +11,46 @@ from contracts.scenario import Scenario
 
 # 그래프 안에서 쓰는 노드 전부. 여기 없는 이름을 배열에 적으면 테스트가 막는다.
 # 오타로 만들어진 단계가 조용히 건너뛰어지는 일을 없애기 위해서다.
-KNOWN_NODES: frozenset[str] = frozenset({
+# 그래프 안에서 쓰는 노드 전부와, 진행 중에 화면에 보일 문구.
+# 여기 없는 이름을 배열에 적으면 테스트가 막는다. 오타로 만들어진 단계가
+# 조용히 건너뛰어지는 일을 없애기 위해서다.
+#
+# 문구를 노드 이름 옆에 두는 이유는 둘이 항상 같이 늘기 때문이다. 표를 나누면
+# 노드를 추가하고 문구를 빠뜨려 화면에 영문 함수 이름이 뜬다.
+NODE_LABELS: dict[str, str] = {
     # 공통 관문
-    "normalize", "router", "clarify",
+    "normalize": "요청 이해",
+    "router": "경로 결정",
+    "clarify": "되묻는 중",
     # 후보 만들기
-    "retrieve",      # 조건 필터 + 임베딩 검색
-    "discovery",     # 기준 상품 해석 (사진·URL·상품명 → 상품)
-    "inventory",     # 보유 제품 로드, 성분 표준명 정규화
-    "prefilter",     # 보유 제품 제외, 성분 충돌 제외·배지
+    "retrieve": "조건에 맞는 상품 찾기",
+    "discovery": "기준 상품 확인",
+    "inventory": "보유 제품 불러오기",
+    "prefilter": "이미 가진 것·충돌 거르기",
     # 점수
-    "score",         # 가중치 보정까지 하는 전체 계산
-    "score_lite",    # prior 만 쓰는 약식 검증. 추가된 후보를 거를 때 쓴다
+    "score": "적합도 계산",
+    "score_lite": "추가 후보 검증",
     # 후보 넓히기
-    "alternative",   # 기능이 비슷한 대체 제품
-    "collaborative", # 비슷한 조건의 사용자가 고른 제품
+    "alternative": "대체 제품 찾기",
+    "collaborative": "비슷한 사람들의 선택 보기",
     # 조건 수정
-    "refine",        # 수정 조건 병합, 재탐색인지 재정렬인지 판단
-    "rerank",        # 기존 후보를 다시 정렬만 한다
+    "refine": "수정 조건 반영",
+    "rerank": "다시 정렬",
     # 홈·부품
-    "env_history",   # 4주 환경 집계, 제품 조건으로 번역
-    "coverage",      # 보유 제품이 환경 조건을 채우는지 판정
-    "compatibility", # 보유 제품끼리의 성분 충돌 점검
-    "budget",        # 예산·구성 단계 해석
-    "bundle",        # 예산 안에서 조합 탐색
-    "depletion",     # 소진·변질 시점 예측
-    "price",         # 재구매 가격 시점 판단
+    "env_history": "최근 환경 살펴보기",
+    "coverage": "부족한 기능 확인",
+    "compatibility": "성분 궁합 점검",
+    "budget": "예산 나누기",
+    "bundle": "조합 만들기",
+    "depletion": "소진 시점 예측",
+    "price": "재구매 시점 판단",
     # 출구
-    "compose",       # 공통 결과 JSON 조립
-    "guard",         # 단정·진단성 표현 걸러내기
-    "planner",       # 단계 추가·제거 제안
-})
+    "compose": "결과 정리",
+    "guard": "표현 점검",
+    "planner": "경로 조정",
+}
+
+KNOWN_NODES: frozenset[str] = frozenset(NODE_LABELS)
 
 # 검색창에서 시작하는 시나리오가 공통으로 거치는 앞단.
 # 되묻기(clarify)는 필요할 때만 끼므로 여기 넣지 않는다.
