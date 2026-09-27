@@ -18,21 +18,39 @@
 --   보유 제품으로는 잡히지 않는 상태다. 아래 INSERT 가 그 행을 채우고,
 --   같은 일이 다시 생기지 않게 BE 중복 검사도 함께 고친다.
 
--- 한 사용자·한 상품에 조회 이력 한 줄과 보유 한 줄까지는 있어야 한다.
--- (user_id, product_id) 전체에 걸린 유니크가 남아 있으면 아래 INSERT 가
--- 바로 막히므로, 두 갈래로 나눈 부분 유니크로 바꾼다.
+-- 한 사용자·한 상품에 용도가 다른 줄이 함께 있을 수 있다. 조회 이력 한 줄,
+-- 위시리스트 한 줄, 보유 이력 한 줄이다. (user_id, product_id) 전체에 걸린
+-- 유니크가 남아 있으면 아래 INSERT 가 바로 막히므로 용도별로 나눈다.
+--
+-- 보유 이력은 USING·ONBOARDING·USED·DISCARDED 를 한 묶음으로 본다. 같은
+-- 제품을 쓰다 버리고 다시 사는 일은 있어도, 그 기록이 두 줄로 갈라지면
+-- 그동안 쌓인 측정 이력이 어느 줄에 붙었는지 알 수 없게 된다.
 ALTER TABLE user_products
     DROP CONSTRAINT IF EXISTS user_products_user_id_product_id_key;
 
 CREATE UNIQUE INDEX IF NOT EXISTS user_products_owned_once
     ON user_products (user_id, product_id)
-    WHERE usage_type <> 'VIEWED';
+    WHERE usage_type IN ('USING', 'ONBOARDING', 'USED', 'DISCARDED');
 
 CREATE UNIQUE INDEX IF NOT EXISTS user_products_viewed_once
     ON user_products (user_id, product_id)
     WHERE usage_type = 'VIEWED';
 
--- registered_products 에 있는데 보유 행이 없는 것을 채운다.
+CREATE UNIQUE INDEX IF NOT EXISTS user_products_interested_once
+    ON user_products (user_id, product_id)
+    WHERE usage_type = 'INTERESTED';
+
+-- 위시리스트에 담아 둔 것을 등록했다면 그 줄을 보유로 올린다.
+-- 새 줄을 만들면 위시리스트에 그대로 남아 이미 산 제품이 계속 보인다.
+UPDATE user_products up
+SET usage_type = 'USING',
+    updated_at = NOW()
+FROM registered_products rp
+WHERE rp.user_id = up.user_id
+  AND rp.product_id = up.product_id
+  AND up.usage_type = 'INTERESTED';
+
+-- registered_products 에 있는데 보유 이력이 없는 것을 채운다.
 -- USED·DISCARDED 행이 있으면 건드리지 않는다. 다 썼거나 버렸다는 것이
 -- 등록했다는 사실보다 나중의 정보다.
 INSERT INTO user_products (user_id, product_id, usage_type, created_at, updated_at)
@@ -42,7 +60,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM user_products up
     WHERE up.user_id = rp.user_id
       AND up.product_id = rp.product_id
-      AND up.usage_type <> 'VIEWED'
+      AND up.usage_type IN ('USING', 'ONBOARDING', 'USED', 'DISCARDED')
 );
 
 -- registered_products 는 지우지 않는다. 온보딩 화면이 아직 이 테이블을 읽고
