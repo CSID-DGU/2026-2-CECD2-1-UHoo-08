@@ -13,7 +13,7 @@ async 서버(FastAPI) 안에서 그대로 쓰면 전체 흐름이 막힐 수 있
     from services.job_updater import update
 
     await update(job_id, step="후보 탐색", progress=25, status="IN_PROGRESS")
-    await update(job_id, step="루틴 생성", progress=100, status="COMPLETED")
+    await update(job_id, step="루틴 생성", progress=100, status="COMPLETED", result={...})
     await update(job_id, status="FAILED", error_msg="...")
 """
 import asyncio
@@ -29,6 +29,7 @@ async def update(
     progress: Optional[int] = None,
     status: Optional[str] = None,
     error_msg: Optional[str] = None,
+    result: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     recommendation_jobs row를 부분 갱신.
@@ -45,6 +46,8 @@ async def update(
         payload["status"] = status
     if error_msg is not None:
         payload["error_msg"] = error_msg
+    if result is not None:
+        payload["result"] = result
 
     def _do_update():
         sb = get_supabase()
