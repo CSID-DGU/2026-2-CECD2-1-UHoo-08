@@ -60,5 +60,9 @@ class GraphState(TypedDict, total=False):
     clarify_question: str | None
     # 되묻기는 1회까지. 답변이 와도 부족하면 그대로 진행한다.
     clarify_count: int
+    # 되물은 질문에 대한 사용자의 답. Normalize 가 원래 질의와 함께 읽는다.
+    # 원래 질의에 이어 붙이지 않는 이유는, 그러면 화면에 보여줄 질의가
+    # 뒤섞이고 무엇이 사용자의 처음 말이었는지 남지 않기 때문이다.
+    clarify_answer: str | None
     # 지나간 노드 이름. 디버깅과 플래너가 쓴다.
     trace: list[str]

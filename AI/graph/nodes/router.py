@@ -9,6 +9,9 @@ LLM 을 부르지 않는다. 같은 값이면 언제나 같은 경로로 가야 
 되물을지도 여기서 정한다. 무엇이 비었는지는 QuerySpec 이 알고 있으므로
 질문도 규칙으로 만든다. 문장을 LLM 에 맡기면 같은 상황에서 매번 다른 것을
 묻게 되고, 골든셋으로 잴 수 없다.
+
+물을 것이 없으면 clarify_question 에 None 을 적는다. 비워 두면 앞서 물었던
+질문이 상태에 남아, 답을 받아 다시 돌 때 같은 자리에서 또 멈춘다.
 """
 from __future__ import annotations
 
@@ -57,7 +60,7 @@ async def router(state: GraphState) -> dict:
         logger.info("router: 수정할 직전 결과가 없다. 새 검색으로 돈다.")
         시나리오 = 기본_시나리오
 
-    나감: dict = {"scenario": 시나리오}
+    나감: dict = {"scenario": 시나리오, "clarify_question": None}
 
     if not needs_clarification(spec):
         return 나감

@@ -1,6 +1,6 @@
 """질의를 QuerySpec 으로 옮긴다.
 
-READS:  raw_query
+READS:  raw_query, clarify_question, clarify_answer
 WRITES: query_spec
 
 LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한다(router).
@@ -36,6 +36,19 @@ def _빈_스펙(raw_query: str) -> QuerySpec:
     return QuerySpec(request_type=RequestType.SEARCH, conditions=[raw_query], confidence=0.0)
 
 
+def _사용자_말(state: GraphState, raw: str) -> str:
+    """되물었다면 무엇을 물었고 뭐라 답했는지까지 같이 넘긴다.
+
+    답만 주면 "10만원" 같은 말이 무슨 뜻인지 알 수 없다. 원래 질의에 이어
+    붙이면 화면에 보여줄 질의가 뒤섞인다. 그래서 따로 적어 함께 준다.
+    """
+    답 = (state.get("clarify_answer") or "").strip()
+    if not 답:
+        return raw
+    질문 = (state.get("clarify_question") or "").strip()
+    return f"원래 질의: {raw}\n되물은 것: {질문}\n사용자의 답: {답}"
+
+
 async def normalize(state: GraphState) -> dict:
     raw = (state.get("raw_query") or "").strip()
     if not raw:
@@ -46,9 +59,10 @@ async def normalize(state: GraphState) -> dict:
     from services.llm import LLMRole, get_llm
 
     llm = get_llm(LLMRole.NORMALIZE)
+    사용자_말 = _사용자_말(state, raw)
 
     for 시도 in range(1, _최대_시도 + 1):
-        원본 = await llm.chat_json(system=QUERY_NORMALIZE_SYSTEM, user=raw)
+        원본 = await llm.chat_json(system=QUERY_NORMALIZE_SYSTEM, user=사용자_말)
         if 원본 is None:
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue

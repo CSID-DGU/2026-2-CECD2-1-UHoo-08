@@ -24,12 +24,13 @@ def _실행하지_않는다(monkeypatch):
 
     TestClient 는 응답을 돌려준 뒤 배경 작업까지 실행한다. 추천 실행은 DB 를
     쓰므로 여기서 돌면 키가 필요해지고, CI 에서는 그것만으로 테스트가 깨진다.
-    실행 자체는 test_agent_run.py 가 따로 본다.
+    실행 자체는 test_agent_run.py 와 test_clarify.py 가 따로 본다.
     """
     async def 아무것도(req):
         return None
 
     monkeypatch.setattr(agent, "_실행", 아무것도)
+    monkeypatch.setattr(agent, "_이어_돌리기", 아무것도)
 
 # docs/internal-api.md 와 같은 목록이다.
 POST_경로 = [
