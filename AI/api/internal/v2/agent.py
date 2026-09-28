@@ -11,10 +11,9 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, status
 
-from contracts.internal_api import Accepted, AgentClarifyRequest, AgentRunV2Request
-from contracts.query_spec import QuerySpec, RequestType
+from contracts.internal_api import Accepted, AgentClarifyRequest, AgentRunV2Request, JobStatus
+from contracts.result import Clarify, QuerySummary, RecommendationResult
 from graph import builder
-from graph.registry import ROUTE
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,31 +32,22 @@ def _결과를_만들_수_있나() -> bool:
 async def _실행(req: AgentRunV2Request) -> None:
     from services import job_updater
 
-    # TODO: Normalize·Router 가 들어오면 여기서 질의를 해석해 시나리오를 고른다.
-    #       그때까지는 모든 요청을 조건 탐색으로 보낸다.
-    spec = QuerySpec(
-        request_type=RequestType.SEARCH,
-        conditions=[req.raw_query],
-        target=req.basis,
-    )
-    시나리오 = ROUTE[RequestType.SEARCH]
-
     async def 진행(문구: str, 비율: int) -> None:
         await job_updater.update(
-            req.job_id, step=문구, progress=비율, status="IN_PROGRESS"
+            req.job_id, step=문구, progress=비율, status=JobStatus.IN_PROGRESS.value
         )
 
     async def 실패(e: Exception) -> None:
-        await job_updater.update(req.job_id, status="FAILED", error_msg=str(e))
+        await job_updater.update(
+            req.job_id, status=JobStatus.FAILED.value, error_msg=str(e)
+        )
 
     try:
-        결과 = await builder.run_scenario(
-            시나리오,
+        결과 = await builder.run_query(
             {
                 "job_id": req.job_id,
                 "user_id": req.user_id,
                 "raw_query": req.raw_query,
-                "query_spec": spec.model_dump(mode="json"),
                 "target_profile": req.target_profile,
                 "parent_job_id": req.parent_job_id,
             },
@@ -68,12 +58,44 @@ async def _실행(req: AgentRunV2Request) -> None:
         # 실패 기록은 on_fail 이 이미 남겼다. 배경 작업이라 올려도 받을 곳이 없다.
         return
 
+    질문 = 결과.get("clarify_question")
+    if 질문:
+        # 되묻는 중은 실패가 아니다. job 을 멈춘 채로 두고 답을 기다린다.
+        # 답이 오면 /agent/clarify 가 이어서 돌린다.
+        await job_updater.update(
+            req.job_id,
+            status=JobStatus.NEEDS_CLARIFICATION.value,
+            step="되묻는 중",
+            result=_되묻는_결과(req, 결과, 질문),
+        )
+        return
+
     await job_updater.update(
         req.job_id,
-        status="COMPLETED",
+        status=JobStatus.COMPLETED.value,
         progress=100,
         result=결과.get("result") or {},
     )
+
+
+def _되묻는_결과(req: AgentRunV2Request, 상태: dict, 질문: str) -> dict:
+    """화면이 그대로 그릴 수 있는 모양으로 질문을 담는다.
+
+    별도 필드로 내보내지 않고 결과 스키마의 clarify 자리를 쓴다. FE 가
+    결과를 읽는 경로 하나만 알면 되도록 하려는 것이다.
+    """
+    spec = 상태.get("query_spec") or {}
+    return RecommendationResult(
+        job_id=req.job_id,
+        scenario=상태.get("scenario") or builder.기본_시나리오(),
+        query=QuerySummary(
+            raw=req.raw_query,
+            category=spec.get("category"),
+            conditions=spec.get("conditions") or [],
+            target=req.basis,
+        ),
+        clarify=Clarify(question=질문),
+    ).model_dump(mode="json", by_alias=True)
 
 
 @router.post("/agent/run/v2", status_code=status.HTTP_202_ACCEPTED)
