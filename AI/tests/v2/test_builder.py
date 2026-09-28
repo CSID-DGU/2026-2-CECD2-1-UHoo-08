@@ -29,10 +29,10 @@ async def test_아직_없는_노드임을_trace에_표시한다():
 async def test_기본은_관문을_건너뛴다():
     """QuerySpec 을 직접 넣어 원하는 경로만 확인하는 것이 이 함수의 쓰임이다."""
     결과 = await run_scenario("S2_SEARCH")
-    assert "normalize(stub)" not in 결과["trace"]
+    assert not any(단계.startswith("normalize") for 단계 in 결과["trace"])
 
     포함 = await run_scenario("S2_SEARCH", include_entry=True)
-    assert 포함["trace"][0] == "normalize(stub)"
+    assert 포함["trace"][0].startswith("normalize")
 
 
 @pytest.mark.asyncio
