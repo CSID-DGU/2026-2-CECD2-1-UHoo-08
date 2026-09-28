@@ -23,11 +23,16 @@ class 가짜기록:
 
 @pytest.fixture
 def 기록(monkeypatch):
+    import services
+
     가짜 = 가짜기록()
-    monkeypatch.setitem(
-        sys.modules, "services.job_updater",
-        types.SimpleNamespace(update=가짜.update),
-    )
+    모듈 = types.SimpleNamespace(update=가짜.update)
+
+    # sys.modules 만 바꾸면 모자란다. 다른 테스트가 먼저 진짜 모듈을 불러오면
+    # services 패키지에 속성이 붙고, `from services import job_updater` 는
+    # 그 속성을 먼저 본다. 그때는 진짜 모듈이 돌아 DB 를 찌른다.
+    monkeypatch.setitem(sys.modules, "services.job_updater", 모듈)
+    monkeypatch.setattr(services, "job_updater", 모듈, raising=False)
     return 가짜
 
 

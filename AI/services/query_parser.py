@@ -8,13 +8,14 @@ input_agent.text_parser와 구분:
 - text_parser : "라네즈 네오쿠션 21호" → 특정 상품 식별 (입력 파이프라인, LLM/VLM)
 - query_parser: "여름 가벼운 쿠션" or "라네즈 네오쿠션 21호" → 검색 의도 해석 (추천 파이프라인, 본 모듈)
 
-Qwen 호출은 공통 qwen_client를 재사용한다.
+LLM 호출은 services.llm 의 normalize 역할을 쓴다. 질의를 규격화하는 일이라
+형식을 정확히 지키는 것이 중요하고, 그래서 이 역할만 따로 모델을 올려 볼 수 있다.
 """
 from typing import Any, Dict, Optional, TypedDict
 
 from prompts.intent_classification import INTENT_CLASSIFICATION_SYSTEM
 from prompts.query_extraction import QUERY_EXTRACTION_SYSTEM
-from services.qwen_client import get_qwen_llm
+from services.llm import LLMRole, get_llm
 
 _VALID_CATEGORIES = {"base", "sun", "lip", "skincare"}
 _VALID_INTENTS = {"PRODUCT_NAME", "RECOMMENDATION"}
@@ -34,7 +35,7 @@ async def classify_intent(query: str) -> str:
     if not query or not query.strip():
         return "RECOMMENDATION"
 
-    llm = get_qwen_llm()
+    llm = get_llm(LLMRole.NORMALIZE)
     try:
         result = await llm.chat_json(system=INTENT_CLASSIFICATION_SYSTEM, user=query)
     except Exception:
@@ -60,7 +61,7 @@ async def parse_query(query: str) -> ParsedQuery:
     if not query or not query.strip():
         return ParsedQuery(category=None, features={})
 
-    llm = get_qwen_llm()
+    llm = get_llm(LLMRole.NORMALIZE)
     try:
         result = await llm.chat_json(system=QUERY_EXTRACTION_SYSTEM, user=query)
     except Exception:

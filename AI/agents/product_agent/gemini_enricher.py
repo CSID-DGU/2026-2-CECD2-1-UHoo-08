@@ -7,6 +7,9 @@ from config import settings
 from models.extracted_product import ExtractedProduct
 from prompts.gemini_extraction import build_prompt
 
+# TODO(llm): services.llm 은 OpenAI 호환 채팅만 다룬다. 이쪽은 google_search 도구를
+#            함께 넘기는 호출이라 같은 래퍼에 넣으면 둘 다 어색해진다. 웹 검색을
+#            쓰는 호출을 따로 묶을 때 같이 정리한다.
 def _make_client(temperature: float) -> ChatGoogleGenerativeAI:
     # 요구하는 JSON이 가격·리뷰·성분·feature까지 한 덩어리라 기본 출력 한도로는
     # 문장 중간에서 잘린다("Unterminated string"). 넉넉히 잡는다.

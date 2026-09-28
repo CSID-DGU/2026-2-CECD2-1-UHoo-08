@@ -6,7 +6,7 @@ import pytest
 class TestScoreAgent:
     @pytest.mark.asyncio
     @patch("agents.score_agent.review_scorer.match_reviews")
-    @patch("agents.score_agent.get_qwen_llm")
+    @patch("agents.score_agent.get_llm")
     @patch("agents.score_agent.get_features")
     @patch("agents.score_agent.get_insights")
     async def test_run_score_full_flow(
@@ -65,7 +65,7 @@ class TestScoreAgent:
 
     @pytest.mark.asyncio
     @patch("agents.score_agent.review_scorer.match_reviews")
-    @patch("agents.score_agent.get_qwen_llm")
+    @patch("agents.score_agent.get_llm")
     @patch("agents.score_agent.get_features")
     @patch("agents.score_agent.get_insights")
     async def test_llm_failure_uses_default_weights(

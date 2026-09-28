@@ -49,6 +49,8 @@ _UA = (
 
 def _candidate_pages(brand: str, name: str, limit: int = 8) -> List[str]:
     """Gemini 검색 그라운딩이 실제로 인용한 페이지 URL 목록."""
+    # TODO(llm): 웹 검색 그라운딩을 쓰는 호출이라 services.llm 의 채팅 래퍼에
+    #            맞지 않는다. 이런 호출을 따로 묶을 때 같이 정리한다.
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     try:
         response = client.models.generate_content(

@@ -24,7 +24,7 @@ from prompts.weight_adjustment import (
     WEIGHT_ADJUSTMENT_SYSTEM,
     build_weight_adjustment_user_prompt,
 )
-from services.qwen_client import get_qwen_llm
+from services.llm import LLMRole, get_llm
 from services.weight_validator import validate_and_normalize
 
 
@@ -73,8 +73,8 @@ async def run_score(
             prices.sort()
             target_price = prices[len(prices) // 2]
 
-    # 2. 가중치 보정 (Qwen-Plus 호출)
-    llm = get_qwen_llm()
+    # 2. 가중치 보정
+    llm = get_llm(LLMRole.WEIGHT)
     raw_weights = await llm.chat_json(
         system=WEIGHT_ADJUSTMENT_SYSTEM,
         user=build_weight_adjustment_user_prompt(
