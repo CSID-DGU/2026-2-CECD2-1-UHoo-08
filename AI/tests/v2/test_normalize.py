@@ -98,3 +98,44 @@ async def test_빈_질의는_부르지도_않는다(LLM세우기):
     나온 = await 모듈.normalize({"raw_query": "   "})
     assert 가짜.호출 == 0
     assert 나온["query_spec"]["confidence"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_되물은_답을_원래_질의와_함께_읽는다(LLM세우기):
+    """답만 주면 "10만원" 같은 말이 무슨 뜻인지 알 수 없다."""
+    받은 = {}
+
+    class 기록하는LLM(가짜LLM):
+        async def chat_json(self, system, user, **kwargs):
+            받은["user"] = user
+            return await super().chat_json(system, user, **kwargs)
+
+    가짜 = LLM세우기([_제대로])
+    가짜.__class__ = 기록하는LLM
+
+    await 모듈.normalize({
+        "raw_query": "스킨케어 세트 짜줘",
+        "clarify_question": "전체 예산이 얼마인가요?",
+        "clarify_answer": "10만원",
+    })
+
+    assert "스킨케어 세트 짜줘" in 받은["user"]
+    assert "전체 예산" in 받은["user"]
+    assert "10만원" in 받은["user"]
+
+
+@pytest.mark.asyncio
+async def test_답이_없으면_질의만_넘긴다(LLM세우기):
+    """원래 질의에 군더더기가 붙으면 모델이 그것까지 조건으로 읽는다."""
+    받은 = {}
+
+    class 기록하는LLM(가짜LLM):
+        async def chat_json(self, system, user, **kwargs):
+            받은["user"] = user
+            return await super().chat_json(system, user, **kwargs)
+
+    가짜 = LLM세우기([_제대로])
+    가짜.__class__ = 기록하는LLM
+
+    await 모듈.normalize({"raw_query": "여름 쿠션"})
+    assert 받은["user"] == "여름 쿠션"
