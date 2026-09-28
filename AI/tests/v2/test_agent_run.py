@@ -15,6 +15,7 @@ from contracts.internal_api import AgentRunV2Request
 class 가짜기록:
     def __init__(self):
         self.호출: list[dict] = []
+        self.스냅샷: dict | None = None
 
     async def update(self, job_id, **kwargs):
         self.호출.append({"job_id": job_id, **kwargs})
@@ -36,6 +37,14 @@ def 기록(monkeypatch):
     # 그 속성을 먼저 본다. 그때는 진짜 모듈이 돌아 DB 를 찌른다.
     monkeypatch.setitem(sys.modules, "services.job_updater", 모듈)
     monkeypatch.setattr(services, "job_updater", 모듈, raising=False)
+
+    # 되묻는 경우에는 멈춘 시점의 상태도 남긴다. 진짜를 두면 DB 를 찌른다.
+    async def 저장(job_id, snapshot):
+        가짜.스냅샷 = snapshot
+
+    저장소 = types.SimpleNamespace(save_snapshot=저장)
+    monkeypatch.setitem(sys.modules, "services.job_store", 저장소)
+    monkeypatch.setattr(services, "job_store", 저장소, raising=False)
     return 가짜
 
 

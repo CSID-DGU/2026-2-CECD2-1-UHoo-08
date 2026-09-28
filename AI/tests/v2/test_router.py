@@ -31,7 +31,7 @@ async def test_요청_유형이_경로를_정한다(유형, 기대):
     나옴 = await router({"query_spec": _스펙(request_type=유형, **채움),
                         "parent_job_id": "j0"})
     assert 나옴["scenario"] == 기대
-    assert "clarify_question" not in 나옴
+    assert 나옴["clarify_question"] is None
 
 
 @pytest.mark.asyncio
@@ -66,7 +66,7 @@ async def test_막연한_질의는_조건을_더_묻는다():
 async def test_이미_한_번_물었으면_그냥_진행한다():
     """계속 물으면 사용자는 결과를 영영 보지 못한다."""
     나옴 = await router({"query_spec": _스펙(confidence=0.1), "clarify_count": 1})
-    assert 나옴 == {"scenario": "S2_SEARCH"}
+    assert 나옴 == {"scenario": "S2_SEARCH", "clarify_question": None}
 
 
 @pytest.mark.asyncio
@@ -75,7 +75,7 @@ async def test_수정할_직전_결과가_없으면_새_검색으로_돈다():
     없다. 사용자에게 물어볼 일은 아니다."""
     나옴 = await router({"query_spec": _스펙(request_type=RequestType.REFINE)})
     assert 나옴["scenario"] == "S2_SEARCH"
-    assert "clarify_question" not in 나옴
+    assert 나옴["clarify_question"] is None
 
 
 @pytest.mark.asyncio
@@ -90,3 +90,13 @@ async def test_해석하지_못한_질의는_되묻는다():
     """Normalize 가 두 번 실패하면 확신도 0 으로 내보낸다."""
     나옴 = await router({"query_spec": _스펙(confidence=0.0)})
     assert 나옴["clarify_question"]
+
+
+@pytest.mark.asyncio
+async def test_물을_것이_없으면_이전_질문을_지운다():
+    """되물었다가 답을 받아 다시 도는 경우다. 남겨 두면 같은 자리에서 또 멈춘다."""
+    나옴 = await router({
+        "query_spec": _스펙(category="skincare"),
+        "clarify_question": "전체 예산이 얼마인가요?",
+    })
+    assert 나옴["clarify_question"] is None
