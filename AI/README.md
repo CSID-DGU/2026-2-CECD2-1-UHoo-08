@@ -96,6 +96,31 @@ async def env_fit(products: list[dict], ctx: ScoreContext) -> dict[str, float | 
 빠뜨린 `product_id` 는 `None` 으로 본다. 정확한 계약은 `contracts/score.py` 의
 `Scorer` 를 본다.
 
+## LLM 호출
+
+모델 이름을 부르는 쪽에 두지 않는다. 역할로 부른다.
+
+```python
+from services.llm import LLMRole, get_llm
+
+llm = get_llm(LLMRole.NORMALIZE)
+spec = await llm.chat_json(system=..., user=...)
+```
+
+| 역할 | 쓰임 |
+| --- | --- |
+| `normalize` | 질의 → QuerySpec |
+| `weight` | 점수 가중치 보정 |
+| `compose` | 추천 이유 문장 |
+| `vlm` | 사진 인식 |
+
+역할마다 모델·주소·키를 환경 변수로 따로 정할 수 있다(`LLM_NORMALIZE_MODEL` 등).
+비워 두면 지금 쓰는 값이다. "이 역할만 상위 모델로 올리면 얼마나 좋아지는지"를
+코드를 고치지 않고 재 보기 위한 구조다.
+
+아직 옮기지 않은 곳은 `TODO(llm)` 으로 표시해 두었다. 웹 검색 도구를 함께
+넘기는 호출은 이 래퍼에 맞지 않아 그대로 둔다.
+
 ## rules 작성 규칙
 
 입력이 같으면 출력이 같아야 한다. LLM을 부르지 않는다.

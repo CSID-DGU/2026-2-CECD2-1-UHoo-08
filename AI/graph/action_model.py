@@ -12,6 +12,8 @@ if settings.LANGSMITH_API_KEY:
     os.environ.setdefault("LANGCHAIN_API_KEY", settings.LANGSMITH_API_KEY)
     os.environ.setdefault("LANGCHAIN_PROJECT", settings.LANGSMITH_PROJECT)
 
+# TODO(llm): 이 경로는 v2 그래프가 S1 을 대신하면 통째로 사라진다.
+#            그때까지는 그대로 둔다.
 _llm = ChatOpenAI(
     model=settings.QWEN_TEXT_MODEL,
     api_key=settings.DASHSCOPE_API_KEY,
