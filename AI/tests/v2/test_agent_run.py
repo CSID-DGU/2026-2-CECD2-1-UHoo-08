@@ -1,8 +1,7 @@
-"""/internal/agent/run/v2 가 그래프를 돌리고 job 을 갱신하는지 본다.
+"""/internal/agent/run/v2 가 실행 결과를 job 에 어떻게 남기는지 본다.
 
-job 갱신은 DB 를 쓰므로 가짜 모듈을 끼워 넣는다. 실행 함수가 DB 모듈을
-함수 안에서 import 하도록 만든 이유가 이것이다. 최상단에서 가져오면
-키 없이는 이 테스트 파일조차 열리지 않는다.
+그래프 자체는 test_builder 가 본다. 여기서는 "돌린 결과를 job 에 어떻게
+적느냐"만 확인한다. 그래서 실행은 가짜로 두고, 실제 LLM 을 부르지 않는다.
 """
 import sys
 import types
@@ -20,6 +19,10 @@ class 가짜기록:
     async def update(self, job_id, **kwargs):
         self.호출.append({"job_id": job_id, **kwargs})
 
+    @property
+    def 마지막(self) -> dict:
+        return self.호출[-1]
+
 
 @pytest.fixture
 def 기록(monkeypatch):
@@ -36,42 +39,77 @@ def 기록(monkeypatch):
     return 가짜
 
 
-@pytest.mark.asyncio
-async def test_그래프를_돌리고_완료로_남긴다(기록):
-    await agent._실행(AgentRunV2Request(job_id="j1", user_id="u1", raw_query="여름 쿠션"))
+@pytest.fixture
+def 실행대역(monkeypatch):
+    """run_query 를 가짜로 바꾼다. 진짜를 두면 LLM 을 실제로 부른다."""
+    def 세우기(반환=None, 예외=None):
+        받은: dict = {}
 
-    상태 = [c.get("status") for c in 기록.호출]
-    assert "IN_PROGRESS" in 상태
-    assert 상태[-1] == "COMPLETED"
-    assert 기록.호출[-1]["progress"] == 100
+        async def 가짜(initial=None, **kwargs):
+            받은.update(initial or {})
+            if 예외 is not None:
+                await kwargs["on_fail"](예외)
+                raise 예외
+            return {**(initial or {}), **(반환 or {})}
+
+        monkeypatch.setattr(agent.builder, "run_query", 가짜)
+        return 받은
+
+    return 세우기
 
 
-@pytest.mark.asyncio
-async def test_질의가_조건으로_들어간다(기록, monkeypatch):
-    """Normalize 가 들어오기 전까지는 원문을 조건으로 넘겨 경로를 태운다."""
-    받은: dict = {}
-
-    async def 가짜실행(scenario, initial=None, **kwargs):
-        받은.update({"scenario": scenario, "initial": initial})
-        return {"result": {}}
-
-    monkeypatch.setattr(agent.builder, "run_scenario", 가짜실행)
-    await agent._실행(AgentRunV2Request(job_id="j1", user_id="u1", raw_query="여름 쿠션"))
-
-    assert 받은["scenario"] == "S2_SEARCH"
-    assert 받은["initial"]["query_spec"]["conditions"] == ["여름 쿠션"]
+_요청 = AgentRunV2Request(job_id="j1", user_id="u1", raw_query="여름 쿠션")
 
 
 @pytest.mark.asyncio
-async def test_실패하면_FAILED로_남기고_삼킨다(기록, monkeypatch):
+async def test_끝나면_결과와_함께_완료로_남긴다(기록, 실행대역):
+    실행대역({"result": {"items": []}})
+    await agent._실행(_요청)
+
+    assert 기록.마지막["status"] == "COMPLETED"
+    assert 기록.마지막["progress"] == 100
+    assert 기록.마지막["result"] == {"items": []}
+
+
+@pytest.mark.asyncio
+async def test_질의를_그대로_넘긴다(기록, 실행대역):
+    받은 = 실행대역({"result": {}})
+    await agent._실행(_요청)
+    assert 받은["raw_query"] == "여름 쿠션"
+    assert 받은["job_id"] == "j1"
+
+
+@pytest.mark.asyncio
+async def test_되물어야_하면_멈춘_상태로_남긴다(기록, 실행대역):
+    """되묻는 중은 실패가 아니다. 이 상태의 job 을 정리하면 답을 받아도
+    이어 돌릴 수 없다."""
+    실행대역({
+        "clarify_question": "전체 예산이 얼마인가요?",
+        "scenario": "S6_BUNDLE",
+        "query_spec": {"category": "skincare", "conditions": ["건성"]},
+    })
+    await agent._실행(_요청)
+
+    마지막 = 기록.마지막
+    assert 마지막["status"] == "NEEDS_CLARIFICATION"
+    assert 마지막["result"]["clarify"]["question"] == "전체 예산이 얼마인가요?"
+    # 화면이 결과를 읽는 경로 하나만 알면 되도록 결과 스키마에 담는다
+    assert 마지막["result"]["scenario"] == "S6_BUNDLE"
+    assert 마지막["result"]["query"]["raw"] == "여름 쿠션"
+
+
+@pytest.mark.asyncio
+async def test_되묻는_동안은_완료로_적지_않는다(기록, 실행대역):
+    실행대역({"clarify_question": "조금 더 알려주세요"})
+    await agent._실행(_요청)
+    assert all(c.get("status") != "COMPLETED" for c in 기록.호출)
+
+
+@pytest.mark.asyncio
+async def test_실패하면_FAILED로_남기고_삼킨다(기록, 실행대역):
     """배경 작업이라 예외를 올려도 받을 곳이 없다. 대신 job 에 남긴다."""
-    async def 망가진(scenario, initial=None, **kwargs):
-        await kwargs["on_fail"](RuntimeError("벡터 검색 실패"))
-        raise RuntimeError("벡터 검색 실패")
+    실행대역(예외=RuntimeError("벡터 검색 실패"))
+    await agent._실행(_요청)
 
-    monkeypatch.setattr(agent.builder, "run_scenario", 망가진)
-    await agent._실행(AgentRunV2Request(job_id="j1", user_id="u1", raw_query="q"))
-
-    마지막 = 기록.호출[-1]
-    assert 마지막["status"] == "FAILED"
-    assert "벡터 검색 실패" in 마지막["error_msg"]
+    assert 기록.마지막["status"] == "FAILED"
+    assert "벡터 검색 실패" in 기록.마지막["error_msg"]

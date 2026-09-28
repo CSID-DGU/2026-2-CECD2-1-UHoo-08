@@ -57,14 +57,18 @@ def _load(name: str) -> Node | None:
     return fn
 
 
-def _wrap(name: str, fn: Node, 순번: int, 전체: int, on_progress: ProgressHook | None) -> Node:
+def _wrap(
+    name: str, fn: Node, 순번: int, 전체: int,
+    on_progress: ProgressHook | None, 구간: tuple[int, int] = (0, 100),
+) -> Node:
     문구 = NODE_LABELS.get(name, name)
     stub = fn is _pass_through
 
     async def 실행(state: GraphState) -> dict:
         if on_progress is not None:
             # 단계를 시작할 때 알린다. 끝나고 알리면 화면이 한 단계 늦는다.
-            await on_progress(문구, round(순번 / 전체 * 100))
+            시작, 끝 = 구간
+            await on_progress(문구, 시작 + round(순번 / 전체 * (끝 - 시작)))
         바뀐 = await fn(state)
         자취 = list(state.get("trace", []))
         자취.append(f"{name}(stub)" if stub else name)
@@ -79,11 +83,15 @@ def build(
     use_env: bool = False,
     include_entry: bool = True,
     on_progress: ProgressHook | None = None,
+    progress_from: int = 0,
 ):
     """시나리오 하나를 실행할 수 있는 그래프로 만든다.
 
     include_entry 가 False 면 Normalize·Router 를 뺀다. 이미 QuerySpec 을
     손에 들고 특정 경로만 돌려 보는 경우다.
+
+    progress_from 은 진행률의 시작점이다. 관문을 먼저 돌린 뒤 경로를 도는
+    경우, 0 부터 다시 세면 화면의 막대가 뒤로 돌아간다.
     """
     단계들 = full_path(scenario, use_env=use_env)
     if not include_entry:
@@ -103,7 +111,7 @@ def build(
         if 구현 is None:
             logger.info("노드 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
             구현 = _pass_through
-        그래프.add_node(이름, _wrap(이름, 구현, 순번, 전체, on_progress))
+        그래프.add_node(이름, _wrap(이름, 구현, 순번, 전체, on_progress, (progress_from, 100)))
         그래프.add_edge(이전, 이름)
         이전 = 이름
     그래프.add_edge(이전, END)
@@ -117,6 +125,7 @@ async def run_scenario(
     include_entry: bool = False,
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
+    progress_from: int = 0,
 ) -> GraphState:
     """경로 하나를 끝까지 돌린다.
 
@@ -134,6 +143,7 @@ async def run_scenario(
         use_env=use_env,
         include_entry=include_entry,
         on_progress=on_progress,
+        progress_from=progress_from,
     )
 
     try:
@@ -148,3 +158,60 @@ async def run_scenario(
     if on_progress is not None:
         await on_progress("완료", 100)
     return 결과
+
+
+# 관문이 차지하는 진행률. 질의 해석은 전체에서 짧은 부분이라 앞쪽 10%만 쓴다.
+관문_구간 = 10
+
+
+async def run_query(
+    initial: dict | None = None,
+    *,
+    on_progress: ProgressHook | None = None,
+    on_fail: FailHook | None = None,
+) -> GraphState:
+    """질의를 해석하고, 그 결과가 가리키는 경로를 돈다.
+
+    관문(Normalize·Router)은 그래프 안에 넣을 수 없다. 빌더는 시나리오를
+    알아야 경로를 조립하는데, 그 시나리오를 정하는 것이 라우터이기 때문이다.
+    그래서 관문을 먼저 돌리고, 나온 시나리오로 경로를 조립한다.
+
+    되물어야 하는 질의면 경로를 돌지 않고 돌아온다. 부른 쪽이 job 을
+    멈춘 상태로 남기고 사용자의 답을 기다린다.
+    """
+    상태: dict = dict(initial or {})
+    상태.setdefault("trace", [])
+
+    try:
+        for 순번, 이름 in enumerate(SEARCH_ENTRY):
+            구현 = _load(이름)
+            if 구현 is None:
+                logger.info("관문 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
+                구현 = _pass_through
+            단계 = _wrap(이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간))
+            상태.update(await 단계(상태))
+    except Exception as e:
+        logger.exception("관문 실행 실패")
+        if on_fail is not None:
+            await on_fail(e)
+        raise
+
+    if 상태.get("clarify_question"):
+        return 상태
+
+    시나리오 = 상태.get("scenario") or 기본_시나리오()
+    return await run_scenario(
+        시나리오,
+        상태,
+        on_progress=on_progress,
+        on_fail=on_fail,
+        progress_from=관문_구간,
+    )
+
+
+def 기본_시나리오() -> str:
+    """라우터가 아직 없을 때 갈 곳. 조건 탐색은 빈손으로도 돌아간다."""
+    from contracts.query_spec import RequestType
+    from graph.registry import ROUTE
+
+    return ROUTE[RequestType.SEARCH]

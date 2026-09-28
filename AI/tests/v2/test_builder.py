@@ -117,3 +117,44 @@ def test_같은_단계가_두_번이면_바로_막는다(monkeypatch):
 def test_모르는_시나리오는_예외다():
     with pytest.raises(KeyError):
         build("S9_NOPE")
+
+
+@pytest.mark.asyncio
+async def test_관문을_먼저_돌고_경로로_이어진다(monkeypatch):
+    """라우터가 정한 시나리오로 경로가 조립돼야 한다."""
+    async def router(state):
+        return {"scenario": "S6_BUNDLE"}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+
+    결과 = await builder.run_query({"raw_query": "10만원으로 세트"})
+    assert 결과["scenario"] == "S6_BUNDLE"
+    assert 결과["trace"][:2] == ["normalize(stub)", "router"]
+    assert "bundle(stub)" in 결과["trace"]
+
+
+@pytest.mark.asyncio
+async def test_되물어야_하면_경로를_돌지_않는다(monkeypatch):
+    """물어볼 것이 있는데 경로를 돌면, 답을 받기도 전에 엉뚱한 결과가 나온다."""
+    async def router(state):
+        return {"scenario": "S2_SEARCH", "clarify_question": "예산이 얼마인가요?"}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+
+    결과 = await builder.run_query({"raw_query": "세트"})
+    assert 결과["clarify_question"]
+    assert 결과["trace"] == ["normalize(stub)", "router"]
+
+
+@pytest.mark.asyncio
+async def test_진행률이_관문에서_경로로_이어진다(monkeypatch):
+    """관문을 돈 뒤 0 부터 다시 세면 화면의 막대가 뒤로 돌아간다."""
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+    기록: list[int] = []
+
+    async def hook(문구, 비율):
+        기록.append(비율)
+
+    await builder.run_query({"raw_query": "쿠션"}, on_progress=hook)
+    assert 기록 == sorted(기록)
+    assert 기록[-1] == 100
