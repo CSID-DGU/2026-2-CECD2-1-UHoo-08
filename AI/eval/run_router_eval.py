@@ -65,7 +65,7 @@ def compare(expected: dict, spec: dict, 경로: str, 되물음: bool) -> dict[st
 
 async def evaluate(
     기록: list[dict],
-    한_건: Callable[[str], Awaitable[tuple[dict, str, bool]]],
+    한_건: Callable[[dict], Awaitable[tuple[dict, str, bool]]],
 ) -> dict[str, Any]:
     """골든셋을 태우고 항목별 일치율과 틀린 사례를 모은다."""
     맞음: dict[str, int] = defaultdict(int)
@@ -73,9 +73,10 @@ async def evaluate(
     틀림: list[dict] = []
 
     for rec in 기록:
-        질의 = rec["input"]["raw_query"]
+        입력 = rec["input"]
+        질의 = 입력["raw_query"]
         try:
-            spec, 경로, 되물음 = await 한_건(질의)
+            spec, 경로, 되물음 = await 한_건(입력)
         except Exception as e:  # 한 건이 터져도 나머지는 잰다
             틀림.append({"id": rec["id"], "query": 질의, "error": repr(e)})
             전체["실행"] += 1
@@ -134,11 +135,17 @@ def to_markdown(결과: dict, split: str) -> str:
     return "\n".join(줄)
 
 
-async def _한_건_실제(질의: str) -> tuple[dict, str, bool]:
+async def _한_건_실제(입력: dict) -> tuple[dict, str, bool]:
+    """골든셋 한 줄을 실제 관문에 태운다.
+
+    raw_query 만 넘기면 조건 수정을 잴 수 없다. 라우터는 직전 job 이 없으면
+    수정할 대상이 없다고 보고 새 검색으로 내리기 때문이다. 그래서 입력에
+    적힌 값을 그대로 상태로 넣는다.
+    """
     from graph.nodes.normalize import normalize
     from graph.nodes.router import router
 
-    상태: dict = {"raw_query": 질의}
+    상태: dict = dict(입력)
     상태.update(await normalize(상태))
     상태.update(await router(상태))
     return 상태["query_spec"], 상태["scenario"], bool(상태.get("clarify_question"))

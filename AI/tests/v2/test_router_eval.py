@@ -49,7 +49,7 @@ async def test_항목별로_맞은_수를_센다():
          "expected": {"scenario": "S6_BUNDLE", "category": "base"}},
     ]
 
-    async def 한_건(질의):
+    async def 한_건(입력):
         return _스펙, "S2_SEARCH", False
 
     결과 = await evaluate(기록, 한_건)
@@ -68,8 +68,8 @@ async def test_한_건이_터져도_나머지를_잰다():
         {"id": "router-g-0002", "input": {"raw_query": "쿠션"}, "expected": {"scenario": "S2_SEARCH"}},
     ]
 
-    async def 한_건(질의):
-        if 질의 == "터짐":
+    async def 한_건(입력):
+        if 입력["raw_query"] == "터짐":
             raise RuntimeError("타임아웃")
         return _스펙, "S2_SEARCH", False
 
@@ -84,8 +84,27 @@ async def test_리포트에_틀린_사례가_들어간다():
     기록 = [{"id": "router-g-0002", "input": {"raw_query": "세트 짜줘"},
             "tags": ["ambiguous"], "expected": {"scenario": "S6_BUNDLE"}}]
 
-    async def 한_건(질의):
+    async def 한_건(입력):
         return _스펙, "S2_SEARCH", False
 
     글 = to_markdown(await evaluate(기록, 한_건), "test")
     assert "router-g-0002" in 글 and "세트 짜줘" in 글 and "ambiguous" in 글
+
+
+@pytest.mark.asyncio
+async def test_입력에_적힌_값을_그대로_넘긴다():
+    """조건 수정은 직전 job 이 있어야 그 경로로 간다. raw_query 만 넘기면
+    라우터가 새 검색으로 내려서, 영영 오답으로 잡힌다."""
+    받은: dict = {}
+
+    async def 한_건(입력):
+        받은.update(입력)
+        return _스펙, "S7_REFINE", False
+
+    await evaluate(
+        [{"id": "router-g-0301",
+          "input": {"raw_query": "더 저렴한 걸로", "parent_job_id": "prev"},
+          "expected": {"scenario": "S7_REFINE"}}],
+        한_건,
+    )
+    assert 받은["parent_job_id"] == "prev"
