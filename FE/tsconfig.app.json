@@ -5,6 +5,8 @@
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "types": ["vite/client"],
+    // mock JSON 을 타입 검사와 함께 import 하기 위해 켠다
+    "resolveJsonModule": true,
     "skipLibCheck": true,
 
     /* Bundler mode */

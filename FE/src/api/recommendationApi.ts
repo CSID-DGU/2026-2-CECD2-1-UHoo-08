@@ -51,12 +51,13 @@ export interface AlternativeProduct {
 
 export interface RecommendationResultResponse {
   jobId: string;
+  /** 조건 탐색처럼 기준 상품 없이 시작한 job 에서는 null 이다. */
   baseProduct: {
     id: string;
     name: string;
     brand: string;
     imageUrl: string | null;
-  };
+  } | null;
   matchScore: number | null;
   matchLabel: string | null;
   aiReason: string | null;

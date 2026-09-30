@@ -1,0 +1,183 @@
+{
+  "jobId": "job_s2_0001",
+  "scenario": "S2_SEARCH",
+  "query": {
+    "raw": "여름에 안 무너지는 세미매트 쿠션, 가성비 좋은 걸로 3만원 이하",
+    "category": "base",
+    "conditions": [
+      "세미매트",
+      "지속력 높음",
+      "여름"
+    ],
+    "budgetMax": 30000,
+    "budgetTotal": null,
+    "target": "SELF",
+    "useEnv": false,
+    "valueSeeking": true
+  },
+  "items": [
+    {
+      "productId": "prd_1001",
+      "name": "네오 쿠션 매트 21호",
+      "brand": "라네즈",
+      "imageUrl": "https://cdn.example.com/prd_1001.jpg",
+      "price": 28000,
+      "totalScore": 89,
+      "breakdown": [
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 92.0,
+          "weight": 0.3
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 88.0,
+          "weight": 0.25
+        },
+        {
+          "key": "value_signal",
+          "label": "가성비",
+          "score": 86.0,
+          "weight": 0.25
+        },
+        {
+          "key": "budget_fit",
+          "label": "예산 적합",
+          "score": 90.0,
+          "weight": 0.2
+        }
+      ],
+      "badges": [
+        {
+          "type": "VALUE",
+          "text": "평소 쓰는 쿠션보다 약 18% 저렴 · 후기 21%가 가성비 언급"
+        }
+      ],
+      "reason": "여름에도 안 무너진다는 후기가 많고, 평소 구매하시는 가격대보다 저렴해요.",
+      "change": null,
+      "rankDelta": null
+    },
+    {
+      "productId": "prd_1002",
+      "name": "포레스트 핏 쿠션 세미매트",
+      "brand": "이니스프리",
+      "imageUrl": "https://cdn.example.com/prd_1002.jpg",
+      "price": 24000,
+      "totalScore": 84,
+      "breakdown": [
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 85.0,
+          "weight": 0.3
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 80.0,
+          "weight": 0.25
+        },
+        {
+          "key": "value_signal",
+          "label": "가성비",
+          "score": 90.0,
+          "weight": 0.25
+        },
+        {
+          "key": "budget_fit",
+          "label": "예산 적합",
+          "score": 82.0,
+          "weight": 0.2
+        }
+      ],
+      "badges": [
+        {
+          "type": "TREND",
+          "text": "최근 2주 언급이 빠르게 늘고 있어요"
+        }
+      ],
+      "reason": "지성 피부 후기에서 피지 억제 만족도가 높아요.",
+      "change": null,
+      "rankDelta": null
+    },
+    {
+      "productId": "prd_1003",
+      "name": "커버 래스팅 쿠션",
+      "brand": "클리오",
+      "imageUrl": "https://cdn.example.com/prd_1003.jpg",
+      "price": 29500,
+      "totalScore": 78,
+      "breakdown": [
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 80.0,
+          "weight": 0.3
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 76.0,
+          "weight": 0.25
+        },
+        {
+          "key": "value_signal",
+          "label": "가성비",
+          "score": 70.0,
+          "weight": 0.25
+        },
+        {
+          "key": "budget_fit",
+          "label": "예산 적합",
+          "score": 88.0,
+          "weight": 0.2
+        }
+      ],
+      "badges": [],
+      "reason": "지속력 평가가 높지만 가격대가 조건 상한에 가까워요.",
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "alternatives": [],
+  "similarUserProducts": [
+    {
+      "productId": "prd_1004",
+      "name": "글로우 래스팅 쿠션",
+      "brand": "에스쁘아",
+      "imageUrl": "https://cdn.example.com/prd_1004.jpg",
+      "price": 27000,
+      "totalScore": 81,
+      "breakdown": [
+        {
+          "key": "personalization",
+          "label": "내 피부 적합",
+          "score": 84.0,
+          "weight": 0.5
+        },
+        {
+          "key": "review",
+          "label": "후기 일치",
+          "score": 78.0,
+          "weight": 0.5
+        }
+      ],
+      "badges": [],
+      "reason": "비슷한 피부 조건의 사용자들이 4점 이상 준 제품이에요.",
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "bundles": [],
+  "excluded": [
+    {
+      "productId": "prd_1009",
+      "name": "네오 쿠션 글로우 21호",
+      "reason": "OWNED",
+      "detail": "이미 사용 중인 제품이에요."
+    }
+  ],
+  "clarify": null
+}

@@ -47,6 +47,7 @@ category.sub에는 위 세부 제품 유형을 그대로 입력하라.
 - unit: g 또는 ml 중 하나만
 - 모르는 값은 null. 배열 정보가 없으면 빈 배열 []."""
 
+# TODO(llm): services.llm 으로 옮긴다. nfc_parser 와 같은 설정을 따로 만들고 있다.
 _client = ChatOpenAI(
     model=settings.QWEN_TEXT_MODEL,
     api_key=settings.DASHSCOPE_API_KEY,

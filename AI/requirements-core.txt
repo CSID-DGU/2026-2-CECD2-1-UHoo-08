@@ -2,5 +2,10 @@
 # CI는 이 파일만 설치해 AI/tests/v2 를 돌린다. 임베딩 모델·LLM SDK를 빼서
 # 설치가 1분 안에 끝나고, 시크릿 없이도 초록불이 유지된다.
 pydantic>=2.6.0
+# 내부 API stub 과 그 경로 테스트에 필요하다. 순수 파이썬이라 설치가 빠르다.
+fastapi>=0.110.0
+httpx
+# 그래프 조립. 임베딩·LLM 없이 그래프만 돌려볼 수 있어야 한다.
+langgraph>=0.1.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

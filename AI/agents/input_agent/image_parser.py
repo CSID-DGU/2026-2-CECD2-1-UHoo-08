@@ -49,6 +49,8 @@ category.sub에는 위 세부 제품 유형을 그대로 입력하라.
 - 상품명, 브랜드, 용량, 색상은 이미지에서 확인 가능한 경우만 채워라.
 - 모르는 값은 null. 배열 정보가 없으면 빈 배열 []."""
 
+# TODO(llm): services.llm 의 vlm 역할로 옮긴다. 사진 인식 모델을 바꿔 보려면
+#            여기와 services/llm 두 곳을 같이 고쳐야 해서, 지금은 비교가 번거롭다.
 _client = ChatOpenAI(
     model=settings.QWEN_VL_MODEL,
     api_key=settings.DASHSCOPE_API_KEY,

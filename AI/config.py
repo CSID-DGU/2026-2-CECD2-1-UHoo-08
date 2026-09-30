@@ -11,6 +11,30 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-2.5-flash"
 
+    # 역할별 LLM. services.llm.get_llm(role) 이 읽는다.
+    #
+    # 모델 이름을 부르는 쪽에 두면 "Normalize 만 상위 모델로 올려 정확도가
+    # 얼마나 오르는지" 같은 비교를 할 때마다 코드를 고쳐야 한다. 비용 대비
+    # 효과가 큰 곳만 골라 올리려면 그 비교가 쉬워야 한다.
+    #
+    # 비워 두면 역할 기본값을 쓴다. BASE_URL·API_KEY 를 함께 바꾸면
+    # 다른 제공자의 OpenAI 호환 주소로 코드 수정 없이 옮길 수 있다.
+    LLM_NORMALIZE_MODEL: str = ""
+    LLM_NORMALIZE_BASE_URL: str = ""
+    LLM_NORMALIZE_API_KEY: str = ""
+
+    LLM_WEIGHT_MODEL: str = ""
+    LLM_WEIGHT_BASE_URL: str = ""
+    LLM_WEIGHT_API_KEY: str = ""
+
+    LLM_COMPOSE_MODEL: str = ""
+    LLM_COMPOSE_BASE_URL: str = ""
+    LLM_COMPOSE_API_KEY: str = ""
+
+    LLM_VLM_MODEL: str = ""
+    LLM_VLM_BASE_URL: str = ""
+    LLM_VLM_API_KEY: str = ""
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str

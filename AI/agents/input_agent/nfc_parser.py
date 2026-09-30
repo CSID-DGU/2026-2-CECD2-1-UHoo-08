@@ -12,6 +12,8 @@ from models.extracted_product import ExtractedProduct
 
 _scraper = cloudscraper.create_scraper()
 
+# TODO(llm): services.llm 으로 옮긴다. 상품 정보를 뽑아내는 일이라
+#            normalize 역할과 성격이 같다.
 _client = ChatOpenAI(
     model=settings.QWEN_TEXT_MODEL,
     api_key=settings.DASHSCOPE_API_KEY,

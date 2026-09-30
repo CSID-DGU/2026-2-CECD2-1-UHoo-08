@@ -1,4 +1,4 @@
-"""query_parser 단위 테스트. qwen_client 모킹."""
+"""query_parser 단위 테스트. LLM 호출 모킹."""
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 class TestQueryParser:
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_product_name_intent(self, mock_get):
         from services.query_parser import classify_intent
 
@@ -17,7 +17,7 @@ class TestQueryParser:
         assert await classify_intent("라네즈 네오쿠션") == "PRODUCT_NAME"
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_recommendation_intent(self, mock_get):
         from services.query_parser import classify_intent
 
@@ -28,7 +28,7 @@ class TestQueryParser:
         assert await classify_intent("여름 가벼운 쿠션 추천") == "RECOMMENDATION"
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_invalid_intent_falls_back(self, mock_get):
         from services.query_parser import classify_intent
 
@@ -40,7 +40,7 @@ class TestQueryParser:
         assert await classify_intent("x") == "RECOMMENDATION"
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_llm_none_falls_back(self, mock_get):
         from services.query_parser import classify_intent
 
@@ -57,7 +57,7 @@ class TestQueryParser:
         assert await classify_intent("   ") == "RECOMMENDATION"
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_valid_parse(self, mock_get):
         from services.query_parser import parse_query
 
@@ -73,7 +73,7 @@ class TestQueryParser:
         assert result["features"]["product_type"] == "쿠션"
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_llm_returns_none(self, mock_get):
         from services.query_parser import parse_query
 
@@ -86,7 +86,7 @@ class TestQueryParser:
         assert result["features"] == {}
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_invalid_category_nulled(self, mock_get):
         from services.query_parser import parse_query
 
@@ -98,7 +98,7 @@ class TestQueryParser:
         assert result["category"] is None
 
     @pytest.mark.asyncio
-    @patch("services.query_parser.get_qwen_llm")
+    @patch("services.query_parser.get_llm")
     async def test_features_not_dict_handled(self, mock_get):
         from services.query_parser import parse_query
 

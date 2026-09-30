@@ -122,7 +122,9 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         return RecommendationResultResponse.builder()
                 .jobId(job.getId())
-                .baseProduct(RecommendationResultResponse.BaseProductInfo.builder()
+                // 조건 탐색처럼 기준 상품 없이 시작한 job 은 비어 있다.
+                .baseProduct(baseProduct == null ? null
+                        : RecommendationResultResponse.BaseProductInfo.builder()
                         .id(baseProduct.getId())
                         .name(baseProduct.getName())
                         .brand(baseProduct.getBrand())

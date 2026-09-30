@@ -1,0 +1,127 @@
+"""시나리오별 단계 배열과 라우팅 표.
+
+빌더는 이 표만 읽어 StateGraph 를 만든다. 경로를 바꾸는 일이 코드 수정이 아니라
+배열 수정이 되게 하려는 것이다. 플래너도 나중에 이 배열을 입력으로 받아
+단계를 더하거나 뺀다.
+
+단계 이름 = graph/nodes/ 의 파일 이름 = 그 파일의 함수 이름이다.
+"""
+from contracts.query_spec import RequestType
+from contracts.scenario import Scenario
+
+# 그래프 안에서 쓰는 노드 전부. 여기 없는 이름을 배열에 적으면 테스트가 막는다.
+# 오타로 만들어진 단계가 조용히 건너뛰어지는 일을 없애기 위해서다.
+# 그래프 안에서 쓰는 노드 전부와, 진행 중에 화면에 보일 문구.
+# 여기 없는 이름을 배열에 적으면 테스트가 막는다. 오타로 만들어진 단계가
+# 조용히 건너뛰어지는 일을 없애기 위해서다.
+#
+# 문구를 노드 이름 옆에 두는 이유는 둘이 항상 같이 늘기 때문이다. 표를 나누면
+# 노드를 추가하고 문구를 빠뜨려 화면에 영문 함수 이름이 뜬다.
+NODE_LABELS: dict[str, str] = {
+    # 공통 관문
+    "normalize": "요청 이해",
+    "router": "경로 결정",
+    "clarify": "되묻는 중",
+    # 후보 만들기
+    "retrieve": "조건에 맞는 상품 찾기",
+    "discovery": "기준 상품 확인",
+    "inventory": "보유 제품 불러오기",
+    "prefilter": "이미 가진 것·충돌 거르기",
+    # 점수
+    "score": "적합도 계산",
+    "score_lite": "추가 후보 검증",
+    # 후보 넓히기
+    "alternative": "대체 제품 찾기",
+    "collaborative": "비슷한 사람들의 선택 보기",
+    # 조건 수정
+    "refine": "수정 조건 반영",
+    "rerank": "다시 정렬",
+    # 홈·부품
+    "env_history": "최근 환경 살펴보기",
+    "coverage": "부족한 기능 확인",
+    "compatibility": "성분 궁합 점검",
+    "budget": "예산 나누기",
+    "bundle": "조합 만들기",
+    "depletion": "소진 시점 예측",
+    "price": "재구매 시점 판단",
+    # 출구
+    "compose": "결과 정리",
+    "guard": "표현 점검",
+    "planner": "경로 조정",
+}
+
+KNOWN_NODES: frozenset[str] = frozenset(NODE_LABELS)
+
+# 검색창에서 시작하는 시나리오가 공통으로 거치는 앞단.
+# 되묻기(clarify)는 필요할 때만 끼므로 여기 넣지 않는다.
+SEARCH_ENTRY: tuple[str, ...] = ("normalize", "router")
+
+# 모든 시나리오의 끝. 결과를 만든 뒤 표현을 검사한다.
+COMMON_EXIT: tuple[str, ...] = ("guard",)
+
+SCENARIOS: dict[Scenario, tuple[str, ...]] = {
+    # 이 제품 어때? → 평가하고 대체 후보까지
+    "S1_EVALUATE": (
+        "discovery", "inventory", "prefilter", "score",
+        "alternative", "score_lite", "collaborative", "compose",
+    ),
+    # 조건으로 찾아줘. 가장 많이 쓰이는 경로다.
+    # use_env 가 켜지면 빌더가 retrieve 앞에 env_history 를 끼운다.
+    "S2_SEARCH": (
+        "retrieve", "inventory", "prefilter", "score", "collaborative", "compose",
+    ),
+    # 이 예산으로 세트 짜줘
+    "S6_BUNDLE": (
+        "budget", "retrieve", "inventory", "prefilter", "score", "bundle", "compose",
+    ),
+    # 방금 결과에 조건 추가. 재정렬이 아니라 다시 찾는다.
+    "S7_REFINE": (
+        "refine", "retrieve", "inventory", "prefilter", "score", "compose",
+    ),
+    # 홈 — 보유 제품끼리 충돌하면 알려주고 대체 제품을 추천
+    "HOME_ROUTINE": (
+        "inventory", "compatibility", "alternative", "prefilter", "score_lite", "compose",
+    ),
+    # 홈 — 4주 환경에 견줘 부족한 기능을 채울 제품을 추천
+    "HOME_ENV": (
+        "env_history", "inventory", "coverage", "retrieve", "prefilter",
+        "score_lite", "compose",
+    ),
+    # 소진·재구매. 여유가 있을 때 붙인다.
+    "S4_REPLENISH": (
+        "depletion", "price", "retrieve", "inventory", "prefilter",
+        "score", "alternative", "compose",
+    ),
+}
+
+# 홈은 검색창을 거치지 않는다. 배치가 직접 시나리오를 지정해 돌린다.
+HOME_SCENARIOS: frozenset[Scenario] = frozenset({"HOME_ROUTINE", "HOME_ENV"})
+
+# 요청 유형 하나가 시나리오 하나로 간다. 같은 질문이 매번 같은 곳으로 가야
+# 하므로 LLM이 아니라 이 표가 정한다.
+ROUTE: dict[RequestType, Scenario] = {
+    RequestType.SEARCH: "S2_SEARCH",
+    RequestType.EVALUATE: "S1_EVALUATE",
+    RequestType.BUNDLE: "S6_BUNDLE",
+    RequestType.REFINE: "S7_REFINE",
+}
+
+
+def full_path(scenario: str, *, use_env: bool = False) -> tuple[str, ...]:
+    """빌더가 실제로 조립할 단계 전부.
+
+    use_env 는 "요즘 날씨에 맞는" 같은 요청에서 켜진다. 그럴 때만 환경 집계를
+    앞에 끼운다. 항상 돌리면 환경을 따지지 않는 요청까지 4주 조회를 하게 되고,
+    그 비용이 가장 많이 쓰이는 조건 탐색 경로에 그대로 붙는다.
+    """
+    if scenario not in SCENARIOS:
+        raise KeyError(f"모르는 시나리오: {scenario}")
+
+    단계들 = SCENARIOS[scenario]
+    if use_env and "env_history" not in 단계들:
+        # 후보를 만들기 전에 끼운다. retrieve 가 환경에서 번역된 조건을 함께 본다.
+        기준 = 단계들.index("retrieve") if "retrieve" in 단계들 else 0
+        단계들 = 단계들[:기준] + ("env_history",) + 단계들[기준:]
+
+    앞단 = () if scenario in HOME_SCENARIOS else SEARCH_ENTRY
+    return 앞단 + 단계들 + COMMON_EXIT

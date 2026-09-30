@@ -83,12 +83,43 @@ job을 실패로 기록한다. 조용히 빈 값을 넘기면 다음 노드가 0
 항목을 추가할 때 Score 노드를 고치지 않는다.
 
 ```python
-def env_fit(product: dict, ctx: ScoreContext) -> float | None:
+async def env_fit(products: list[dict], ctx: ScoreContext) -> dict[str, float | None]:
 ```
 
-0~100을 돌려준다. **적용할 수 없는 후보에는 `None`을 돌려준다.** 0점이 아니다.
+후보를 하나씩이 아니라 한꺼번에 받고 `{product_id: 점수}` 를 돌려준다.
+리뷰 일치도나 가성비는 후보 하나만 봐서는 계산할 수 없고 코퍼스 통계가
+필요한데, 하나씩 받으면 후보 수만큼 조회가 나간다.
+
+점수는 0~100이다. **적용할 수 없는 후보에는 `None`을 돌려준다.** 0점이 아니다.
 0점은 "환경에 안 맞는 제품"이고 `None`은 "이 요청에서는 따지지 않는 항목"이다.
-`None`인 항목은 가중치 계산에서 빠진다.
+`None`인 항목은 가중치 계산에서 빠지고, 남은 항목의 가중치가 다시 1로 맞춰진다.
+빠뜨린 `product_id` 는 `None` 으로 본다. 정확한 계약은 `contracts/score.py` 의
+`Scorer` 를 본다.
+
+## LLM 호출
+
+모델 이름을 부르는 쪽에 두지 않는다. 역할로 부른다.
+
+```python
+from services.llm import LLMRole, get_llm
+
+llm = get_llm(LLMRole.NORMALIZE)
+spec = await llm.chat_json(system=..., user=...)
+```
+
+| 역할 | 쓰임 |
+| --- | --- |
+| `normalize` | 질의 → QuerySpec |
+| `weight` | 점수 가중치 보정 |
+| `compose` | 추천 이유 문장 |
+| `vlm` | 사진 인식 |
+
+역할마다 모델·주소·키를 환경 변수로 따로 정할 수 있다(`LLM_NORMALIZE_MODEL` 등).
+비워 두면 지금 쓰는 값이다. "이 역할만 상위 모델로 올리면 얼마나 좋아지는지"를
+코드를 고치지 않고 재 보기 위한 구조다.
+
+아직 옮기지 않은 곳은 `TODO(llm)` 으로 표시해 두었다. 웹 검색 도구를 함께
+넘기는 호출은 이 래퍼에 맞지 않아 그대로 둔다.
 
 ## rules 작성 규칙
 
