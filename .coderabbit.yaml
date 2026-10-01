@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit 리뷰 설정. 이 파일이 대시보드(조직/레포) 설정보다 우선한다.
+language: "ko-KR"
+
+reviews:
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "develop"
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!BE/build/**"
+    - "!**/__pycache__/**"
+    - "!**/*.lock"
+    - "!FE/pnpm-lock.yaml"
+    - "!firmware/libraries/**"
+
+  path_instructions:
+    - path: "AI/**/*.py"
+      instructions: >-
+        멀티 에이전트 추천 파이프라인이다. 다음을 중점적으로 본다.
+        contracts/ 의 계약 타입과 실제 노드 입출력이 어긋나지 않는지,
+        LLM 응답을 파싱할 때 형식이 어긋난 응답에 대한 방어가 있는지,
+        프롬프트나 컨텍스트에 불필요한 대용량 데이터가 실려 토큰이 새는지,
+        외부 API 호출에 타임아웃과 실패 처리가 있는지.
+        API 키나 시크릿이 코드·로그·테스트 픽스처에 하드코딩되지 않았는지 반드시 지적한다.
+    - path: "AI/tests/**"
+      instructions: >-
+        테스트가 구현을 그대로 베낀 동어반복이 아닌지, 경계값과 실패 경로를
+        덮는지 본다. 스타일 지적은 생략한다.
+    - path: "BE/src/**/*.java"
+      instructions: >-
+        Spring 계층 분리(controller/service/repository)를 지키는지,
+        트랜잭션 경계가 맞는지, N+1 쿼리와 널 처리 누락을 본다.
+        예외를 삼키는 catch 블록은 지적한다.
+    - path: "FE/src/**/*.{ts,tsx}"
+      instructions: >-
+        React 19 + TypeScript. any 남용, useEffect 의존성 배열 누락,
+        키 없는 리스트 렌더링, 불필요한 리렌더를 본다.
+        API 응답을 그대로 신뢰하는 코드(널/에러 처리 누락)를 지적한다.
+    - path: "firmware/**"
+      instructions: >-
+        Arduino/ESP 펌웨어다. 블로킹 delay, 버퍼 오버런, I2C 실패 처리 누락,
+        Wi-Fi/센서 자격증명 하드코딩을 본다.
+    - path: "deploy/**"
+      instructions: >-
+        배포 설정이다. 시크릿이 example 이 아닌 파일에 들어갔는지,
+        포트·볼륨·헬스체크 설정이 프로덕션에 안전한지 본다.
+
+  tools:
+    ruff:
+      enabled: true
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: false
+    gitleaks:
+      enabled: true
+
+chat:
+  auto_reply: true
