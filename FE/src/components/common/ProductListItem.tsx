@@ -11,6 +11,8 @@ type ProductListItemProps = {
   selected?: boolean;
   actionLabel?: string;
   onClick?: () => void;
+  children?: import("react").ReactNode;
+  shape?: "bottle" | "cushion" | "triple";
 };
 
 export function ProductListItem({
@@ -23,14 +25,21 @@ export function ProductListItem({
   onClick,
   price,
   selected,
+  children,
+  shape,
 }: ProductListItemProps) {
   const content = (
     <>
-      <ProductThumbnail className="h-[70px] w-[70px] shrink-0" green={green} />
+      <ProductThumbnail
+        className="h-[70px] w-[70px] shrink-0"
+        green={green}
+        shape={shape}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-body2 text-gray-500">{name}</p>
         <p className="truncate text-caption text-gray-300">{meta}</p>
         {price && <p className="mt-2 text-body1 text-gray-500">{price}</p>}
+        {children}
       </div>
       <div className="grid shrink-0 gap-2">
         {match && <Badge>{match}</Badge>}
