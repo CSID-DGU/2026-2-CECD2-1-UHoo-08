@@ -107,7 +107,7 @@ export default defineConfig({
       "/price-trackings": "http://localhost:8080",
       "/price-tracking": "http://localhost:8080",
       "/ai": {
-        target: "http://localhost:8001",
+        target: "http://localhost:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/ai/, ""),
       },
