@@ -122,23 +122,29 @@ export function MyPage() {
             <section className="relative mt-5 overflow-hidden rounded-2xl bg-primary-300 p-5 text-white">
               {/* shine line */}
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-primary-300" />
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="grid h-25 w-25 rounded-full">
+              <div className="flex items-start gap-3">
+                  <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-white/20">
                     {getProfileImageUrl(user?.profileImageUrl ?? null) ? (
                       <img
                         src={getProfileImageUrl(user!.profileImageUrl)!}
                         alt="프로필"
-                        className="h-25 w-25 rounded-full object-cover"
+                        className="h-full w-full rounded-full object-cover"
                       />
                     ) : (
                       <span className="text-h3 text-white">{initial}</span>
                     )}
                   </div>
-                  <div>
-                    <h2 className="text-h4">{user?.name ?? "이름 없음"}</h2>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="min-w-0 break-words text-h4">{user?.name ?? "이름 없음"}</h2>
+                      {skin?.skinType && (
+                        <span className="shrink-0 rounded-full border border-white/70 px-2 py-0.5 text-[10px] whitespace-nowrap">
+                          업데이트됨
+                        </span>
+                      )}
+                    </div>
                     {skinSummary && (
-                      <p className="mt-1 text-caption text-white whitespace-nowrap">
+                      <p className="mt-1 break-words text-caption leading-relaxed text-white">
                         {skinSummary}
                       </p>
                     )}
@@ -150,12 +156,6 @@ export function MyPage() {
                       프로필 수정
                     </button>
                   </div>
-                </div>
-                {skin?.skinType && (
-                  <span className="rounded-full border border-white px-3 py-1 text-caption whitespace-nowrap">
-                    업데이트됨
-                  </span>
-                )}
               </div>
             </section>
 
