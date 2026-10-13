@@ -10,6 +10,7 @@ import { ProductSearchSetupPage } from "./pages/onboarding/ProductSearchSetupPag
 import { SearchEmptyPage } from "./pages/onboarding/SearchEmptyPage";
 import { OnboardingCompletePage } from "./pages/onboarding/OnboardingCompletePage";
 import { HomePage } from "./pages/home/HomePage";
+import { EnvironmentPage } from "./pages/home/EnvironmentPage";
 import { SearchResultPage } from "./pages/search/SearchResultPage";
 import { ProductDetailPage } from "./pages/product/ProductDetailPage";
 import { ProductRecognizePage } from "./pages/product/ProductRecognizePage";
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
       { path: "/onboarding/search-empty", element: <SearchEmptyPage /> },
       { path: "/onboarding/complete", element: <OnboardingCompletePage /> },
       { path: "/home", element: <HomePage /> },
+      { path: "/environment", element: <EnvironmentPage /> },
       { path: "/search", element: <SearchResultPage /> },
       { path: "/product/recognize", element: <ProductRecognizePage /> },
       { path: "/product/:productId", element: <ProductDetailPage /> },
