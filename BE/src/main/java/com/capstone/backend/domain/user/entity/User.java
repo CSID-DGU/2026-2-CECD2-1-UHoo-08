@@ -60,13 +60,14 @@ public class User {
     @Column(name = "skin_type", length = 20)
     private String skinType;
 
+    // columnDefinition 은 ddl-auto: validate 의 타입 이름 비교에만 쓰인다. PostgreSQL 은 text[] 를 _text 로 알려 준다.
     @Type(StringArrayType.class)
     @Builder.Default
-    @Column(name = "skin_concerns", columnDefinition = "text[]")
+    @Column(name = "skin_concerns", columnDefinition = "_text")
     private String[] skinConcerns = new String[0];
 
     @Type(StringArrayType.class)
-    @Column(name = "notes", columnDefinition = "text[]")
+    @Column(name = "notes", columnDefinition = "_text")
     private String[] notes;
 
     // ── 취향 설정 (구 user_preferences) ─────────────────────────────
