@@ -16,6 +16,12 @@ spring:
       max-file-size: 10MB      # StorageService 상한과 같게. 기본값 1MB 면 그보다 큰 사진이 서비스까지 오지 못한다
       max-request-size: 11MB
 
+  task:
+    scheduling:
+      pool:
+        size: 3                # 기본값 1 이면 배치 하나가 길어질 때 다른 배치가 밀린다
+      thread-name-prefix: hwadam-batch-
+
   jackson:
     naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies$LowerCamelCaseStrategy
     serialization:
@@ -28,6 +34,11 @@ jwt:
   secret: ${JWT_SECRET:local-dev-secret-key-minimum-32chars}
   access-expiry-ms: 3600000
   refresh-expiry-ms: 2592000000
+
+# 화담 서비스 설정 (common/config/HwadamProperties).
+hwadam:
+  batch:
+    zone: Asia/Seoul           # cron 해석 시간대. 서버는 UTC 로 돈다
 
 ai:
   server-url: ${AI_SERVER_URL}   # FastAPI 주소
