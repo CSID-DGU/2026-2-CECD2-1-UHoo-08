@@ -2,6 +2,7 @@ package com.capstone.backend.common.util;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -82,14 +83,19 @@ public class JsonUtil {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            log.error("[Json] 직렬화 실패: type={}, message={}", value.getClass().getName(), e.getOriginalMessage());
+            log.error("[Json] 직렬화 실패: type={}, error={}", value.getClass().getName(), e.getClass().getSimpleName());
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
+    // Jackson 의 메시지(getMessage, getOriginalMessage)에는 실패한 토큰이나 필드 값이 들어갈 수 있어 남기지 않는다.
+    // 오류 종류와 위치만 남긴다.
     private BusinessException parseFailed(JsonProcessingException e) {
-        // 원문은 개인 정보가 섞일 수 있어 남기지 않는다
-        log.error("[Json] 파싱 실패: {}", e.getOriginalMessage());
+        JsonLocation location = e.getLocation();
+        log.error("[Json] 파싱 실패: error={}, line={}, column={}",
+                e.getClass().getSimpleName(),
+                location == null ? -1 : location.getLineNr(),
+                location == null ? -1 : location.getColumnNr());
         return new BusinessException(ErrorCode.INTERNAL_ERROR);
     }
 }

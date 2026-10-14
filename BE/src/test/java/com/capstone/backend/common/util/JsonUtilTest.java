@@ -7,11 +7,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
@@ -24,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 // 앱과 같은 ObjectMapper(application.yml 의 spring.jackson 설정 포함)로 확인한다
 @JsonTest
 @Import(JsonUtil.class)
+@ExtendWith(OutputCaptureExtension.class)
 class JsonUtilTest {
 
     @Autowired
@@ -81,6 +85,19 @@ class JsonUtilTest {
         assertThatThrownBy(() -> jsonUtil.read(json, Snapshot.class))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.INTERNAL_ERROR);
+    }
+
+    @Test
+    void 파싱_실패_로그에는_입력값을_남기지_않고_오류_종류와_위치만_남긴다(CapturedOutput output) {
+        String broken = "{\"refreshToken\": sksecret0105}";
+        // 전제: Jackson 메시지 자체에는 실패한 토큰이 그대로 들어간다
+        assertThatThrownBy(() -> objectMapper.readTree(broken)).hasMessageContaining("sksecret0105");
+
+        assertThatThrownBy(() -> jsonUtil.readTree(broken)).isInstanceOf(BusinessException.class);
+
+        assertThat(output.getOut())
+                .contains("[Json] 파싱 실패: error=JsonParseException, line=1, column=")
+                .doesNotContain("sksecret0105");
     }
 
     @Test
