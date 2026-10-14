@@ -2,16 +2,23 @@ package com.capstone.backend.common.storage;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import io.netty.channel.ChannelOption;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.Exceptions;
+import reactor.netty.http.client.HttpClient;
 
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Supabase Storage 이미지 업로드.
@@ -42,19 +49,38 @@ public class StorageService {
             "webp", "image/webp"
     );
 
+    // Supabase 가 응답하지 않아도 요청 스레드를 오래 잡지 않도록 업로드에만 기한을 둔다.
+    // 공용 WebClient 빈은 AI 호출도 함께 쓰므로 바꾸지 않고 mutate() 한 복사본에만 적용한다.
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration RESPONSE_TIMEOUT = Duration.ofSeconds(10);
+    static final Duration UPLOAD_TIMEOUT = Duration.ofSeconds(15);
+
     private final WebClient webClient;
     private final String supabaseUrl;
     private final String supabaseServiceRoleKey;
     private final String supabaseStorageUrl;
+    private final Duration uploadTimeout;
 
+    @Autowired
     public StorageService(WebClient webClient,
                           @Value("${supabase.url}") String supabaseUrl,
                           @Value("${supabase.service-role-key}") String supabaseServiceRoleKey,
                           @Value("${supabase.storage-url}") String supabaseStorageUrl) {
-        this.webClient = webClient;
+        this(webClient, supabaseUrl, supabaseServiceRoleKey, supabaseStorageUrl, UPLOAD_TIMEOUT);
+    }
+
+    StorageService(WebClient webClient, String supabaseUrl, String supabaseServiceRoleKey,
+                   String supabaseStorageUrl, Duration uploadTimeout) {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) CONNECT_TIMEOUT.toMillis())
+                .responseTimeout(RESPONSE_TIMEOUT);
+        this.webClient = webClient.mutate()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
         this.supabaseUrl = supabaseUrl;
         this.supabaseServiceRoleKey = supabaseServiceRoleKey;
         this.supabaseStorageUrl = supabaseStorageUrl;
+        this.uploadTimeout = uploadTimeout;
     }
 
     /**
@@ -86,6 +112,7 @@ public class StorageService {
                     .bodyValue(bytes)
                     .retrieve()
                     .bodyToMono(String.class)
+                    .timeout(uploadTimeout)   // 연결·응답 기한과 별개로 업로드 전체에 거는 상한
                     .block();
 
             String publicUrl = supabaseUrl + "/storage/v1/object/public/" + objectPath;
@@ -96,6 +123,10 @@ public class StorageService {
             log.error("[Storage] 업로드 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         } catch (Exception e) {
+            if (Exceptions.unwrap(e) instanceof TimeoutException) {
+                log.error("[Storage] 업로드 시간 초과: {}초", uploadTimeout.toSeconds());
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+            }
             log.error("[Storage] 업로드 예외: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }

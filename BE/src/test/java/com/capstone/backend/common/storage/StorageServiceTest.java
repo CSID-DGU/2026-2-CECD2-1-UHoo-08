@@ -13,11 +13,13 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class StorageServiceTest {
 
@@ -120,5 +122,25 @@ class StorageServiceTest {
         assertThatThrownBy(() -> storageService.upload("bucket", "obj", file))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.INTERNAL_ERROR);
+    }
+
+    @Test
+    void Storage가_응답하지_않으면_기한이_지나_INTERNAL_ERROR다() {
+        // 응답을 영원히 주지 않는 Storage. 기한이 없으면 block() 에서 멈춘다
+        StorageService hanging = new StorageService(
+                WebClient.builder().exchangeFunction(request -> Mono.never()).build(),
+                SUPABASE_URL, "service-key", SUPABASE_URL + "/storage/v1/object",
+                Duration.ofMillis(200));
+        MockMultipartFile file = new MockMultipartFile("image", "a.png", "image/png", new byte[]{1});
+
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () ->
+                assertThatThrownBy(() -> hanging.upload("bucket", "obj", file))
+                        .isInstanceOf(BusinessException.class)
+                        .extracting("errorCode").isEqualTo(ErrorCode.INTERNAL_ERROR));
+    }
+
+    @Test
+    void 운영_업로드_기한은_15초다() {
+        assertThat(StorageService.UPLOAD_TIMEOUT).isEqualTo(Duration.ofSeconds(15));
     }
 }
