@@ -1,5 +1,6 @@
 package com.capstone.backend.domain.recommendation.entity;
 
+import com.capstone.backend.domain.recommendation.enums.FeedbackVote;
 import io.hypersistence.utils.hibernate.type.array.StringArrayType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,9 +38,9 @@ public class RecommendationFeedback {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
-    /** UP | DOWN */
+    @Enumerated(EnumType.STRING)
     @Column(name = "vote", nullable = false, length = 4)
-    private String vote;
+    private FeedbackVote vote;
 
     /** 왜 그렇게 눌렀는지. 이 태그가 어느 점수 항목을 보정할지 정한다 */
     @Type(StringArrayType.class)

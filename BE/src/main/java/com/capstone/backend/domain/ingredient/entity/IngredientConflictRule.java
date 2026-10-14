@@ -1,5 +1,6 @@
 package com.capstone.backend.domain.ingredient.entity;
 
+import com.capstone.backend.domain.ingredient.enums.ConflictLevel;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -30,9 +31,9 @@ public class IngredientConflictRule {
     @Column(name = "ingredient_b", nullable = false, columnDefinition = "text")
     private String ingredientB;
 
-    /** AVOID(함께 쓰지 않기) | SEPARATE(시간대 분리) */
+    @Enumerated(EnumType.STRING)
     @Column(name = "level", nullable = false, length = 10)
-    private String level;
+    private ConflictLevel level;
 
     /** 화면에 그대로 나가는 문장 */
     @Column(name = "advice", nullable = false, columnDefinition = "text")

@@ -1,5 +1,6 @@
 package com.capstone.backend.domain.preference.entity;
 
+import com.capstone.backend.domain.preference.enums.WeightChangeSource;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -29,9 +30,9 @@ public class PreferenceWeightChange {
     @Column(name = "user_id", nullable = false, insertable = false, updatable = false)
     private UUID userId;
 
-    /** FEEDBACK | REFINE_PATTERN */
+    @Enumerated(EnumType.STRING)
     @Column(name = "source", nullable = false, length = 20, insertable = false, updatable = false)
-    private String source;
+    private WeightChangeSource source;
 
     /** FEEDBACK 이면 recommendation_feedback.id, REFINE_PATTERN 이면 패턴 키(CHEAPER 등) */
     @Column(name = "source_ref", columnDefinition = "text", insertable = false, updatable = false)

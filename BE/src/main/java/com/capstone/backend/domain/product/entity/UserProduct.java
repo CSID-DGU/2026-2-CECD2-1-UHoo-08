@@ -1,5 +1,6 @@
 package com.capstone.backend.domain.product.entity;
 
+import com.capstone.backend.domain.product.enums.RegistrationSource;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -56,9 +57,10 @@ public class UserProduct {
     @Column(name = "review_text", columnDefinition = "text")
     private String reviewText;
 
-    /** 등록 경로 PHOTO | MANUAL */
+    /** 등록 경로 */
+    @Enumerated(EnumType.STRING)
     @Column(name = "source", length = 20)
-    private String source;
+    private RegistrationSource source;
 
     /** 사진 인식 원본(jsonb). 사용자가 고친 최종값과 비교해 인식 정확도를 잰다 */
     @Type(JsonType.class)

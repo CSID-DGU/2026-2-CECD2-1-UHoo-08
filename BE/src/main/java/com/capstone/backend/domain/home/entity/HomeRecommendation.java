@@ -1,5 +1,6 @@
 package com.capstone.backend.domain.home.entity;
 
+import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,10 +29,10 @@ public class HomeRecommendation {
     @Column(name = "user_id")
     private UUID userId;
 
-    /** ROUTINE(보유 제품 루틴 점검) | ENV(환경 기반 추천) */
     @Id
+    @Enumerated(EnumType.STRING)
     @Column(name = "kind", length = 20)
-    private String kind;
+    private HomeRecommendationKind kind;
 
     /** 추천 결과(jsonb). AI contracts/result.py 와 같은 모양이다 */
     @Type(JsonType.class)
@@ -51,6 +52,6 @@ public class HomeRecommendation {
     @EqualsAndHashCode
     public static class Key implements Serializable {
         private UUID userId;
-        private String kind;
+        private HomeRecommendationKind kind;
     }
 }
