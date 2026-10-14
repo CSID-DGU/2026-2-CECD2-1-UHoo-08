@@ -1,4 +1,4 @@
-package com.capstone.backend.domain.recommendation.entity;
+package com.capstone.backend.domain.recommendation.enums;
 
 /**
  * 추천 job 의 상태.
@@ -17,7 +17,7 @@ public enum JobStatus {
     /**
      * 되묻는 중이라 사용자의 답을 기다리는 상태.
      *
-     * <p>실패가 아니다. 이 상태의 job 을 정리하면 답을 받아도 이어 돌릴 수 없다.
+     * 실패가 아니다. 이 상태의 job 을 정리하면 답을 받아도 이어 돌릴 수 없다.
      */
     NEEDS_CLARIFICATION,
 
