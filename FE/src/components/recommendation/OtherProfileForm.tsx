@@ -29,6 +29,9 @@ export function OtherProfileForm({
     ...initial,
     concerns: [...initial.concerns],
   }));
+  const [customRecipient, setCustomRecipient] = useState(
+    !["엄마", "아빠", "아이 · 아기", "친구 선물"].includes(initial.recipient),
+  );
   const single = (
     field: "recipient" | "personalColor" | "skinType",
     value: string,
@@ -43,9 +46,20 @@ export function OtherProfileForm({
       <button
         key={value}
         type="button"
-        aria-pressed={profile[field] === value}
-        onClick={() => single(field, value)}
-        className={`rounded-xl px-4 py-2.5 text-caption ${profile[field] === value ? (field === "personalColor" ? "bg-gray-500 text-white" : "bg-primary-300 text-white") : "bg-gray-100 text-gray-400"}`}
+        aria-pressed={
+          field === "recipient"
+            ? customRecipient
+              ? value === "직접 입력"
+              : profile.recipient === value
+            : profile[field] === value
+        }
+        onClick={() => {
+          if (field === "recipient") {
+            setCustomRecipient(value === "직접 입력");
+            single(field, value === "직접 입력" ? "" : value);
+          } else single(field, value);
+        }}
+        className={`rounded-xl px-4 py-2.5 text-caption ${(field === "recipient" ? (customRecipient ? value === "직접 입력" : profile.recipient === value) : profile[field] === value) ? (field === "personalColor" ? "bg-gray-500 text-white" : "bg-primary-300 text-white") : "bg-gray-100 text-gray-400"}`}
       >
         {value}
       </button>
@@ -70,13 +84,11 @@ export function OtherProfileForm({
             "직접 입력",
           ])}
         </div>
-        {!["엄마", "아빠", "아이 · 아기", "친구 선물"].includes(
-          profile.recipient,
-        ) && (
+        {customRecipient && (
           <input
             aria-label="쓰실 분 직접 입력"
             placeholder="누가 쓰실 건가요?"
-            value={profile.recipient === "직접 입력" ? "" : profile.recipient}
+            value={profile.recipient}
             onChange={(event) => single("recipient", event.target.value)}
             className="mt-3 w-full rounded-xl border border-gray-200 p-3 text-caption"
           />
@@ -142,10 +154,7 @@ export function OtherProfileForm({
         onClick={() =>
           onSubmit({
             ...profile,
-            recipient:
-              profile.recipient === "직접 입력"
-                ? "다른 사람"
-                : profile.recipient,
+            recipient: profile.recipient.trim() || "다른 사람",
           })
         }
       >

@@ -22,7 +22,13 @@ import {
 import { SearchEntry } from "../../components/search/SearchEntry";
 import { SearchAnalysisLoading } from "../../components/search/SearchAnalysisLoading";
 import { saveLastSearch } from "../../lib/localHistory";
-import { beginSearchAnalysis, withDeadline } from "../../lib/searchAnalysis";
+import {
+  AnalysisEndedError,
+  beginSearchAnalysis,
+  forgetAnalysisJob,
+  validateAnalysisStatus,
+  withDeadline,
+} from "../../lib/searchAnalysis";
 import {
   deleteSearchView,
   readSearchView,
@@ -202,11 +208,12 @@ function SearchResultContent() {
     const deadline = Date.now() + 180_000;
     while (version === searchVersion.current) {
       if (Date.now() >= deadline) throw new Error("TIMEOUT");
-      const { data } = await withDeadline(
+      const statusResponse = await withDeadline(
         getRecommendationStatus(jobId),
         Math.min(15_000, deadline - Date.now()),
       );
       if (version !== searchVersion.current) return null;
+      const data = validateAnalysisStatus(statusResponse.data);
       setAnalysisStep(
         data.step ||
           (data.status === "PENDING"
@@ -228,8 +235,16 @@ function SearchResultContent() {
         setAnalysisNotice("");
         return response.data;
       }
-      if (data.status === "FAILED" || data.status === "NEEDS_CLARIFICATION")
-        throw new Error(data.status);
+      if (data.status === "FAILED" || data.status === "NEEDS_CLARIFICATION") {
+        forgetAnalysisJob(jobId);
+        setAnalysisJobId(null);
+        setHistory((previous) =>
+          previous.map((entry) =>
+            entry.jobId === jobId ? { ...entry, jobId: null } : entry,
+          ),
+        );
+        throw new AnalysisEndedError(data.status);
+      }
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
     return null;
@@ -296,9 +311,13 @@ function SearchResultContent() {
           jobId = data.jobId;
           setAnalysisJobId(jobId);
           result = await collectAnalysis(jobId, version);
-        } catch {
+        } catch (error) {
+          if (error instanceof AnalysisEndedError) jobId = null;
           notice =
-            "피부 분석을 완료하지 못했어요. 검색한 제품은 먼저 보여드릴게요. 피부 프로필과 연결 상태를 확인해주세요.";
+            error instanceof AnalysisEndedError &&
+            error.status === "NEEDS_CLARIFICATION"
+              ? "추가 정보가 필요해요. 추가 질문 화면은 아직 연결되지 않았어요. 검색 조건을 더 구체적으로 수정해주세요."
+              : "피부 분석을 완료하지 못했어요. 검색한 제품은 먼저 보여드릴게요. 피부 프로필과 연결 상태를 확인해주세요.";
           if (version === searchVersion.current) setAnalysisNotice(notice);
         }
       }
@@ -361,11 +380,28 @@ function SearchResultContent() {
               : entry,
           ),
         );
-    } catch {
-      if (version === searchVersion.current)
-        setAnalysisNotice(
-          "아직 분석 결과를 확인하지 못했어요. 잠시 후 진행 상태를 다시 확인해주세요.",
+    } catch (error) {
+      if (version === searchVersion.current) {
+        const notice =
+          error instanceof AnalysisEndedError
+            ? error.status === "NEEDS_CLARIFICATION"
+              ? "추가 정보가 필요해요. 추가 질문 화면은 아직 연결되지 않았어요. 검색 조건을 더 구체적으로 수정해주세요."
+              : "추천 분석에 실패했어요. 피부 프로필과 연결 상태를 확인한 뒤 다시 시도해주세요."
+            : "아직 분석 결과를 확인하지 못했어요. 잠시 후 진행 상태를 다시 확인해주세요.";
+        setAnalysisNotice(notice);
+        setHistory((previous) =>
+          previous.map((entry, index) =>
+            index === historyIndexRef.current
+              ? {
+                  ...entry,
+                  analysisNotice: notice,
+                  jobId:
+                    error instanceof AnalysisEndedError ? null : entry.jobId,
+                }
+              : entry,
+          ),
         );
+      }
     } finally {
       if (version === searchVersion.current) setLoading(false);
     }
@@ -554,13 +590,23 @@ function SearchResultContent() {
                 <button
                   type="button"
                   onClick={() =>
-                    analysisJobId
-                      ? void resumeAnalysis()
-                      : void runSearch(baseQuery, conditions, "분석 다시 시도")
+                    analysisNotice.startsWith("추가 정보가 필요해요.")
+                      ? setSheet("edit")
+                      : analysisJobId
+                        ? void resumeAnalysis()
+                        : void runSearch(
+                            baseQuery,
+                            conditions,
+                            "분석 다시 시도",
+                          )
                   }
                   className="mt-2 min-h-10 text-caption font-semibold text-primary-600"
                 >
-                  {analysisJobId ? "분석 상태 다시 확인" : "다시 시도"}
+                  {analysisNotice.startsWith("추가 정보가 필요해요.")
+                    ? "조건 수정"
+                    : analysisJobId
+                      ? "분석 상태 다시 확인"
+                      : "다시 시도"}
                 </button>
               </div>
             )}

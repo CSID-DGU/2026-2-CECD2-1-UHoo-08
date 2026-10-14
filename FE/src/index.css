@@ -670,10 +670,6 @@ button:active {
   width: 17px;
   height: 17px;
 }
-.matching-node-search {
-  left: 38px;
-  top: 41px;
-}
 .matching-node-skin {
   right: 36px;
   top: 41px;
@@ -682,12 +678,19 @@ button:active {
   left: calc(50% - 16px);
   bottom: 21px;
 }
-.phase-search .matching-node-search,
 .phase-analyze .matching-node-skin,
 .phase-compose .matching-node-result {
   background: #9dbde9;
   color: #203d66;
   animation: matching-node-pulse 2s ease-in-out infinite;
+}
+.phase-search .matching-main-card {
+  border-color: #9dbde9;
+  box-shadow: 0 12px 30px #9dbde94d, inset 0 0 0 1px #9dbde980;
+}
+.phase-search .matching-scan {
+  border-bottom: 2px solid #5b8fd9;
+  background: linear-gradient(transparent, #9dbde94d);
 }
 .phase-compose .matching-scan {
   animation-duration: 5s;

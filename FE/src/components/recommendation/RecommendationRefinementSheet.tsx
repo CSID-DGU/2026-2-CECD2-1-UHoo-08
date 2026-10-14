@@ -12,10 +12,10 @@ export function RecommendationRefinementSheet({ conditions, baseQuery, mode = "a
   onApply: (conditions: string[], baseQuery?: string) => void;
 }) {
   const editing = mode === "edit";
-  const [selected, setSelected] = useState<string[]>(editing ? conditions : []);
+  const [selected, setSelected] = useState(() => (editing ? conditions : []).map(text => ({ id: crypto.randomUUID(), text })));
   const [custom, setCustom] = useState("");
   const [editedBase, setEditedBase] = useState(baseQuery);
-  const additions = [...new Set([...selected, ...(custom.trim() ? [custom.trim()] : [])].map(item => item.trim()).filter(Boolean))];
+  const additions = [...new Set([...selected.map(item => item.text), ...(custom.trim() ? [custom.trim()] : [])].map(item => item.trim()).filter(Boolean))];
   const unchanged = editing && editedBase.trim() === baseQuery && JSON.stringify(additions) === JSON.stringify(conditions);
   return <BottomSheet label={editing ? "검색 조건 수정" : "검색 조건 추가"} onClose={onClose}>
     <div className="px-5 pb-7 pt-3">
@@ -26,16 +26,16 @@ export function RecommendationRefinementSheet({ conditions, baseQuery, mode = "a
         <textarea id="base-search-query" value={editedBase} onChange={event => setEditedBase(event.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-gray-200 p-3 text-caption outline-primary-500" />
         <p className="mt-4 text-caption font-semibold">추가한 조건 수정·삭제</p>
         {!selected.length && <p className="mt-2 text-[11px] text-gray-300">아직 추가한 조건이 없어요. 아래에서 더할 수 있어요.</p>}
-        <div className="mt-2 grid gap-2">{selected.map((condition, index) => <div key={index} className="flex gap-2">
-          <input aria-label={`추가 조건 ${index + 1}`} value={condition} onChange={event => setSelected(previous => previous.map((item, position) => position === index ? event.target.value : item))} className="min-w-0 flex-1 rounded-lg border border-gray-200 p-2 text-caption outline-primary-500" />
-          <button type="button" aria-label={`추가 조건 ${index + 1} 삭제`} onClick={() => setSelected(previous => previous.filter((_, position) => position !== index))} className="min-h-10 px-2 text-[11px] text-gray-400">삭제</button>
+        <div className="mt-2 grid gap-2">{selected.map((condition, index) => <div key={condition.id} className="flex gap-2">
+          <input aria-label={`추가 조건 ${index + 1}`} value={condition.text} onChange={event => setSelected(previous => previous.map(item => item.id === condition.id ? { ...item, text: event.target.value } : item))} className="min-w-0 flex-1 rounded-lg border border-gray-200 p-2 text-caption outline-primary-500" />
+          <button type="button" aria-label={`추가 조건 ${index + 1} 삭제`} onClick={() => setSelected(previous => previous.filter(item => item.id !== condition.id))} className="min-h-10 px-2 text-[11px] text-gray-400">삭제</button>
         </div>)}</div>
       </> : <>
         <p className="mt-4 text-[11px] text-gray-300">지금 조건</p>
         <div className="mt-2 flex flex-wrap gap-1.5">{[baseQuery, ...conditions].map(condition => <span key={condition} className="max-w-full break-words rounded-md bg-gray-100 px-2 py-1 text-[11px] text-gray-400">{condition}</span>)}</div>
       </>}
       <fieldset className="mt-5"><legend className="mb-2 w-full text-caption font-semibold">골라서 더하기 <span className="float-right text-[11px] font-normal text-gray-300">복수 선택돼요</span></legend>
-        <div className="grid grid-cols-2 gap-2">{OPTIONS.map(option => <button type="button" key={option} disabled={!editing && conditions.includes(option)} aria-pressed={selected.includes(option)} onClick={() => setSelected(previous => previous.includes(option) ? previous.filter(item => item !== option) : [...previous, option])} className={`min-h-11 rounded-xl px-2 py-3 text-caption disabled:opacity-40 ${selected.includes(option) ? "bg-primary-300 text-white" : "bg-gray-100 text-gray-500"}`}>{option}</button>)}</div>
+        <div className="grid grid-cols-2 gap-2">{OPTIONS.map(option => <button type="button" key={option} disabled={!editing && conditions.includes(option)} aria-pressed={selected.some(item => item.text === option)} onClick={() => setSelected(previous => previous.some(item => item.text === option) ? previous.filter(item => item.text !== option) : [...previous, { id: crypto.randomUUID(), text: option }])} className={`min-h-11 rounded-xl px-2 py-3 text-caption disabled:opacity-40 ${selected.some(item => item.text === option) ? "bg-primary-300 text-white" : "bg-gray-100 text-gray-500"}`}>{option}</button>)}</div>
       </fieldset>
       <label className="mt-5 block text-caption font-semibold" htmlFor="custom-refinement">직접 쓰기</label>
       <input id="custom-refinement" value={custom} maxLength={100} onChange={event => setCustom(event.target.value)} placeholder="예) 팩트 말고 쿠션만 보여줘" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-caption outline-primary-500" />

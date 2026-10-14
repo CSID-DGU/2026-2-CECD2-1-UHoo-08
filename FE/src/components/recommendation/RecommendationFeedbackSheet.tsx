@@ -57,8 +57,8 @@ export function RecommendationFeedbackSheet({
               {product.name}
             </p>
             <p className="mt-1 text-[11px] text-gray-300">
-              {product.brand} · {product.originalPrice?.toLocaleString("ko-KR")}
-              원
+              {product.brand}
+              {product.originalPrice != null && ` · ${product.originalPrice.toLocaleString("ko-KR")}원`}
             </p>
           </div>
           <span className="rounded-md bg-primary-50 px-2 py-1 text-[11px] text-primary-500">

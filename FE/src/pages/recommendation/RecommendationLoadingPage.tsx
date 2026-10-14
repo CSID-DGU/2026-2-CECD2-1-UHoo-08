@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getRecommendationStatus } from "../../api/recommendationApi";
-import { withDeadline } from "../../lib/searchAnalysis";
+import { forgetAnalysisJob, validateAnalysisStatus, withDeadline } from "../../lib/searchAnalysis";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SearchField } from "../../components/common/SearchField";
 import AppLayout from "../../layouts/AppLayout";
@@ -18,9 +18,11 @@ export function RecommendationLoadingPage() {
   const [label, setLabel] = useState("추천을 준비하고 있어요");
   const [notice, setNotice] = useState("");
   const [pollAttempt, setPollAttempt] = useState(0);
+  const [ended, setEnded] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
+    setEnded(false);
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = Date.now() + 180_000;
@@ -30,15 +32,21 @@ export function RecommendationLoadingPage() {
           setNotice("분석이 예상보다 오래 걸리고 있어요. 잠시 후 상태를 다시 확인해주세요.");
           return;
         }
-        const { data } = await withDeadline(getRecommendationStatus(jobId!), Math.min(15_000, deadline - Date.now()));
+        const response = await withDeadline(getRecommendationStatus(jobId!), Math.min(15_000, deadline - Date.now()));
         if (stopped) return;
+        const data = validateAnalysisStatus(response.data);
         setNotice("");
         setProgress(data.progress == null ? null : Math.min(100, Math.max(0, data.progress)));
         setActiveIndex(STEPS.findIndex(step => step.keys.includes(data.step ?? "")));
         setLabel(data.step || "추천을 준비하고 있어요");
         if (data.status === "COMPLETED") { navigate("/recommendation/result", { state: { jobId }, replace: true }); return; }
-        if (data.status === "FAILED") { setNotice("추천 분석에 실패했어요. 이전 화면에서 다시 시도해주세요."); return; }
-        if (data.status === "NEEDS_CLARIFICATION") { setActiveIndex(-1); setLabel("추가 정보가 필요해요"); setNotice("추가 질문 화면은 아직 연결되지 않았어요."); return; }
+        if (data.status === "FAILED" || data.status === "NEEDS_CLARIFICATION") {
+          forgetAnalysisJob(jobId!);
+          setEnded(true);
+          if (data.status === "FAILED") setNotice("추천 분석에 실패했어요. 이전 화면에서 다시 시도해주세요.");
+          else { setActiveIndex(-1); setLabel("추가 정보가 필요해요"); setNotice("추가 질문 화면은 아직 연결되지 않았어요. 이전 화면에서 요청을 수정해주세요."); }
+          return;
+        }
       } catch {
         if (stopped) return;
         setNotice("진행 상태를 불러오지 못했어요. 상태를 다시 확인해주세요.");
@@ -68,7 +76,8 @@ export function RecommendationLoadingPage() {
           </div>
         </div>
         {notice && <p role="status" className="mt-3 text-center text-caption text-gray-400">{notice}</p>}
-        {notice && jobId && <button type="button" onClick={() => { setNotice(""); setPollAttempt(value => value + 1); }} className="mt-3 min-h-10 w-full text-caption font-semibold text-primary-600">분석 상태 다시 확인</button>}
+        {notice && jobId && !ended && <button type="button" onClick={() => { setNotice(""); setPollAttempt(value => value + 1); }} className="mt-3 min-h-10 w-full text-caption font-semibold text-primary-600">분석 상태 다시 확인</button>}
+        {notice && ended && <button type="button" onClick={() => navigate(-1)} className="mt-3 min-h-10 w-full text-caption font-semibold text-primary-600">이전 화면으로 돌아가기</button>}
         {!jobId && <p className="mt-3 text-center text-caption text-gray-300">추천 요청 정보가 없어요. 이전 화면에서 추천을 시작해주세요.</p>}
         <p className="mt-3 text-center text-[11px] text-gray-300">분석에 시간이 걸릴 수 있어요</p>
       </section>
