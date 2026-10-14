@@ -4,7 +4,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate   # 스키마는 AI/db/migrations 의 SQL로만 바꾼다
     properties:
       hibernate:
         format_sql: true
