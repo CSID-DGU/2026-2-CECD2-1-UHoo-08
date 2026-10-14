@@ -11,6 +11,11 @@ spring:
     show-sql: true
     open-in-view: false
 
+  servlet:
+    multipart:
+      max-file-size: 10MB      # StorageService 상한과 같게. 기본값 1MB 면 그보다 큰 사진이 서비스까지 오지 못한다
+      max-request-size: 11MB
+
   jackson:
     naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies$LowerCamelCaseStrategy
     serialization:
