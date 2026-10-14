@@ -86,6 +86,20 @@ public class User {
     @Column(name = "weekly_report", nullable = false)
     private boolean weeklyReport = false;
 
+    // ── 지역 ───────────────────────────────────────────────────────
+    /** 환경 기록을 찾는 키. 시·도 이름("서울", "경기" …)이고 env_daily.region 과 같은 값이다 */
+    @Column(name = "region", length = 50)
+    private String region;
+
+    /** 화면 표시용 지역 이름. 예: 고양시 덕양구. 환경 데이터 조회에는 region 을 쓴다 */
+    @Column(name = "region_label", length = 50)
+    private String regionLabel;
+
+    /** 합성 데이터로 만든 사용자. 적재 스크립트가 켜고, 정리 스크립트가 이것만 지운다 */
+    @Builder.Default
+    @Column(name = "is_synthetic", nullable = false)
+    private boolean isSynthetic = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
