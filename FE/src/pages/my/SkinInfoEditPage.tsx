@@ -11,7 +11,7 @@ import {
 import { PageHeader } from "../../components/common/PageHeader";
 import { PrimaryButton } from "../../components/common/PrimaryButton";
 import AppLayout from "../../layouts/AppLayout";
-import { personalColors, skinConcerns, skinTypes } from "../../mocks/user";
+import { personalColors, skinConcerns, skinTypes } from "../../data/profileOptions";
 
 const glass = {
   background: "rgba(255,255,255,0.68)",

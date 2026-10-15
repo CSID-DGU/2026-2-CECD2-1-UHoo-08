@@ -5,6 +5,7 @@ import {
   getRecommendationResult,
 } from "../../api/recommendationApi";
 import { PageHeader } from "../../components/common/PageHeader";
+import { ProductThumbnail } from "../../components/common/ProductThumbnail";
 import AppLayout from "../../layouts/AppLayout";
 
 function fmt(n: number | null | undefined) {
@@ -18,7 +19,7 @@ function ProductImage({ url, alt }: { url: string | null; alt: string }) {
       {url ? (
         <img src={url} alt={alt} className="h-full w-full object-contain" />
       ) : (
-        <span className="text-3xl">💄</span>
+        <ProductThumbnail className="h-full w-full bg-primary-50" shape={alt.includes("쿠션") ? "cushion" : "bottle"} />
       )}
     </div>
   );
@@ -57,6 +58,7 @@ export function RecommendationResultPage() {
   }
 
   const main = result?.mainRecommendations?.[0];
+  const openProduct = (id: string) => navigate(`/product/${id}`);
 
   return (
     <AppLayout>
@@ -82,6 +84,7 @@ export function RecommendationResultPage() {
           <span className="absolute right-[78px] top-[70px] text-h1 text-white">✦</span>
         </section>
 
+
         {/* AI 추천 이유 */}
         {result?.aiReason && (
           <section className="mt-4 rounded-xl border border-primary-100 bg-primary-50 p-4">
@@ -94,7 +97,7 @@ export function RecommendationResultPage() {
         {main && (
           <section className="mt-4">
             <h2 className="text-body1 text-gray-500">추천 상품</h2>
-            <div className="mt-3 flex items-center gap-4 rounded-xl border border-primary-300 bg-white p-4">
+            <button type="button" onClick={() => openProduct(main.id)} className="mt-3 flex w-full items-center gap-4 rounded-xl border border-primary-300 bg-white p-4 text-left">
               <div className="h-[70px] w-[70px] shrink-0">
                 <ProductImage url={main.imageUrl} alt={main.name} />
               </div>
@@ -109,7 +112,7 @@ export function RecommendationResultPage() {
                   <p className="text-caption text-gray-300">매칭</p>
                 </div>
               )}
-            </div>
+            </button>
           </section>
         )}
 
@@ -120,10 +123,10 @@ export function RecommendationResultPage() {
             <p className="text-caption text-gray-300">비슷한 피부 타입의 실제 만족 제품</p>
             <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
               {result.similarUserProducts.map((p) => (
-                <article
+                <button type="button"
                   className="min-w-[154px] cursor-pointer rounded-2xl border border-gray-200 bg-white p-3 text-center"
                   key={p.id}
-                  onClick={() => navigate(`/product/${p.id}`)}
+                  onClick={() => openProduct(p.id)}
                 >
                   <div className="h-[94px] overflow-hidden rounded-lg">
                     <ProductImage url={p.imageUrl} alt={p.name} />
@@ -136,7 +139,7 @@ export function RecommendationResultPage() {
                     </p>
                   )}
                   <p className="mt-1 text-caption text-gray-400">{fmt(p.price)}</p>
-                </article>
+                </button>
               ))}
             </div>
           </section>
@@ -148,10 +151,10 @@ export function RecommendationResultPage() {
             <h2 className="text-body1 text-gray-500">유사한 대체 상품</h2>
             <div className="mt-3 grid gap-3">
               {result.alternativeProducts.map((p) => (
-                <div
-                  className="flex cursor-pointer items-center gap-4 rounded-xl border border-gray-200 bg-white p-4"
+                <button type="button"
+                  className="flex cursor-pointer items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 text-left"
                   key={p.id}
-                  onClick={() => navigate(`/product/${p.id}`)}
+                  onClick={() => openProduct(p.id)}
                 >
                   <div className="h-[60px] w-[60px] shrink-0">
                     <ProductImage url={p.imageUrl} alt={p.name} />
@@ -163,26 +166,12 @@ export function RecommendationResultPage() {
                     </p>
                     <p className="mt-1 text-body1 text-gray-500">{fmt(p.price)}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
         )}
 
-        <div className="mt-14 grid grid-cols-2 gap-3">
-          <button
-            className="h-[52px] rounded-xl border border-primary-100 bg-primary-50 text-body1 text-primary-500"
-            type="button"
-          >
-            결과 저장
-          </button>
-          <button
-            className="h-[52px] rounded-xl border border-primary-100 bg-primary-50 text-body1 text-primary-500"
-            type="button"
-          >
-            공유하기
-          </button>
-        </div>
 
         <button
           className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white"

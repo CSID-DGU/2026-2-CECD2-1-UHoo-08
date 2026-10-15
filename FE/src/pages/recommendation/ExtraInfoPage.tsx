@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { requestRecommendation } from "../../api/recommendationApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
-import { recommendationPriceRanges, recommendationReasons } from "../../mocks/recommendations";
+import { recommendationPriceRanges, recommendationReasons } from "../../data/recommendationOptions";
 
 interface ExtraInfoState {
   productId?: string;

@@ -1,9 +1,11 @@
-﻿import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+﻿import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Heart, Smile, Layers, Sun, Droplets, Folder } from "lucide-react";
 import { type ProductDetail, type StoreInfo, getProductDetail, recordProductView } from "../../api/productApi";
 import { addWishlist, deleteWishlist } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
+import { ProductThumbnail } from "../../components/common/ProductThumbnail";
+import { beginSearchAnalysis, withDeadline } from "../../lib/searchAnalysis";
 import AppLayout from "../../layouts/AppLayout";
 
 function fmt(n: number | null | undefined) {
@@ -55,6 +57,11 @@ function GlassHeart() {
 
 export function ProductDetailPage() {
   const navigate = useNavigate();
+  const { state } = useLocation() as { state: { jobId?: string } | null };
+  const [analysing, setAnalysing] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
+  const analysisSubmitting = useRef(false);
+  const pageVersion = useRef(0);
   const { productId } = useParams<{ productId: string }>();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
@@ -65,15 +72,36 @@ export function ProductDetailPage() {
 
   useEffect(() => {
     if (!productId) return;
+    const version = ++pageVersion.current;
+    setProduct(null);
+    analysisSubmitting.current = false;
+    setAnalysing(false);
+    setAnalysisError("");
     recordProductView(productId).catch(() => {});
     getProductDetail(productId)
       .then((res) => {
+        if (version !== pageVersion.current) return;
         setProduct(res.data);
         setWishlisted(res.data.wishlisted ?? false);
         setWishlistId(res.data.wishlistId ?? null);
       })
       .catch(() => {});
+    return () => { pageVersion.current += 1; };
   }, [productId]);
+
+  async function handleViewReport() {
+    if (!product || analysisSubmitting.current) return;
+    if (state?.jobId) { navigate("/recommendation/result", { state: { jobId: state.jobId } }); return; }
+    analysisSubmitting.current = true;
+    const version = pageVersion.current;
+    setAnalysing(true); setAnalysisError("");
+    try {
+      const { data } = await withDeadline(beginSearchAnalysis(product.name, product.productId), 30_000);
+      if (version !== pageVersion.current) return;
+      navigate("/recommendation/loading", { state: { jobId: data.jobId, productName: product.name, productId: product.productId } });
+    } catch { if (version === pageVersion.current) setAnalysisError("분석을 시작하지 못했어요. 피부 프로필과 연결 상태를 확인해주세요."); }
+    finally { if (version === pageVersion.current) { analysisSubmitting.current = false; setAnalysing(false); } }
+  }
 
   function handleHeartClick() {
     if (!productId) return;
@@ -135,7 +163,7 @@ export function ProductDetailPage() {
           {product?.imageUrl ? (
             <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
           ) : (
-            <div className="h-full w-full bg-primary-100" />
+            <ProductThumbnail className="h-full w-full bg-primary-50" size="lg" />
           )}
         </div>
 
@@ -167,6 +195,7 @@ export function ProductDetailPage() {
             )}
           </div>
         )}
+
 
         {/* 주요 성분 */}
         {ingredients && ingredients.length > 0 && (
@@ -245,6 +274,7 @@ export function ProductDetailPage() {
           </section>
         )}
 
+        {analysisError && <p role="alert" className="mt-4 text-caption text-gray-400">{analysisError}</p>}
         {/* 하단 버튼 */}
         <div className="fixed bottom-0 left-1/2 flex h-[86px] w-full max-w-[430px] -translate-x-1/2 gap-3 bg-white px-6 py-4">
           <button
@@ -257,24 +287,17 @@ export function ProductDetailPage() {
           </button>
           <button
             className="h-12 flex-1 rounded-xl bg-primary-500 text-body1 font-semibold text-white"
-            onClick={() =>
-              navigate("/recommendation/extra-info", {
-                state: {
-                  productId: product?.productId,
-                  productName: product?.name,
-                  productBrand: product?.brand,
-                  productImageUrl: product?.imageUrl,
-                },
-              })
-            }
+            onClick={() => void handleViewReport()}
+            disabled={!product || analysing}
             type="button"
           >
-            나와 맞는지 알아보기 ✦
+            {analysing ? "분석을 준비하고 있어요…" : "나와 맞는지 알아보기 ✦"}
           </button>
         </div>
       </section>
         </div>
       </div>
+
 
       {/* dim */}
       <div
