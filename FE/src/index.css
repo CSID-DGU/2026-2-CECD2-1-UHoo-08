@@ -1,5 +1,19 @@
 ﻿@import "tailwindcss";
 
+.search-results-field {
+  height: 54px;
+  border-color: #9dbde9;
+  border-radius: 14px;
+  background: #f2f6fc;
+}
+.search-results-screen > header { min-height: 40px; }
+.search-results-screen > header button {
+  display: grid;
+  min-width: 44px;
+  min-height: 44px;
+  place-items: center;
+}
+
 @theme {
   /* Primary Color — Soft Blue */
   --color-primary-50: #f0f5fd;

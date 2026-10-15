@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 
 type SearchFieldProps = {
+  className?: string;
   value?: string;
   placeholder?: string;
   editable?: boolean;
@@ -14,6 +15,7 @@ type SearchFieldProps = {
 };
 
 export function SearchField({
+  className = "",
   editable = false,
   onClear,
   onClick,
@@ -36,7 +38,7 @@ export function SearchField({
 
   if (editable) {
     return (
-      <div className={`flex h-12 w-full items-center gap-3 rounded-xl px-4 ${colorClass}`}>
+      <div className={`flex h-12 w-full items-center gap-3 rounded-xl px-4 ${colorClass} ${className}`}>
         <input
           aria-label="화장품 검색"
           className="min-w-0 flex-1 bg-transparent text-body2 font-medium text-gray-500 outline-none placeholder:text-gray-400"

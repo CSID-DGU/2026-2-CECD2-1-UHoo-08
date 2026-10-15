@@ -48,7 +48,7 @@ const UserIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-export function BottomNav() {
+export function BottomNav({ compactSearch = false }: { compactSearch?: boolean }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -68,12 +68,12 @@ export function BottomNav() {
       </button>
 
       <button
-        className={`mx-auto grid h-14 w-14 cursor-pointer place-items-center rounded-full ${centerActive ? "bg-primary-600" : "bg-primary-500"} text-white`}
+        className={compactSearch ? "mx-auto flex flex-col items-center gap-1 text-primary-600" : `mx-auto grid h-14 w-14 cursor-pointer place-items-center rounded-full ${centerActive ? "bg-primary-600" : "bg-primary-500"} text-white`}
         onClick={() => navigate("/search")}
         type="button"
         aria-label="제품 검색과 질문"
       >
-        <SearchIcon active={false} />
+        {compactSearch ? <><span className="grid h-[42px] w-[42px] place-items-center rounded-full bg-[#9DBDE9] text-[#203D66]"><SearchIcon active={false} /></span><span className="text-[10px] leading-none">검색</span></> : <SearchIcon active={false} />}
       </button>
 
       <button

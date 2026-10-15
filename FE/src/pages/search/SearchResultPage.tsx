@@ -12,7 +12,9 @@ import {
 } from "../../api/recommendationApi";
 import { BottomNav } from "../../components/common/BottomNav";
 import { PageHeader } from "../../components/common/PageHeader";
-import { ProductThumbnail } from "../../components/common/ProductThumbnail";
+import { ChevronRight, History, Plus } from "lucide-react";
+import { addWishlist, deleteWishlist, getWishlists } from "../../api/wishlistApi";
+import { SearchProductCard } from "../../components/search/SearchProductCard";
 import { SearchField } from "../../components/common/SearchField";
 import { RecommendationRefinementSheet } from "../../components/recommendation/RecommendationRefinementSheet";
 import {
@@ -139,12 +141,37 @@ function SearchResultContent() {
       index,
     ]),
   );
-  const addedConditions = conditions.filter(
-    (condition) => !previousResult?.conditions.includes(condition),
-  );
   const newProductCount = previousResult
     ? products.filter((product) => !previousRanks.has(product.productId)).length
     : 0;
+  const [wishlistIds, setWishlistIds] = useState<Record<string, string> | null>(null);
+  const wishlistRequest = useRef<Promise<Record<string, string>> | null>(null);
+  function loadWishlistIds() {
+    if (!wishlistRequest.current) {
+      wishlistRequest.current = getWishlists().then(({ data }) => {
+        if (!Array.isArray(data?.wishlists)) throw new Error("INVALID_WISHLIST_RESPONSE");
+        return Object.fromEntries(data.wishlists.map(item => [item.product.id, item.wishlistId]));
+      }).catch(error => { wishlistRequest.current = null; throw error; });
+    }
+    return wishlistRequest.current;
+  }
+  useEffect(() => {
+    let active = true;
+    loadWishlistIds().then(ids => { if (active) setWishlistIds(ids); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+  async function toggleWishlist(productId: string) {
+    const ids = wishlistIds ?? await loadWishlistIds();
+    const wishlistId = ids[productId];
+    if (wishlistId) {
+      await deleteWishlist(wishlistId);
+      setWishlistIds(previous => { const next = { ...(previous ?? ids) }; delete next[productId]; return next; });
+    } else {
+      const { data } = await addWishlist(productId);
+      if (!data?.wishlistId) throw new Error("INVALID_WISHLIST_RESPONSE");
+      setWishlistIds(previous => ({ ...(previous ?? ids), [productId]: data.wishlistId }));
+    }
+  }
 
   useEffect(() => {
     if (!saved && initialQuery)
@@ -418,7 +445,7 @@ function SearchResultContent() {
           }}
           className="flex-1 overflow-y-auto scrollbar-none"
         >
-          <section className="flex flex-col px-6 pb-48 pt-10">
+          <section className="search-results-screen flex flex-col px-[18px] pb-44 pt-7 text-slate-800">
             <PageHeader
               title={
                 loading
@@ -433,6 +460,7 @@ function SearchResultContent() {
             />
             <div className="mt-5">
               <SearchField
+                className="search-results-field"
                 key={baseQuery}
                 editable
                 variant="outlined"
@@ -448,7 +476,7 @@ function SearchResultContent() {
                 <div
                   role="tablist"
                   aria-label="검색 결과 기준"
-                  className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1"
+                  className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-[#F2F6FC] p-1"
                 >
                   {RESULT_BASES.map((item, index) => (
                     <button
@@ -482,7 +510,7 @@ function SearchResultContent() {
                             ?.focus();
                         }
                       }}
-                      className={`min-h-10 rounded-lg px-1 text-xs transition-colors ${basis === item.id ? "bg-primary-500 font-semibold text-white" : "text-gray-300 hover:bg-white/60"}`}
+                      className={`min-h-10 rounded-lg px-1 text-xs font-semibold transition-colors ${basis === item.id ? "bg-[#9DBDE9] text-[#203D66]" : "text-slate-500 hover:bg-white/60"}`}
                     >
                       {item.label}
                     </button>
@@ -505,58 +533,20 @@ function SearchResultContent() {
               />
             )}
 
-            {submittedQuery &&
-              !loading &&
-              !error &&
-              (previousResult || conditions.length > 0) && (
-                <section
-                  aria-label="검색 조건"
-                  className={`mt-4 rounded-xl border p-3 ${previousResult ? "border-primary-300 bg-primary-50" : "border-gray-100"}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="pt-2 text-[11px] font-semibold leading-5 text-primary-600">
-                      {previousResult
-                        ? addedConditions.length
-                          ? `‘${addedConditions.join("’와 ‘")}’를 더했어요`
-                          : "검색 조건을 수정했어요"
-                        : "현재 검색 조건"}
-                    </p>
-                    {previousResult && (
-                      <button
-                        type="button"
-                        onClick={() => restoreHistory(historyIndex - 1)}
-                        className="min-h-10 shrink-0 rounded-lg border border-primary-100 bg-white px-2 text-[11px] text-primary-600"
-                      >
-                        되돌리기
-                      </button>
-                    )}
+            {submittedQuery && !loading && !error && (
+              <section aria-label="검색 조건" className="mt-2 border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-500">현재 조건</p>
+                  <div className="flex items-center gap-3">
+                    {previousResult && <button type="button" onClick={() => restoreHistory(historyIndex - 1)} className="min-h-10 text-xs text-slate-500">되돌리기</button>}
+                    <button type="button" onClick={() => setSheet("edit")} className="flex min-h-10 items-center text-xs text-primary-600">조건 수정 <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" /></button>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {[baseQuery, ...conditions].map((condition) => (
-                      <span
-                        key={condition}
-                        className={`max-w-full break-words rounded-md px-2 py-1 text-[11px] ${previousResult && addedConditions.includes(condition) ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400"}`}
-                      >
-                        {condition}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <p className="text-[11px] leading-5 text-gray-400">
-                      {previousResult
-                        ? "조건에 맞는 후보를 다시 찾았어요"
-                        : "원하는 조건을 더해 후보를 좁혀보세요"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setSheet("edit")}
-                      className="min-h-10 shrink-0 text-[11px] text-primary-600"
-                    >
-                      조건 수정
-                    </button>
-                  </div>
-                </section>
-              )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[baseQuery, ...conditions].map((condition, index) => <span key={`${index}-${condition}`} className="max-w-full break-words rounded-md bg-[#F2F6FC] px-2.5 py-1.5 text-[11px] leading-4 text-slate-600">{condition}</span>)}
+                </div>
+              </section>
+            )}
             {loading && (
               <SearchAnalysisLoading
                 searching={searching}
@@ -621,27 +611,24 @@ function SearchResultContent() {
                   basis === "self" &&
                   products.length > 0 && (
                     <>
-                      <div className="mt-4 flex items-center justify-between gap-2">
-                        <p className="text-caption text-gray-300">
+                      <div className="mt-5 flex items-center justify-between gap-2">
+                        <div>
+                        <h2 className="mb-1 text-base font-semibold text-slate-800">요청에 맞는 제품</h2>
+                        <p className="text-xs leading-5 text-slate-500">
                           {category
                             ? `${CATEGORY_LABEL[category] ?? category} · `
                             : ""}
-                          총 {products.length}개 결과
+                          {products.length}개 결과
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => setSheet("edit")}
-                          className="min-h-9 text-[11px] text-primary-600"
-                        >
-                          조건 수정
-                        </button>
+                        </div>
+                        <span className="text-xs text-slate-500">검색 결과 순</span>
                       </div>
                       {previousResult && (
                         <p className="text-[11px] text-primary-500">
                           새로 찾은 후보 {newProductCount}개
                         </p>
                       )}
-                      <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5">
                         {products.map((product, index) => {
                           const oldRank = previousRanks.get(product.productId);
                           const rankLabel = !previousResult
@@ -664,68 +651,19 @@ function SearchResultContent() {
                                 (item) => item.id === product.productId,
                               ));
                           return (
-                            <article
+                            <SearchProductCard
                               key={product.productId}
-                              className="overflow-hidden rounded-2xl border border-gray-100 bg-white"
-                            >
-                              <button
-                                type="button"
-                                className="flex w-full flex-col text-left"
-                                onClick={() => {
-                                  recordProductView(product.productId).catch(
-                                    () => {},
-                                  );
-                                  navigate(`/product/${product.productId}`, {
-                                    state: hasReport
-                                      ? { jobId: analysis.jobId }
-                                      : null,
-                                  });
-                                }}
-                              >
-                                <div className="relative h-[130px] w-full bg-primary-50">
-                                  {rankLabel && (
-                                    <span
-                                      className={`absolute left-2 top-2 z-10 rounded-md px-2 py-1 text-[10px] ${oldRank === undefined ? "bg-primary-100 text-primary-600" : oldRank === index ? "border border-gray-200 bg-white text-gray-300" : "bg-green-50 text-green-700"}`}
-                                    >
-                                      {rankLabel}
-                                    </span>
-                                  )}
-                                  {product.imageUrl ? (
-                                    <img
-                                      src={product.imageUrl}
-                                      alt={product.name}
-                                      className="h-full w-full object-contain p-3"
-                                    />
-                                  ) : (
-                                    <ProductThumbnail
-                                      className="h-full w-full rounded-none bg-primary-50"
-                                      size="lg"
-                                    />
-                                  )}
-                                </div>
-                                <div className="min-w-0 p-3">
-                                  <p className="line-clamp-2 text-caption font-semibold leading-snug text-gray-500">
-                                    {product.name}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-[11px] text-gray-300">
-                                    {product.brand}
-                                  </p>
-                                  {product.originalPrice != null && (
-                                    <p className="mt-2 text-caption text-gray-500">
-                                      {product.originalPrice.toLocaleString(
-                                        "ko-KR",
-                                      )}
-                                      원
-                                    </p>
-                                  )}
-                                </div>
-                              </button>
-                              {personalization != null && (
-                                <p className="mx-3 mb-3 rounded-lg bg-primary-50 p-2 text-[11px] font-semibold text-primary-600">
-                                  개인화 점수 {personalization}점
-                                </p>
-                              )}
-                            </article>
+                              product={product}
+                              rank={index + 1}
+                              rankLabel={rankLabel}
+                              personalization={personalization}
+                              saved={Boolean(wishlistIds?.[product.productId])}
+                              onToggleSaved={() => toggleWishlist(product.productId)}
+                              onOpen={() => {
+                                recordProductView(product.productId).catch(() => {});
+                                navigate(`/product/${product.productId}`, { state: hasReport ? { jobId: analysis.jobId } : null });
+                              }}
+                            />
                           );
                         })}
                       </div>
@@ -746,7 +684,7 @@ function SearchResultContent() {
                     </div>
                   )}
                 {submittedQuery && !loading && !error && basis !== "self" && (
-                  <div className="mt-5 rounded-2xl border border-gray-100 px-5 py-8 text-center">
+                  <div className="px-4 py-14 text-center">
                     <p className="text-sm font-semibold text-gray-500">
                       {basis === "popular"
                         ? "전체 인기 결과를 준비하고 있어요"
@@ -773,28 +711,28 @@ function SearchResultContent() {
       </div>
       {submittedQuery && !loading && !error && (
         <div
-          className="pointer-events-none fixed bottom-[88px] left-1/2 z-30 flex w-full max-w-[430px] -translate-x-1/2 items-center gap-3 px-6"
+          className="pointer-events-none fixed bottom-[88px] left-1/2 z-30 flex w-full max-w-[430px] -translate-x-1/2 items-center gap-3 px-[18px]"
           style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           {history.length > 1 && (
             <button
               type="button"
               onClick={() => setSheet("history")}
-              className="pointer-events-auto min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-caption text-gray-400 shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+              className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-[14px] border border-slate-200 bg-white px-3 text-xs text-slate-600 shadow-[0_4px_16px_rgba(32,61,102,0.12)]"
             >
-              수정 이력 {history.length - 1}단계 ›
+              <History aria-hidden="true" className="h-4 w-4" /> 수정 이력 {history.length - 1}단계
             </button>
           )}
           <button
             type="button"
             onClick={() => setSheet("add")}
-            className="pointer-events-auto ml-auto min-h-11 rounded-xl bg-primary-500 px-4 text-caption font-semibold text-white shadow-[0_4px_16px_rgba(53,101,181,0.28)]"
+            className="pointer-events-auto ml-auto flex min-h-12 items-center gap-1.5 rounded-[14px] bg-[#9DBDE9] px-4 text-[13px] font-semibold text-[#203D66] shadow-[0_5px_18px_rgba(32,61,102,0.16)]"
           >
-            ＋ 조건 추가
+            <Plus aria-hidden="true" className="h-[18px] w-[18px]" /> 조건 추가
           </button>
         </div>
       )}
-      <BottomNav />
+      <BottomNav compactSearch />
       {(sheet === "add" || sheet === "edit") && (
         <RecommendationRefinementSheet
           key={sheet}
