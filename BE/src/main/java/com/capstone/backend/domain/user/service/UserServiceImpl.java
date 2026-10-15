@@ -2,6 +2,7 @@ package com.capstone.backend.domain.user.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
 import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
 import com.capstone.backend.domain.user.dto.response.OnboardingCompleteResponse;
@@ -12,13 +13,9 @@ import com.capstone.backend.domain.user.repository.UserRepository;
 import com.capstone.backend.domain.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.UUID;
 
@@ -31,16 +28,10 @@ public class UserServiceImpl implements UserService {
     private final WishlistRepository wishlistRepository;
     private final PriceTrackingRepository priceTrackingRepository;
     private final RegisteredRepository registeredRepository;
-    private final WebClient webClient;
+    private final StorageService storageService;
 
-    @Value("${supabase.url}")
-    private String supabaseUrl;
-
-    @Value("${supabase.service-role-key}")
-    private String supabaseServiceRoleKey;
-
-    @Value("${supabase.storage-url}")
-    private String supabaseStorageUrl;
+    private static final String PROFILE_IMAGE_BUCKET = "profile_image";
+    private static final long PROFILE_IMAGE_MAX_SIZE = 5L * 1024 * 1024;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,13 +52,13 @@ public class UserServiceImpl implements UserService {
         if (trimmedName != null && (trimmedName.length() < 2 || trimmedName.length() > 20)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
-        if (image != null && !image.isEmpty() && image.getSize() > 5L * 1024 * 1024) {
+        if (image != null && !image.isEmpty() && image.getSize() > PROFILE_IMAGE_MAX_SIZE) {
             throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
         }
 
         String profileImageUrl = null;
         if (image != null && !image.isEmpty()) {
-            profileImageUrl = uploadToSupabase(userId, image);
+            profileImageUrl = storageService.upload(PROFILE_IMAGE_BUCKET, userId.toString(), image);
         }
 
         return saveProfile(userId, trimmedName, gender, profileImageUrl);
@@ -91,36 +82,4 @@ public class UserServiceImpl implements UserService {
         return new OnboardingCompleteResponse(true, saved.getUpdatedAt());
     }
 
-    private String uploadToSupabase(UUID userId, MultipartFile image) {
-        try {
-            byte[] bytes = image.getBytes();
-            String contentType = image.getContentType() != null ? image.getContentType() : "image/jpeg";
-            String ext = contentType.contains("png") ? "png" : "jpg";
-            String path = "/profile_image/" + userId + "." + ext;
-
-            String uploadUrl = supabaseStorageUrl + path;
-            log.info("[Storage] 업로드 시작: url={}, size={}, contentType={}", uploadUrl, bytes.length, contentType);
-
-            webClient.post()
-                    .uri(uploadUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + supabaseServiceRoleKey)
-                    .header(HttpHeaders.CONTENT_TYPE, contentType)
-                    .header("x-upsert", "true")
-                    .bodyValue(bytes)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            String publicUrl = supabaseUrl + "/storage/v1/object/public" + path;
-            log.info("[Storage] 업로드 성공: {}", publicUrl);
-            return publicUrl;
-
-        } catch (WebClientResponseException e) {
-            log.error("[Storage] 업로드 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
-        } catch (Exception e) {
-            log.error("[Storage] 업로드 예외: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
-        }
-    }
 }

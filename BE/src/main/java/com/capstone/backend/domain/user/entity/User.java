@@ -60,13 +60,14 @@ public class User {
     @Column(name = "skin_type", length = 20)
     private String skinType;
 
+    // columnDefinition 은 ddl-auto: validate 의 타입 이름 비교에만 쓰인다. PostgreSQL 은 text[] 를 _text 로 알려 준다.
     @Type(StringArrayType.class)
     @Builder.Default
-    @Column(name = "skin_concerns", columnDefinition = "text[]")
+    @Column(name = "skin_concerns", columnDefinition = "_text")
     private String[] skinConcerns = new String[0];
 
     @Type(StringArrayType.class)
-    @Column(name = "notes", columnDefinition = "text[]")
+    @Column(name = "notes", columnDefinition = "_text")
     private String[] notes;
 
     // ── 취향 설정 (구 user_preferences) ─────────────────────────────
@@ -84,6 +85,20 @@ public class User {
     @Builder.Default
     @Column(name = "weekly_report", nullable = false)
     private boolean weeklyReport = false;
+
+    // ── 지역 ───────────────────────────────────────────────────────
+    /** 환경 기록을 찾는 키. 시·도 이름("서울", "경기" …)이고 env_daily.region 과 같은 값이다 */
+    @Column(name = "region", length = 50)
+    private String region;
+
+    /** 화면 표시용 지역 이름. 예: 고양시 덕양구. 환경 데이터 조회에는 region 을 쓴다 */
+    @Column(name = "region_label", length = 50)
+    private String regionLabel;
+
+    /** 합성 데이터로 만든 사용자. 적재 스크립트가 켜고, 정리 스크립트가 이것만 지운다 */
+    @Builder.Default
+    @Column(name = "is_synthetic", nullable = false)
+    private boolean isSynthetic = false;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

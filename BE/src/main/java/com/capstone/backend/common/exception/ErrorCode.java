@@ -25,6 +25,12 @@ public enum ErrorCode {
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "파일 크기가 초과되었습니다"),
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", "존재하지 않는 상품입니다"),
     EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "EXTERNAL_API_ERROR", "외부 API 호출에 실패했습니다"),
+    CLARIFY_NOT_REQUIRED(HttpStatus.CONFLICT, "CLARIFY_NOT_REQUIRED", "되묻기가 필요한 상태가 아닙니다"),
+    RECOGNITION_NOT_FOUND(HttpStatus.NOT_FOUND, "RECOGNITION_NOT_FOUND", "사진 인식 결과가 없거나 만료되었습니다"),
+    USER_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_PRODUCT_NOT_FOUND", "보유 제품을 찾을 수 없습니다"),
+    REGION_NOT_SET(HttpStatus.NOT_FOUND, "REGION_NOT_SET", "지역을 먼저 설정해주세요"),
+    BUNDLE_OVER_BUDGET(HttpStatus.UNPROCESSABLE_ENTITY, "BUNDLE_OVER_BUDGET", "교체하면 예산을 넘습니다"),
+    CHANGE_NOT_REVERTIBLE(HttpStatus.CONFLICT, "CHANGE_NOT_REVERTIBLE", "되돌릴 수 없는 변경입니다"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "서버 내부 오류");
 
     private final HttpStatus status;
