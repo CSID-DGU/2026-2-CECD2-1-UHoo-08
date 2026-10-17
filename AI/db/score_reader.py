@@ -18,6 +18,7 @@ class InsightRow(TypedDict):
 
 
 class UserProductRow(TypedDict):
+    id: str
     user_id: str
     product_id: str
     usage_type: str
@@ -87,27 +88,45 @@ def get_similar_user_ids(
     return [row["id"] for row in (res.data or [])]
 
 
+# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
+_PAGE_SIZE = 1000
+
+
 def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
-    """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다."""
+    """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다.
+
+    첫 응답만 쓰면 1,000행을 넘는 부분이 빠져, 최근 평점이 누락될 수 있다.
+    id 로 정렬해 페이지마다 같은 순서를 보장하고, 다 읽을 때까지 나눠 읽는다.
+    """
     if not user_ids:
         return []
     sb = get_supabase()
-    res = (
-        sb.table("user_products")
-        .select("user_id, product_id, usage_type, rating, created_at")
-        .in_("user_id", user_ids)
-        .execute()
-    )
-    return [
-        UserProductRow(
-            user_id=row["user_id"],
-            product_id=row["product_id"],
-            usage_type=row["usage_type"],
-            rating=row.get("rating"),
-            created_at=row.get("created_at"),
+    rows: List[UserProductRow] = []
+    start = 0
+    while True:
+        res = (
+            sb.table("user_products")
+            .select("id, user_id, product_id, usage_type, rating, created_at")
+            .in_("user_id", user_ids)
+            .order("id")
+            .range(start, start + _PAGE_SIZE - 1)
+            .execute()
         )
-        for row in (res.data or [])
-    ]
+        page = res.data or []
+        rows.extend(
+            UserProductRow(
+                id=row["id"],
+                user_id=row["user_id"],
+                product_id=row["product_id"],
+                usage_type=row["usage_type"],
+                rating=row.get("rating"),
+                created_at=row.get("created_at"),
+            )
+            for row in page
+        )
+        if len(page) < _PAGE_SIZE:
+            return rows
+        start += _PAGE_SIZE
 
 
 def get_popular_products_by_skin_type(
