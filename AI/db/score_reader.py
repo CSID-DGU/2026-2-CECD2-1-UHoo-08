@@ -22,6 +22,7 @@ class UserProductRow(TypedDict):
     product_id: str
     usage_type: str
     rating: Optional[int]
+    created_at: Optional[str]
 
 
 def get_insights(product_ids: List[str]) -> Dict[str, InsightRow]:
@@ -87,13 +88,13 @@ def get_similar_user_ids(
 
 
 def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
-    """주어진 사용자들의 user_products 전체."""
+    """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다."""
     if not user_ids:
         return []
     sb = get_supabase()
     res = (
         sb.table("user_products")
-        .select("user_id, product_id, usage_type, rating")
+        .select("user_id, product_id, usage_type, rating, created_at")
         .in_("user_id", user_ids)
         .execute()
     )
@@ -103,6 +104,7 @@ def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
             product_id=row["product_id"],
             usage_type=row["usage_type"],
             rating=row.get("rating"),
+            created_at=row.get("created_at"),
         )
         for row in (res.data or [])
     ]
