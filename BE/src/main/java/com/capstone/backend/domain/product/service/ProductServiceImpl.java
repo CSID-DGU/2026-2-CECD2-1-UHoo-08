@@ -6,9 +6,8 @@ import com.capstone.backend.domain.product.dto.ProductDto;
 import com.capstone.backend.domain.product.dto.response.ProductDetailResponse;
 import com.capstone.backend.domain.product.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.product.entity.Product;
-import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.repository.ProductRepository;
-import com.capstone.backend.domain.product.repository.UserProductRepository;
+import com.capstone.backend.domain.product.repository.ProductViewRepository;
 import com.capstone.backend.domain.wishlist.entity.Wishlist;
 import com.capstone.backend.domain.wishlist.repository.WishlistRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.PageRequest;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,7 +33,7 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-    private final UserProductRepository userProductRepository;
+    private final ProductViewRepository productViewRepository;
     private final WishlistRepository wishlistRepository;
     private final ObjectMapper objectMapper;
 
@@ -71,19 +69,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void recordView(UUID userId, UUID productId) {
-        userProductRepository.deleteByUserIdAndProductIdAndUsageType(userId, productId, "VIEWED");
-        userProductRepository.save(UserProduct.builder()
-                .userId(userId)
-                .productId(productId)
-                .usageType("VIEWED")
-                .createdAt(LocalDateTime.now())
-                .build());
+        productViewRepository.upsertView(userId, productId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProductSearchResponse getRecentlyViewed(UUID userId, int limit) {
-        List<UUID> productIds = userProductRepository.findRecentViewedProductIds(
+        List<UUID> productIds = productViewRepository.findRecentProductIds(
                 userId, PageRequest.of(0, limit));
         if (productIds.isEmpty()) return new ProductSearchResponse(List.of());
 
