@@ -1,6 +1,7 @@
 package com.capstone.backend.domain.product.entity;
 
 import com.capstone.backend.domain.product.enums.RegistrationSource;
+import com.capstone.backend.domain.product.enums.UsageType;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,8 +31,10 @@ public class UserProduct {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
+    /** USING | USED | DISCARDED. 산 제품 한 통마다 한 줄이고, 다시 사면 새 줄을 넣는다 */
+    @Enumerated(EnumType.STRING)
     @Column(name = "usage_type", nullable = false, length = 20)
-    private String usageType;
+    private UsageType usageType;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
