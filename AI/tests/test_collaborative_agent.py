@@ -75,21 +75,25 @@ class TestCollaborativeAgent:
         mock_fallback.assert_called_once()
 
     @pytest.mark.asyncio
+    @patch("agents.collaborative_agent.run_fallback", new_callable=AsyncMock)
     @patch("agents.collaborative_agent.get_products_meta")
     @patch("agents.collaborative_agent.get_user_products_by_users")
     @patch("agents.collaborative_agent.get_similar_user_ids")
-    async def test_exclude_ids_filtered(self, mock_sim, mock_ups, mock_metas):
+    async def test_exclude_ids_filtered(self, mock_sim, mock_ups, mock_metas, mock_fallback):
         from agents.collaborative_agent import run_collaborative
 
-        mock_sim.return_value = ["u2", "u3", "u4"]
+        mock_sim.return_value = ["u2", "u3", "u4", "u5"]
+        # p1 을 빼도 집계 상품이 MIN_VALID_RESULTS(3) 이상 남아야 폴백이 아닌 집계 경로를 탄다
         mock_ups.return_value = [
             {"user_id": "u2", "product_id": "p1", "usage_type": "USING", "rating": 5},
-            {"user_id": "u3", "product_id": "p2", "usage_type": "USING", "rating": 4},
+            {"user_id": "u3", "product_id": "p2", "usage_type": "USING", "rating": 5},
             {"user_id": "u4", "product_id": "p3", "usage_type": "USING", "rating": 4},
+            {"user_id": "u5", "product_id": "p4", "usage_type": "USING", "rating": 3},
         ]
         mock_metas.return_value = {
             "p2": {"id": "p2", "name": "쿠션B", "brand": "B2", "category": "base", "image_url": None, "price": 25000},
             "p3": {"id": "p3", "name": "쿠션C", "brand": "B3", "category": "base", "image_url": None, "price": 35000},
+            "p4": {"id": "p4", "name": "쿠션D", "brand": "B4", "category": "base", "image_url": None, "price": 20000},
         }
 
         results = await run_collaborative(
@@ -99,7 +103,13 @@ class TestCollaborativeAgent:
             exclude_ids=["p1"],
             top_k=3,
         )
-        assert all(r.id != "p1" for r in results)
+
+        mock_fallback.assert_not_called()
+        # p1 은 점수가 가장 높지만 제외했으므로 나머지가 점수 순으로 나온다
+        assert [r.id for r in results] == ["p2", "p3", "p4"]
+        # 메타도 제외한 상품 없이 조회한다
+        mock_metas.assert_called_once_with(["p2", "p3", "p4"])
+
 
 class TestAggregate:
     """_aggregate: 실제로 써 본 기록만, 사람·상품마다 한 번만 센다."""
