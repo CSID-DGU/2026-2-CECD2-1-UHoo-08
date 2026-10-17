@@ -36,6 +36,7 @@ def _pick_row_per_user(
     줄마다 더하면 한 사람의 평가가 여러 번 들어가므로 사람·상품마다 한 줄만 고른다.
     평점이 있는 줄 중 가장 최근 줄을 고르고, 가중치와 평점은 반드시 그 줄의 것을 함께 쓴다.
     다른 줄에서 따로 가져오면 "다 써 보고 준 평점"에 "쓰는 중" 가중치를 곱하는 식의 없는 조합이 생긴다.
+    created_at 이 같으면 id 가 큰 줄을 고른다. 그러지 않으면 조회 순서에 따라 고르는 줄이 바뀌어 점수가 흔들린다.
     """
     picked: Dict[Tuple[str, str], dict] = {}
     for r in rows:
@@ -46,9 +47,14 @@ def _pick_row_per_user(
             continue
         key = (r["user_id"], pid)
         cur = picked.get(key)
-        if cur is None or (r.get("created_at") or "") >= (cur.get("created_at") or ""):
+        if cur is None or _recency(r) > _recency(cur):
             picked[key] = r
     return picked
+
+
+def _recency(r: dict) -> Tuple[str, str]:
+    """최근 순서를 정하는 키. created_at 이 같으면 id 로 갈라 항상 같은 줄을 고른다."""
+    return (r.get("created_at") or "", str(r.get("id") or ""))
 
 
 def _aggregate(

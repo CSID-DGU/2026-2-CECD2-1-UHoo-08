@@ -162,3 +162,16 @@ class TestAggregate:
         ]
 
         assert _aggregate(rows, {"p1"}) == [("p2", 3.0, 1)]
+
+    def test_시각이_같으면_입력_순서와_상관없이_같은_행을_고른다(self):
+        from agents.collaborative_agent import _aggregate
+
+        same_time = "2026-09-01T10:00:00"
+        older_id = {"id": "a", "user_id": "u2", "product_id": "p1", "usage_type": "USED", "rating": 2,
+                    "created_at": same_time}
+        newer_id = {"id": "b", "user_id": "u2", "product_id": "p1", "usage_type": "USING", "rating": 5,
+                    "created_at": same_time}
+
+        # id 가 큰 행(USING, 평점 5)을 어느 순서로 받아도 고른다
+        assert _aggregate([older_id, newer_id], set()) == [("p1", 5.0, 1)]
+        assert _aggregate([newer_id, older_id], set()) == [("p1", 5.0, 1)]
