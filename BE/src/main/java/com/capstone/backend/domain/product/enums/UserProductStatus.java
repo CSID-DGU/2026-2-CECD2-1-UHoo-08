@@ -7,16 +7,17 @@ import java.util.Optional;
 /**
  * 보유 제품 API 의 status 와 user_products.usage_type 의 대응.
  *
- *   USING      ← USING, ONBOARDING (온보딩에서 등록한 것도 쓰고 있는 것으로 본다)
+ *   USING      ← USING
  *   FINISHED   ← USED
  *   DISCARDED  ← DISCARDED
  *
- * VIEWED(조회 이력)와 INTERESTED(위시리스트)는 보유가 아니라 어느 상태에도 대응하지 않는다.
- * 보유 제품 API 에 이 둘이 나오면 안 된다.
+ * VIEWED(조회 이력), INTERESTED(위시리스트), ONBOARDING(예전 온보딩의 자주 사용하는 제품)은 사용 기록이 아니라
+ * 어느 상태에도 대응하지 않는다.
+ * 보유 제품 API 에 이 셋이 나오면 안 된다.
  */
 public enum UserProductStatus {
 
-    USING(UsageType.USING, List.of(UsageType.USING, UsageType.ONBOARDING)),
+    USING(UsageType.USING, List.of(UsageType.USING)),
     FINISHED(UsageType.USED, List.of(UsageType.USED)),
     DISCARDED(UsageType.DISCARDED, List.of(UsageType.DISCARDED));
 
