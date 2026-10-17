@@ -13,7 +13,6 @@ class UserProductStatusTest {
     @ParameterizedTest
     @CsvSource({
             "USING, USING",
-            "ONBOARDING, USING",
             "USED, FINISHED",
             "DISCARDED, DISCARDED",
     })
@@ -24,7 +23,7 @@ class UserProductStatusTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(strings = {"VIEWED", "INTERESTED", "using", "UNKNOWN", ""})
+    @ValueSource(strings = {"VIEWED", "INTERESTED", "ONBOARDING", "using", "UNKNOWN", ""})
     void 보유가_아니거나_모르는_값은_상태가_없다(String usageType) {
         assertThat(UserProductStatus.fromUsageType(usageType)).isEmpty();
     }
@@ -37,15 +36,15 @@ class UserProductStatusTest {
     }
 
     @Test
-    void USING_상태는_온보딩에서_등록한_것까지_찾는다() {
-        assertThat(UserProductStatus.USING.usageTypes()).containsExactly(UsageType.USING, UsageType.ONBOARDING);
+    void USING_상태는_쓰는_중인_행만_찾는다() {
+        assertThat(UserProductStatus.USING.usageTypes()).containsExactly(UsageType.USING);
         assertThat(UserProductStatus.FINISHED.usageTypes()).containsExactly(UsageType.USED);
     }
 
     @Test
-    void 조회_이력과_위시리스트는_어느_상태에도_속하지_않는다() {
+    void 조회_이력과_위시리스트와_예전_온보딩_값은_어느_상태에도_속하지_않는다() {
         for (UserProductStatus status : UserProductStatus.values()) {
-            assertThat(status.usageTypes()).doesNotContain(UsageType.VIEWED, UsageType.INTERESTED);
+            assertThat(status.usageTypes()).doesNotContain(UsageType.VIEWED, UsageType.INTERESTED, UsageType.ONBOARDING);
         }
     }
 }

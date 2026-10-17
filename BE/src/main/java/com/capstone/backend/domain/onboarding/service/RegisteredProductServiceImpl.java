@@ -3,9 +3,7 @@ package com.capstone.backend.domain.onboarding.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.entity.Product;
-import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.repository.ProductRepository;
-import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.onboarding.dto.RegisteredProductAddRequest;
 import com.capstone.backend.domain.onboarding.dto.RegisteredProductAddResponse;
 import com.capstone.backend.domain.onboarding.dto.RegisteredProductBatchRequest;
@@ -21,12 +19,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 온보딩에서 고르는 "자주 사용하는 제품".
+ *
+ * 취향을 알려 주는 정보라 registered_products 에만 둔다. 지금 가지고 쓰는 중인지는 알 수 없으므로
+ * 사용 기록(user_products)에는 쓰지 않는다. 거기에 USING 으로 넣으면 추천 후보에서 빠지고 보유 제품으로 잡힌다.
+ */
 @Service
 @RequiredArgsConstructor
 public class RegisteredProductServiceImpl implements RegisteredProductService {
 
     private final ProductRepository productRepository;
-    private final UserProductRepository userProductRepository;
     private final RegisteredRepository registeredRepository;
     private final UserRepository userRepository;
 
@@ -69,18 +72,6 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
                 .build();
         registered = registeredRepository.save(registered);
 
-        // 4. user_products 저장. 다 썼거나 버렸던 제품이면 그 행을 되살린다.
-        userProductRepository.reactivateOwnedProduct(userId, product.getId());
-        if (!userProductRepository.existsOwnedByUserIdAndProductId(userId, product.getId())) {
-            UserProduct userProduct = UserProduct.builder()
-                    .userId(userId)
-                    .productId(product.getId())
-                    .usageType("USING")
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            userProductRepository.save(userProduct);
-        }
-
         return new RegisteredProductAddResponse(
                 registered.getId(),
                 product.getId(),
@@ -100,7 +91,8 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
         int saved = 0;
-        for (UUID productId : request.getProductIds()) {
+        // 같은 요청에 같은 제품이 두 번 들어와도 한 번만 처리한다
+        for (UUID productId : request.getProductIds().stream().distinct().toList()) {
             Product product = productRepository.findById(productId).orElse(null);
             if (product == null) continue;
 
@@ -112,16 +104,6 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
                         .build());
                 saved++;
             }
-
-            userProductRepository.reactivateOwnedProduct(userId, productId);
-            if (!userProductRepository.existsOwnedByUserIdAndProductId(userId, productId)) {
-                userProductRepository.save(UserProduct.builder()
-                        .userId(userId)
-                        .productId(productId)
-                        .usageType("ONBOARDING")
-                        .createdAt(LocalDateTime.now())
-                        .build());
-            }
         }
         return saved;
     }
@@ -132,8 +114,6 @@ public class RegisteredProductServiceImpl implements RegisteredProductService {
         Registered registered = registeredRepository.findByIdAndUserId(registeredId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        UUID productId = registered.getProduct().getId();
         registeredRepository.delete(registered);
-        userProductRepository.deleteOwnedByUserIdAndProductId(userId, productId);
     }
 }
