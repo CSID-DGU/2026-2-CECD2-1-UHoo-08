@@ -35,7 +35,9 @@ SYNTHETIC_PREFIX = {
 SPLITS = {"dev", "test"}
 SOURCES = {"claude", "manual", "real"}
 CHECKS = {"exact", "contains", "property"}
-USAGE_TYPES = {"USING", "ONBOARDING", "USED", "DISCARDED", "INTERESTED", "VIEWED"}
+# user_products.usage_type 의 DB CHECK 와 같은 세 값. 조회·좋아요·온보딩 제품은 다른 테이블에 있어
+# 보유 제품(inventory)으로 적을 수 없다. 여기서 막지 않으면 적재할 때 CHECK 에 걸려 실패한다.
+USAGE_TYPES = {"USING", "USED", "DISCARDED"}
 
 
 def _접두어(path: Path) -> str | None:
