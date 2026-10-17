@@ -1,13 +1,18 @@
 ﻿import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, ImageIcon, Wifi } from "lucide-react";
-import { type ProductSearchItem, aiRecognizeProduct, searchProducts } from "../../api/productApi";
+import {
+  type ProductSearchItem,
+  aiRecognizeProduct,
+  searchProducts,
+} from "../../api/productApi";
 import { CameraMark } from "../../components/common/CameraMark";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
 
 const iconBox = {
-  background: "linear-gradient(135deg, rgba(91,143,217,0.35), rgba(53,101,181,0.25))",
+  background:
+    "linear-gradient(135deg, rgba(91,143,217,0.35), rgba(53,101,181,0.25))",
   border: "1px solid rgba(255,255,255,0.6)",
 };
 
@@ -78,7 +83,9 @@ export function ProductLookupPage() {
                 <br />
                 조회할까요?
               </h1>
-              <p className="mt-2 text-body2 text-gray-300">제품을 찾아 내 피부와 비교해드려요</p>
+              <p className="mt-2 text-body2 text-gray-300">
+                제품을 찾아 내 피부와 비교해드려요
+              </p>
             </div>
 
             {/* 숨겨진 파일 인풋 */}
@@ -119,7 +126,9 @@ export function ProductLookupPage() {
                 <>
                   <CameraMark className="mb-4 h-[64px] w-[72px]" />
                   <p className="text-body2 text-primary-500">사진으로 스캔</p>
-                  <p className="mt-1 text-caption text-primary-500">이미지 업로드 · AI 자동 인식</p>
+                  <p className="mt-1 text-caption text-primary-500">
+                    이미지 업로드 · AI 자동 인식
+                  </p>
                 </>
               )}
             </button>
@@ -128,12 +137,17 @@ export function ProductLookupPage() {
             <div className="mt-3 grid grid-cols-2 gap-3">
               <button
                 className="flex h-12 items-center justify-center gap-2 rounded-xl text-body2 text-white"
-                style={{ background: "linear-gradient(135deg, #5B8FD9, #3565B5)" }}
+                style={{
+                  background: "linear-gradient(135deg, #5B8FD9, #3565B5)",
+                }}
                 onClick={() => cameraRef.current?.click()}
                 disabled={processing}
                 type="button"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-lg" style={iconBox}>
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-lg"
+                  style={iconBox}
+                >
                   <Camera className="h-4 w-4 text-white" strokeWidth={1.8} />
                 </span>
                 촬영하기
@@ -144,8 +158,14 @@ export function ProductLookupPage() {
                 disabled={processing}
                 type="button"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-lg" style={iconBox}>
-                  <ImageIcon className="h-4 w-4 text-primary-600" strokeWidth={1.8} />
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-lg"
+                  style={iconBox}
+                >
+                  <ImageIcon
+                    className="h-4 w-4 text-primary-600"
+                    strokeWidth={1.8}
+                  />
                 </span>
                 앨범에서 선택
               </button>
@@ -157,7 +177,10 @@ export function ProductLookupPage() {
               onClick={() => navigate("/recommendation/nfc-scan")}
               type="button"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-lg" style={iconBox}>
+              <span
+                className="grid h-9 w-9 place-items-center rounded-lg"
+                style={iconBox}
+              >
                 <Wifi className="h-5 w-5 text-primary-600" strokeWidth={1.8} />
               </span>
               NFC 태그로 조회
@@ -197,12 +220,20 @@ export function ProductLookupPage() {
                     >
                       <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-primary-50">
                         {product.imageUrl && (
-                          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-body2 text-gray-500">{product.name}</p>
-                        <p className="text-caption text-gray-300">{product.brand}</p>
+                        <p className="truncate text-body2 text-gray-500">
+                          {product.name}
+                        </p>
+                        <p className="text-caption text-gray-300">
+                          {product.brand}
+                        </p>
                       </div>
                       {product.originalPrice != null && (
                         <span className="shrink-0 text-caption text-gray-400">
@@ -215,14 +246,17 @@ export function ProductLookupPage() {
               )}
 
               {!searching && text.trim() && searchResults.length === 0 && (
-                <p className="mt-2 text-caption text-gray-300">검색 결과가 없어요</p>
+                <p className="mt-2 text-caption text-gray-300">
+                  검색 결과가 없어요
+                </p>
               )}
             </div>
 
             <div className="mt-6 rounded-xl bg-primary-50 p-4">
               <p className="text-body2 text-primary-500">✦ 화담 AI Tip</p>
               <p className="mt-1 text-caption leading-5 text-gray-500">
-                목적과 예산을 함께 입력하면 피부 데이터와 결합해 최적의 가성비 제품을 찾아드려요
+                목적과 예산을 함께 입력하면 피부 데이터와 결합해 최적의 가성비
+                제품을 찾아드려요
               </p>
             </div>
           </section>

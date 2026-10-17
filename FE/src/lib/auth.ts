@@ -12,4 +12,9 @@ export const setTokens = (access: string, refresh: string) => {
 export const clearTokens = () => {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  try {
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith("hwadam.search-view.")) sessionStorage.removeItem(key);
+    }
+  } catch { /* Browser storage can be disabled. */ }
 };

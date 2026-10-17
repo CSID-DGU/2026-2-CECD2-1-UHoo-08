@@ -2,7 +2,6 @@ package com.capstone.backend.domain.pricetracking.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
-import com.capstone.backend.domain.pricetracking.dto.PricePeriod;
 import com.capstone.backend.domain.pricetracking.dto.request.AlertSettingsUpdateRequest;
 import com.capstone.backend.domain.pricetracking.dto.request.PriceTrackingCreateRequest;
 import com.capstone.backend.domain.pricetracking.dto.request.PriceTrackingUpdateRequest;
@@ -12,6 +11,7 @@ import com.capstone.backend.domain.pricetracking.dto.response.PriceTrackingDetai
 import com.capstone.backend.domain.pricetracking.dto.response.PriceTrackingListResponse;
 import com.capstone.backend.domain.pricetracking.dto.response.PriceTrackingUpdateResponse;
 import com.capstone.backend.domain.pricetracking.entity.PriceTracking;
+import com.capstone.backend.domain.pricetracking.enums.PricePeriod;
 import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.repository.PriceHistoryRepository;

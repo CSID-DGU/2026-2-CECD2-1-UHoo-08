@@ -61,7 +61,7 @@ public class ProductController {
 
     @Operation(
             summary = "상품 조회 기록",
-            description = "user_products 테이블에 VIEWED 타입으로 기록. 홈 화면 '최근 본 상품' 데이터 소스."
+            description = "product_views 테이블에 기록. 처음 보면 한 줄을 넣고, 다시 보면 마지막 조회 시각과 횟수를 갱신한다. 홈 화면 '최근 본 상품' 데이터 소스."
     )
     @PostMapping("/products/{productId}/view")
     public ResponseEntity<ApiResponse<Void>> recordView(
@@ -73,7 +73,7 @@ public class ProductController {
 
     @Operation(
             summary = "최근 본 상품 조회",
-            description = "VIEWED 타입 기준 최신순. 홈 화면 '최근 본 상품' 섹션에 사용."
+            description = "마지막으로 본 순서(product_views.last_viewed_at)대로. 홈 화면 '최근 본 상품' 섹션에 사용."
     )
     @GetMapping("/products/recently-viewed")
     public ResponseEntity<ApiResponse<ProductSearchResponse>> getRecentlyViewed(

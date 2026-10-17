@@ -1,4 +1,4 @@
-import type { AiSearchProduct } from "../api/productApi";
+import type { AiSearchProduct, AiSearchResponse } from "../api/productApi";
 
 const SEARCH_HISTORY_KEY = "bm_last_search";
 const MAX_RECENTLY_VIEWED = 10;
@@ -8,6 +8,7 @@ const MAX_RECENTLY_VIEWED = 10;
 export interface LastSearch {
   query: string;
   category: string;
+  intent?: AiSearchResponse["intent"];
   products: AiSearchProduct[];  // 상위 5개만 저장
   searchedAt: string;
 }
