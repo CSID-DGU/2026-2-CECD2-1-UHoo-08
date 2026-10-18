@@ -72,7 +72,9 @@ public class PhotoRecognitionService {
         try {
             result = aiInternalClient.recognizePhotos(new RecognizePhotosRequest(nameImageUrl, null));
         } catch (Exception e) {
-            log.error("[PhotoRecognition] AI 사진 인식 실패: {}", e.getMessage());
+            // 사용자에게는 IMAGE_PARSE_FAILED 만 나가므로 원인은 여기서 스택과 함께 남긴다
+            log.error("[PhotoRecognition] AI 사진 인식 실패: type={}, message={}",
+                    e.getClass().getSimpleName(), e.getMessage(), e);
             throw new BusinessException(ErrorCode.IMAGE_PARSE_FAILED);
         }
         if (result == null) {
