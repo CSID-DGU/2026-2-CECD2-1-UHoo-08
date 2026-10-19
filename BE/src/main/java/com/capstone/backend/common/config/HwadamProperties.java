@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.ZoneId;
 
@@ -36,5 +37,9 @@ public class HwadamProperties {
          */
         @NotNull
         private ZoneId zone = ZoneId.of("Asia/Seoul");
+
+        /** 만료된 사진 인식 결과 정리. 기본 매시 정각 */
+        @NotBlank
+        private String photoRecognitionCleanupCron = "0 0 * * * *";
     }
 }
