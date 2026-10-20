@@ -83,9 +83,7 @@ public class PhotoRecognitionService {
      */
     public ExpiryRecognitionResponse recognizeExpiry(UUID userId, UUID recognitionId, MultipartFile image) {
         // 업로드 전에 확인해, 쓸 수 없는 인식 결과에 사진이 올라가지 않게 한다
-        PhotoRecognition recognition = photoRecognitionRepository.findById(recognitionId)
-                .filter(r -> r.isUsableBy(userId, OffsetDateTime.now()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.RECOGNITION_NOT_FOUND));
+        PhotoRecognition recognition = getUsable(userId, recognitionId);
 
         String dateImageUrl = storageService.upload(BUCKET, userId + "/" + UUID.randomUUID(), image);
         RecognizePhotosResponse result = requestExpiry(recognition.getNameImageUrl(), dateImageUrl);
@@ -103,6 +101,13 @@ public class PhotoRecognitionService {
 
         return new ExpiryRecognitionResponse(
                 ReadValue.of(expiryDate), ReadValue.of(paoMonths), ReadValue.of(manufacturedAt));
+    }
+
+    /** 내 것이고 아직 만료되지 않은 인식 결과. 없거나 남의 것이거나 만료됐으면 RECOGNITION_NOT_FOUND */
+    public PhotoRecognition getUsable(UUID userId, UUID recognitionId) {
+        return photoRecognitionRepository.findById(recognitionId)
+                .filter(r -> r.isUsableBy(userId, OffsetDateTime.now()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.RECOGNITION_NOT_FOUND));
     }
 
     /**

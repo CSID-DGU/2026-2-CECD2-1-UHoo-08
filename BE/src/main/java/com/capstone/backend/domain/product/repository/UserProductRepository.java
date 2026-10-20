@@ -1,6 +1,7 @@
 package com.capstone.backend.domain.product.repository;
 
 import com.capstone.backend.domain.product.entity.UserProduct;
+import com.capstone.backend.domain.product.enums.UsageType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
@@ -13,4 +14,7 @@ import java.util.UUID;
  * 온보딩의 자주 사용하는 제품은 registered_products 에 따로 있다.
  */
 public interface UserProductRepository extends JpaRepository<UserProduct, UUID> {
+
+    /** 이 제품을 이 상태로 가진 행이 있는지. 쓰는 중(USING) 행은 제품당 하나만 둘 수 있다 */
+    boolean existsByUserIdAndProductIdAndUsageType(UUID userId, UUID productId, UsageType usageType);
 }
