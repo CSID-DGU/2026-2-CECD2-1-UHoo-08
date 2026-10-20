@@ -8,10 +8,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.codec.HttpMessageWriter;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.mock.http.client.reactive.MockClientHttpRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -19,7 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -209,5 +218,61 @@ class StorageServiceTest {
     @Test
     void 운영_업로드_기한은_15초다() {
         assertThat(StorageService.UPLOAD_TIMEOUT).isEqualTo(Duration.ofSeconds(15));
+    }
+    // 삭제
+
+    /** 요청 본문을 문자열로 꺼낸다 */
+    private static String bodyOf(ClientRequest request) {
+        MockClientHttpRequest mock = new MockClientHttpRequest(request.method(), URI.create("/"));
+        request.body().insert(mock, new BodyInserter.Context() {
+            @Override
+            public List<HttpMessageWriter<?>> messageWriters() {
+                return ExchangeStrategies.withDefaults().messageWriters();
+            }
+
+            @Override
+            public Optional<ServerHttpRequest> serverRequest() {
+                return Optional.empty();
+            }
+
+            @Override
+            public Map<String, Object> hints() {
+                return Map.of();
+            }
+        }).block();
+        return mock.getBodyAsString().block();
+    }
+
+    @Test
+    void 공개_URL로_받은_파일을_버킷_안_경로로_바꿔_한_번에_지운다() {
+        String prefix = SUPABASE_URL + "/storage/v1/object/public/user-product-photos/";
+
+        storageService.delete("user-product-photos", List.of(prefix + "u1/a.jpg", prefix + "u1/b.png"));
+
+        assertThat(requests).hasSize(1);
+        ClientRequest request = requests.get(0);
+        assertThat(request.method()).isEqualTo(HttpMethod.DELETE);
+        assertThat(request.url().toString()).isEqualTo(SUPABASE_URL + "/storage/v1/object/user-product-photos");
+        assertThat(request.headers().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer service-key");
+        assertThat(bodyOf(request)).isEqualTo("{\"prefixes\":[\"u1/a.jpg\",\"u1/b.png\"]}");
+    }
+
+    @Test
+    void 다른_버킷의_URL은_지우지_않고_남은_것이_없으면_요청하지_않는다() {
+        storageService.delete("user-product-photos", List.of(
+                SUPABASE_URL + "/storage/v1/object/public/profile_image/u1.png",
+                "https://other.example.com/u1/a.jpg"));
+
+        assertThat(requests).isEmpty();
+    }
+
+    @Test
+    void 삭제에서_Storage가_에러를_주면_INTERNAL_ERROR다() {
+        storageStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        assertThatThrownBy(() -> storageService.delete("bucket",
+                List.of(SUPABASE_URL + "/storage/v1/object/public/bucket/a.jpg")))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INTERNAL_ERROR);
     }
 }

@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,13 +21,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Supabase Storage 이미지 업로드.
+ * Supabase Storage 이미지 업로드, 삭제.
  *
  * 형식(jpg/png/heic/webp)과 크기(10MB)는 여기서 검사한다. 형식은 클라이언트가 밝힌 값과 파일 서명이 모두 맞아야 받는다. API마다 더 작은 상한이 있으면 호출하는 쪽에서 먼저 검사한다.
  */
@@ -163,6 +166,54 @@ public class StorageService {
                 throw new BusinessException(ErrorCode.INTERNAL_ERROR);
             }
             log.error("[Storage] 업로드 예외: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 공개 URL 로 받은 파일들을 한 번에 지운다. 이미 없는 파일은 Storage 가 건너뛰므로 다시 불러도 된다.
+     * 지우지 못하면 INTERNAL_ERROR 를 던진다. 호출한 쪽은 파일을 가리키는 기록을 남겨 두고 다시 시도해야 한다.
+     *
+     * @param bucket     Supabase Storage 버킷
+     * @param publicUrls upload 가 돌려준 공개 URL. 이 버킷의 URL 이 아니면 건너뛴다
+     */
+    public void delete(String bucket, List<String> publicUrls) {
+        String prefix = supabaseUrl + "/storage/v1/object/public/" + bucket + "/";
+        List<String> paths = publicUrls.stream()
+                .filter(url -> {
+                    boolean ours = url != null && url.startsWith(prefix);
+                    if (!ours) {
+                        log.warn("[Storage] {} 버킷의 공개 URL 이 아니라 지우지 않는다: {}", bucket, url);
+                    }
+                    return ours;
+                })
+                .map(url -> url.substring(prefix.length()))
+                .toList();
+        if (paths.isEmpty()) {
+            return;
+        }
+
+        try {
+            webClient.method(HttpMethod.DELETE)
+                    .uri(supabaseStorageUrl + "/" + bucket)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + supabaseServiceRoleKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of("prefixes", paths))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(uploadTimeout)   // 업로드와 같은 상한
+                    .block();
+            log.info("[Storage] 삭제 성공: bucket={}, count={}", bucket, paths.size());
+
+        } catch (WebClientResponseException e) {
+            log.error("[Storage] 삭제 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+        } catch (Exception e) {
+            if (Exceptions.unwrap(e) instanceof TimeoutException) {
+                log.error("[Storage] 삭제 시간 초과: {}초", uploadTimeout.toSeconds());
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+            }
+            log.error("[Storage] 삭제 예외: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
     }
