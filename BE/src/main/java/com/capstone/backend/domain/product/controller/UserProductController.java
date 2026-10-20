@@ -3,17 +3,23 @@ package com.capstone.backend.domain.product.controller;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.response.ApiResponse;
+import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
+import com.capstone.backend.domain.product.service.UserProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +32,21 @@ import java.util.UUID;
 public class UserProductController {
 
     private final PhotoRecognitionService photoRecognitionService;
+    private final UserProductService userProductService;
+
+    @Operation(
+            summary = "보유 제품 등록",
+            description = "고른 제품을 쓰는 중인 보유 제품으로 등록한다. 같은 제품을 이미 쓰는 중이면 409 ALREADY_REGISTERED. " +
+                    "예전에 다 쓴 제품은 새 기록으로 다시 등록된다. recognitionId 를 보내면 사진 인식 원본을 함께 남긴다. " +
+                    "openedAt 이 없으면 오늘. conflicts 는 성분 궁합 확인이 연결되기 전까지 빈 배열."
+    )
+    @PostMapping("/user-products")
+    public ResponseEntity<ApiResponse<UserProductCreateResponse>> create(
+            @AuthenticationPrincipal UUID userId,
+            @Valid @RequestBody UserProductCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(userProductService.create(userId, request)));
+    }
 
     @Operation(
             summary = "제품명 사진 인식",
