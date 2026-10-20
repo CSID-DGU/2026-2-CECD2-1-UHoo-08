@@ -42,7 +42,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PhotoRecognitionService {
 
-    static final String BUCKET = "user-product-photos";
+    public static final String BUCKET = "user-product-photos";
     static final Duration VALID_FOR = Duration.ofMinutes(30);
     static final int MAX_CANDIDATES = 3;
 
