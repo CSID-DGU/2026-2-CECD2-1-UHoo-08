@@ -8,9 +8,11 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse.Candidate;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
+import com.capstone.backend.domain.product.enums.ReadStatus;
 import com.capstone.backend.domain.product.repository.PhotoRecognitionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -172,5 +175,134 @@ class PhotoRecognitionServiceTest {
         assertThat(PhotoRecognitionService.readTextOf(null)).isEmpty();
         assertThat(PhotoRecognitionService.readTextOf(Map.of("readText", 123))).isEmpty();
         assertThat(PhotoRecognitionService.readTextOf(Map.of("readText", "A", "text", "B"))).isEqualTo("A");
+    }
+    // 기한 사진 인식
+
+    private final String nameImageUrl = "https://test.supabase.co/storage/v1/object/public/user-product-photos/name.jpg";
+    private final MockMultipartFile backImage = new MockMultipartFile("image", "back.jpg", "image/jpeg", new byte[]{1});
+
+    private PhotoRecognition recognition(UUID owner, OffsetDateTime expiresAt) {
+        PhotoRecognition recognition = PhotoRecognition.builder()
+                .userId(owner)
+                .nameImageUrl(nameImageUrl)
+                .readText("GREEN TEA")
+                .raw("{\"readText\":\"GREEN TEA\"}")
+                .expiresAt(expiresAt)
+                .build();
+        ReflectionTestUtils.setField(recognition, "id", recognitionId);
+        return recognition;
+    }
+
+    private PhotoRecognition givenRecognitionAndUpload() {
+        PhotoRecognition recognition = recognition(userId, OffsetDateTime.now().plusMinutes(10));
+        given(photoRecognitionRepository.findById(recognitionId)).willReturn(Optional.of(recognition));
+        given(storageService.upload(eq("user-product-photos"), startsWith(userId + "/"), eq(backImage)))
+                .willReturn(imageUrl);
+        return recognition;
+    }
+
+    @Test
+    void 기한_세_항목을_모두_읽으면_READ로_돌려주고_인식_결과에_남긴다() {
+        PhotoRecognition recognition = givenRecognitionAndUpload();
+        given(aiInternalClient.recognizePhotos(new RecognizePhotosRequest(nameImageUrl, imageUrl))).willReturn(
+                new RecognizePhotosResponse(List.of(), "2027-04-18", 12, "2025-04-18", Map.of("date", "EXP 2027.04.18"), false));
+
+        ExpiryRecognitionResponse response = service.recognizeExpiry(userId, recognitionId, backImage);
+
+        assertThat(response.getExpiryDate().getValue()).isEqualTo("2027-04-18");
+        assertThat(response.getExpiryDate().getStatus()).isEqualTo(ReadStatus.READ);
+        assertThat(response.getPaoMonths().getValue()).isEqualTo(12);
+        assertThat(response.getPaoMonths().getStatus()).isEqualTo(ReadStatus.READ);
+        assertThat(response.getManufacturedAt().getValue()).isEqualTo("2025-04-18");
+        assertThat(response.getManufacturedAt().getStatus()).isEqualTo(ReadStatus.READ);
+
+        verify(photoRecognitionRepository).save(recognition);
+        assertThat(recognition.getDateImageUrl()).isEqualTo(imageUrl);
+        assertThat(recognition.getExpiryResult())
+                .isEqualTo("{\"expiryDate\":\"2027-04-18\",\"paoMonths\":12,\"manufacturedAt\":\"2025-04-18\"}");
+        // 제품명 사진의 원본은 남기고 기한 사진의 원본을 옆에 붙인다
+        assertThat(recognition.getRaw()).contains("\"readText\":\"GREEN TEA\"").contains("\"expiry\":{\"date\":\"EXP 2027.04.18\"}");
+    }
+
+    @Test
+    void 읽지_못한_항목은_값을_채우지_않고_NOT_READ다() {
+        givenRecognitionAndUpload();
+        given(aiInternalClient.recognizePhotos(any())).willReturn(
+                new RecognizePhotosResponse(List.of(), "2027-04-18", null, null, Map.of(), false));
+
+        ExpiryRecognitionResponse response = service.recognizeExpiry(userId, recognitionId, backImage);
+
+        assertThat(response.getExpiryDate().getStatus()).isEqualTo(ReadStatus.READ);
+        assertThat(response.getPaoMonths().getValue()).isNull();
+        assertThat(response.getPaoMonths().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+        assertThat(response.getManufacturedAt().getValue()).isNull();
+        assertThat(response.getManufacturedAt().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+    }
+
+    @Test
+    void 날짜_형식이_아니거나_0개월_이하인_값은_읽지_못한_것으로_둔다() {
+        givenRecognitionAndUpload();
+        given(aiInternalClient.recognizePhotos(any())).willReturn(
+                new RecognizePhotosResponse(List.of(), "2027.04.18", 0, "2025-13-01", Map.of(), false));
+
+        ExpiryRecognitionResponse response = service.recognizeExpiry(userId, recognitionId, backImage);
+
+        assertThat(response.getExpiryDate().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+        assertThat(response.getPaoMonths().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+        assertThat(response.getManufacturedAt().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+    }
+
+    @Test
+    void AI가_stub이면_세_항목_모두_NOT_READ다() {
+        givenRecognitionAndUpload();
+        given(aiInternalClient.recognizePhotos(any())).willReturn(
+                new RecognizePhotosResponse(List.of(), "2027-04-18", 12, null, Map.of(), true));
+
+        ExpiryRecognitionResponse response = service.recognizeExpiry(userId, recognitionId, backImage);
+
+        assertThat(response.getExpiryDate().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+        assertThat(response.getPaoMonths().getStatus()).isEqualTo(ReadStatus.NOT_READ);
+    }
+
+    @Test
+    void 만료된_인식_결과면_RECOGNITION_NOT_FOUND이고_사진을_올리지_않는다() {
+        given(photoRecognitionRepository.findById(recognitionId))
+                .willReturn(Optional.of(recognition(userId, OffsetDateTime.now().minusMinutes(1))));
+
+        assertThatThrownBy(() -> service.recognizeExpiry(userId, recognitionId, backImage))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECOGNITION_NOT_FOUND);
+        verifyNoInteractions(storageService, aiInternalClient);
+    }
+
+    @Test
+    void 남의_인식_결과면_RECOGNITION_NOT_FOUND다() {
+        given(photoRecognitionRepository.findById(recognitionId))
+                .willReturn(Optional.of(recognition(UUID.randomUUID(), OffsetDateTime.now().plusMinutes(10))));
+
+        assertThatThrownBy(() -> service.recognizeExpiry(userId, recognitionId, backImage))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECOGNITION_NOT_FOUND);
+        verifyNoInteractions(storageService, aiInternalClient);
+    }
+
+    @Test
+    void 없는_인식_결과면_RECOGNITION_NOT_FOUND다() {
+        given(photoRecognitionRepository.findById(recognitionId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.recognizeExpiry(userId, recognitionId, backImage))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECOGNITION_NOT_FOUND);
+    }
+
+    @Test
+    void 기한_인식에서_AI가_실패하면_IMAGE_PARSE_FAILED이고_저장하지_않는다() {
+        givenRecognitionAndUpload();
+        given(aiInternalClient.recognizePhotos(any())).willThrow(new RuntimeException("timeout"));
+
+        assertThatThrownBy(() -> service.recognizeExpiry(userId, recognitionId, backImage))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.IMAGE_PARSE_FAILED);
+        verify(photoRecognitionRepository, never()).save(any());
     }
 }
