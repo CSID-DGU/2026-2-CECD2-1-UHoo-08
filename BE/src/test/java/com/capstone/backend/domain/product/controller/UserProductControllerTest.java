@@ -3,6 +3,8 @@ package com.capstone.backend.domain.product.controller;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.exception.GlobalExceptionHandler;
+import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
+import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse.ReadValue;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse.Candidate;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -118,5 +121,52 @@ class UserProductControllerTest {
         mockMvc.perform(multipart("/user-products/recognitions").file(image))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error.code").value("IMAGE_PARSE_FAILED"));
+    }
+    // 기한 사진 인식
+
+    @Test
+    void 기한_사진을_올리면_세_항목을_value와_status로_돌려준다() throws Exception {
+        UUID recognitionId = UUID.randomUUID();
+        given(photoRecognitionService.recognizeExpiry(eq(userId), eq(recognitionId), any())).willReturn(
+                new ExpiryRecognitionResponse(ReadValue.of("2027-04-18"), ReadValue.of(12), ReadValue.of(null)));
+
+        mockMvc.perform(multipart("/user-products/recognitions/{id}/expiry", recognitionId).file(image))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.expiryDate.value").value("2027-04-18"))
+                .andExpect(jsonPath("$.data.expiryDate.status").value("READ"))
+                .andExpect(jsonPath("$.data.paoMonths.value").value(12))
+                .andExpect(jsonPath("$.data.paoMonths.status").value("READ"))
+                .andExpect(jsonPath("$.data.manufacturedAt.status").value("NOT_READ"))
+                .andExpect(content().string(containsString("\"manufacturedAt\":{\"value\":null")));
+    }
+
+    @Test
+    void 인식_결과가_없거나_만료됐으면_404_RECOGNITION_NOT_FOUND다() throws Exception {
+        UUID recognitionId = UUID.randomUUID();
+        given(photoRecognitionService.recognizeExpiry(eq(userId), eq(recognitionId), any()))
+                .willThrow(new BusinessException(ErrorCode.RECOGNITION_NOT_FOUND));
+
+        mockMvc.perform(multipart("/user-products/recognitions/{id}/expiry", recognitionId).file(image))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RECOGNITION_NOT_FOUND"));
+    }
+
+    @Test
+    void 인식ID_형식이_틀리면_404_RECOGNITION_NOT_FOUND다() throws Exception {
+        mockMvc.perform(multipart("/user-products/recognitions/{id}/expiry", "rc_5f1a").file(image))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RECOGNITION_NOT_FOUND"));
+        verifyNoInteractions(photoRecognitionService);
+    }
+
+    @Test
+    void 기한_사진이_10MB를_넘으면_413_FILE_TOO_LARGE다() throws Exception {
+        UUID recognitionId = UUID.randomUUID();
+        given(photoRecognitionService.recognizeExpiry(eq(userId), eq(recognitionId), any()))
+                .willThrow(new BusinessException(ErrorCode.FILE_TOO_LARGE));
+
+        mockMvc.perform(multipart("/user-products/recognitions/{id}/expiry", recognitionId).file(image))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.error.code").value("FILE_TOO_LARGE"));
     }
 }
