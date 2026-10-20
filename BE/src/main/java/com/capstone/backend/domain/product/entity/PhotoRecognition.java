@@ -63,4 +63,16 @@ public class PhotoRecognition {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    /** 내 인식 결과이고 아직 만료되지 않았는지 */
+    public boolean isUsableBy(UUID userId, OffsetDateTime now) {
+        return this.userId.equals(userId) && this.expiresAt.isAfter(now);
+    }
+
+    /** 기한 사진 인식 결과를 남긴다. 다시 찍으면 덮어쓴다 */
+    public void recordExpiry(String dateImageUrl, String expiryResult, String raw) {
+        this.dateImageUrl = dateImageUrl;
+        this.expiryResult = expiryResult;
+        this.raw = raw;
+    }
 }
