@@ -64,7 +64,12 @@ public class RecommendationController {
                 .body(ApiResponse.success(recommendationService.requestRecommendation(userId, request)));
     }
 
-    @Operation(summary = "추천 상태 폴링", description = "status가 COMPLETED가 되면 GET /{jobId} 호출")
+    @Operation(
+            summary = "추천 진행 상태 조회",
+            description = "1초 간격 폴링 권장. status 가 COMPLETED 가 되면 결과 조회를 1회 호출한다. " +
+                    "자연어 추천 job 은 scenario(판정 전 null), steps(진행 단계), clarify(NEEDS_CLARIFICATION 일 때만)를 더해 내린다. " +
+                    "상품 기준 추천 job 은 기존 필드(jobId, status, step, progress)만 내린다."
+    )
     @GetMapping("/{jobId}/status")
     public ResponseEntity<ApiResponse<RecommendationStatusResponse>> getStatus(
             @AuthenticationPrincipal UUID userId,
