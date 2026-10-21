@@ -74,3 +74,40 @@ def test_인식_응답이_계약과_같다():
                        json={"nameImage": "https://x/a.jpg"})
     결과 = RecognizePhotosResponse.model_validate(응답.json())
     assert 결과.candidates == [] and 결과.expiry_date is None
+
+
+_추천_경로 = [
+    ("/internal/agent/run/v2", {"jobId": "j1", "userId": "u1", "rawQuery": "여름 쿠션"}, "_실행"),
+    ("/internal/agent/clarify", {"jobId": "j1", "answer": "3만원"}, "_이어_돌리기"),
+]
+
+
+@pytest.fixture
+def 실행_기록(monkeypatch):
+    """배경 작업이 실제로 걸렸는지 남긴다."""
+    걸린: list[str] = []
+
+    for 이름 in ("_실행", "_이어_돌리기"):
+        async def 기록(req, 이름=이름):
+            걸린.append(이름)
+
+        monkeypatch.setattr(agent, 이름, 기록)
+    return 걸린
+
+
+@pytest.mark.parametrize("경로, 본문, _", _추천_경로, ids=["run_v2", "clarify"])
+def test_stub이면_실행을_걸지_않는다(경로, 본문, _, 실행_기록, monkeypatch):
+    """돌리면 빈 결과로 완료되어 '추천 없음' 으로 읽힌다. job 은 PENDING 으로
+    두고 멈춘 job 정리 배치가 FAILED 로 바꾸게 한다."""
+    monkeypatch.setattr(agent, "_결과를_만들_수_있나", lambda: False)
+
+    assert client.post(경로, json=본문).json()["stub"] is True
+    assert 실행_기록 == []
+
+
+@pytest.mark.parametrize("경로, 본문, 실행", _추천_경로, ids=["run_v2", "clarify"])
+def test_결과를_만들_수_있으면_실행을_건다(경로, 본문, 실행, 실행_기록, monkeypatch):
+    monkeypatch.setattr(agent, "_결과를_만들_수_있나", lambda: True)
+
+    assert client.post(경로, json=본문).json()["stub"] is False
+    assert 실행_기록 == [실행]
