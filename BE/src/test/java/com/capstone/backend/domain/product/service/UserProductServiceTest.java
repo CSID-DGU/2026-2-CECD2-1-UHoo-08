@@ -5,6 +5,7 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
 import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
@@ -498,5 +499,42 @@ class UserProductServiceTest {
                 UserProductUpdateRequest.builder().remainingPct(10).build(), TODAY))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+    }
+    // 보유 제품 삭제
+
+    @Test
+    void 보유_제품은_그_통_하나만_지우고_같은_제품의_다른_통은_남긴다() {
+        UserProduct row = mine(UsageType.USING);
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(row));
+
+        UserProductDeleteResponse response = service.delete(userId, userProductId);
+
+        assertThat(response.getUserProductId()).isEqualTo(userProductId);
+        verify(userProductRepository).delete(row);
+        // (user, product) 조건으로 한꺼번에 지우지 않는다
+        verify(userProductRepository, never()).deleteAll(any());
+        verify(userProductRepository, never()).deleteAllInBatch(any());
+    }
+
+    @Test
+    void 남의_보유_제품을_지우면_USER_PRODUCT_NOT_FOUND이고_지우지_않는다() {
+        UserProduct others = UserProduct.builder().id(userProductId).userId(UUID.randomUUID()).productId(productId)
+                .usageType(UsageType.USING).build();
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(others));
+
+        assertThatThrownBy(() -> service.delete(userId, userProductId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        verify(userProductRepository, never()).delete(any());
+    }
+
+    @Test
+    void 없는_보유_제품을_지우면_USER_PRODUCT_NOT_FOUND다() {
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(userId, userProductId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        verify(userProductRepository, never()).delete(any());
     }
 }

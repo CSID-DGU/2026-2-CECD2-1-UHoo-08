@@ -5,6 +5,7 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.ConflictSummary;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
@@ -126,6 +127,17 @@ public class UserProductService {
         UserProduct saved = saveAndFlush(userProduct);
         return new UserProductUpdateResponse(saved.getId(), UserProductStatus.from(saved.getUsageType()),
                 saved.getRemainingPct());
+    }
+
+    /**
+     * 잘못 등록한 보유 제품을 지운다. path 의 행 하나만 지우고 같은 제품의 다른 통 기록은 남긴다.
+     * 다 쓴 제품은 지우지 않고 수정(FINISHED)으로 기록을 남긴다.
+     */
+    @Transactional
+    public UserProductDeleteResponse delete(UUID userId, UUID userProductId) {
+        UserProduct userProduct = getMine(userId, userProductId);
+        userProductRepository.delete(userProduct);
+        return new UserProductDeleteResponse(userProduct.getId());
     }
 
     /**

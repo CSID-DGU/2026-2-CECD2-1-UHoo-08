@@ -10,6 +10,7 @@ import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionRespons
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse.Candidate;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.enums.ReplaceStatus;
@@ -51,6 +52,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -429,5 +431,28 @@ class UserProductControllerTest {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("ALREADY_REGISTERED"));
+    }
+    // 보유 제품 삭제
+
+    @Test
+    void 보유_제품을_지우면_지운_ID를_돌려준다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        given(userProductService.delete(userId, userProductId)).willReturn(new UserProductDeleteResponse(userProductId));
+
+        mockMvc.perform(delete("/user-products/{id}", userProductId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.userProductId").value(userProductId.toString()));
+    }
+
+    @Test
+    void 없거나_남의_보유_제품을_지우면_404_USER_PRODUCT_NOT_FOUND다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        given(userProductService.delete(userId, userProductId))
+                .willThrow(new BusinessException(ErrorCode.USER_PRODUCT_NOT_FOUND));
+
+        mockMvc.perform(delete("/user-products/{id}", userProductId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("USER_PRODUCT_NOT_FOUND"));
     }
 }

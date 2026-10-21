@@ -8,6 +8,7 @@ import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.enums.UserProductFilter;
@@ -22,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -94,6 +96,18 @@ public class UserProductController {
             @PathVariable UUID userProductId,
             @Valid @RequestBody UserProductUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userProductService.update(userId, userProductId, request)));
+    }
+
+    @Operation(
+            summary = "보유 제품 삭제",
+            description = "잘못 등록한 보유 제품 한 통을 지운다. 같은 제품의 다른 통 기록은 남는다. " +
+                    "다 쓴 제품은 삭제가 아니라 수정(FINISHED)을 쓴다. 없거나 내 것이 아니면 404 USER_PRODUCT_NOT_FOUND."
+    )
+    @DeleteMapping("/user-products/{userProductId}")
+    public ResponseEntity<ApiResponse<UserProductDeleteResponse>> delete(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID userProductId) {
+        return ResponseEntity.ok(ApiResponse.success(userProductService.delete(userId, userProductId)));
     }
 
     @Operation(
