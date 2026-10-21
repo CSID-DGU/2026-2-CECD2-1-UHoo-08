@@ -4,6 +4,8 @@ import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.enums.UsageType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,4 +19,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, UUID> 
 
     /** 이 제품을 이 상태로 가진 행이 있는지. 쓰는 중(USING) 행은 제품당 하나만 둘 수 있다 */
     boolean existsByUserIdAndProductIdAndUsageType(UUID userId, UUID productId, UsageType usageType);
+
+    /** 이 사용자의 보유 제품 중 주어진 상태인 행. 교체 필요도순은 계산값으로 정렬하므로 모두 읽는다 */
+    List<UserProduct> findByUserIdAndUsageTypeIn(UUID userId, Collection<UsageType> usageTypes);
 }

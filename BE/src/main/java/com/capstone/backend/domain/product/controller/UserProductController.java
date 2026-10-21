@@ -7,6 +7,9 @@ import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.enums.UserProductFilter;
+import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
 import com.capstone.backend.domain.product.service.UserProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,13 +20,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +39,8 @@ public class UserProductController {
 
     private final PhotoRecognitionService photoRecognitionService;
     private final UserProductService userProductService;
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     @Operation(
             summary = "보유 제품 등록",
@@ -46,6 +54,28 @@ public class UserProductController {
             @Valid @RequestBody UserProductCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(userProductService.create(userId, request)));
+    }
+
+    @Operation(
+            summary = "보유 제품 목록 조회",
+            description = "status: USING(기본, 쓰는 중), FINISHED(다 쓰거나 버린 제품), ALL. " +
+                    "sort: REPLACE_NEED(기본, 기한 지남 → 곧 교체 → 괜찮음, 같은 상태는 경과 비율순), RECENT(최근 등록순). " +
+                    "page 는 1부터. 교체 시기는 유통기한과 개봉 후 사용 기간 중 이른 날로 계산한다. " +
+                    "conflictText, conflictSummary 는 루틴 점검 결과가 연결되기 전까지 null 과 avoidCount=0."
+    )
+    @GetMapping("/user-products")
+    public ResponseEntity<ApiResponse<UserProductListResponse>> list(
+            @AuthenticationPrincipal UUID userId,
+            @RequestParam(defaultValue = "USING") String status,
+            @RequestParam(defaultValue = "REPLACE_NEED") String sort,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (page < 1 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        UserProductListResponse result = userProductService.list(userId,
+                parse(UserProductFilter.class, status), parse(UserProductSort.class, sort), page, size);
+        return ResponseEntity.ok(ApiResponse.success(result, new ApiResponse.Meta(page, size, result.getTotal())));
     }
 
     @Operation(
@@ -83,6 +113,15 @@ public class UserProductController {
             return UUID.fromString(recognitionId);
         } catch (IllegalArgumentException e) {
             throw new BusinessException(ErrorCode.RECOGNITION_NOT_FOUND);
+        }
+    }
+
+    // enum 으로 받으면 모르는 값이 스프링 기본 오류(500)로 나간다. 요청 파라미터 오류로 응답한다
+    private static <E extends Enum<E>> E parse(Class<E> type, String value) {
+        try {
+            return Enum.valueOf(type, value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
     }
 }

@@ -4,11 +4,16 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.enums.RegistrationSource;
+import com.capstone.backend.domain.product.enums.ReplaceStatus;
 import com.capstone.backend.domain.product.enums.UsageType;
+import com.capstone.backend.domain.product.enums.UserProductFilter;
+import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import org.junit.jupiter.api.Test;
@@ -22,7 +27,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -218,5 +225,111 @@ class UserProductServiceTest {
 
         assertThatThrownBy(() -> service.create(userId, request().build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+    // 보유 제품 목록
+
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 1);
+
+    private final Product serum = Product.builder().id(UUID.randomUUID()).name("세럼").brand("A").category("skincare").imageUrl("https://img/s").build();
+    private final Product lip = Product.builder().id(UUID.randomUUID()).name("립").brand("B").category("lip").build();
+
+    private UserProduct row(Product product, UsageType usageType, LocalDate openedAt, LocalDate expiryDate,
+                            LocalDateTime createdAt) {
+        return UserProduct.builder().id(UUID.randomUUID()).userId(userId).productId(product.getId())
+                .usageType(usageType).openedAt(openedAt).expiryDate(expiryDate).remainingPct(50)
+                .createdAt(createdAt).build();
+    }
+
+    private void givenRows(List<UsageType> usageTypes, List<UserProduct> rows) {
+        given(userProductRepository.findByUserIdAndUsageTypeIn(userId, usageTypes)).willReturn(rows);
+        given(productRepository.findAllById(any())).willReturn(List.of(serum, lip));
+    }
+
+    @Test
+    void 교체_필요도순은_기한_지남_곧_교체_괜찮음_순이고_같은_상태는_경과_비율이_큰_순이다() {
+        LocalDateTime created = LocalDateTime.of(2026, 1, 1, 0, 0);
+        UserProduct ok = row(serum, UsageType.USING, LocalDate.of(2026, 9, 1), LocalDate.of(2027, 9, 1), created);
+        UserProduct expired = row(serum, UsageType.USING, LocalDate.of(2025, 1, 1), LocalDate.of(2026, 9, 1), created);
+        UserProduct soonLess = row(lip, UsageType.USING, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 11, 1), created);
+        UserProduct soonMore = row(lip, UsageType.USING, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 11, 1), created);
+        givenRows(List.of(UsageType.USING), List.of(ok, expired, soonLess, soonMore));
+
+        UserProductListResponse response = service.list(userId, UserProductFilter.USING, UserProductSort.REPLACE_NEED, 1, 20, TODAY);
+
+        assertThat(response.getItems()).extracting(Item::getUserProductId)
+                .containsExactly(expired.getId(), soonMore.getId(), soonLess.getId(), ok.getId());
+        assertThat(response.getItems()).extracting(Item::getReplaceStatus).containsExactly(
+                ReplaceStatus.EXPIRED, ReplaceStatus.SOON, ReplaceStatus.SOON, ReplaceStatus.OK);
+        assertThat(response.getTotal()).isEqualTo(4);
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+        assertThat(response.getConflictSummary().getText()).isNull();
+    }
+
+    @Test
+    void 항목에는_제품_정보와_교체_시기가_들어간다() {
+        UserProduct expired = row(serum, UsageType.USING, LocalDate.of(2025, 1, 1), LocalDate.of(2026, 9, 17), LocalDateTime.of(2025, 1, 1, 0, 0));
+        givenRows(List.of(UsageType.USING), List.of(expired));
+
+        Item item = service.list(userId, UserProductFilter.USING, UserProductSort.REPLACE_NEED, 1, 20, TODAY).getItems().get(0);
+
+        assertThat(item.getProductId()).isEqualTo(serum.getId());
+        assertThat(item.getName()).isEqualTo("세럼");
+        assertThat(item.getBrand()).isEqualTo("A");
+        assertThat(item.getImageUrl()).isEqualTo("https://img/s");
+        assertThat(item.getOpenedAt()).isEqualTo(LocalDate.of(2025, 1, 1));
+        assertThat(item.getRemainingPct()).isEqualTo(50);
+        assertThat(item.getReplaceProgress()).isEqualTo(100);
+        assertThat(item.getReplaceText()).isEqualTo("기한이 2주 지났어요");
+        assertThat(item.getConflictText()).isNull();
+    }
+
+    @Test
+    void 최근순은_최근에_등록한_순이다() {
+        UserProduct older = row(serum, UsageType.USING, null, null, LocalDateTime.of(2026, 1, 1, 0, 0));
+        UserProduct newer = row(lip, UsageType.USING, null, null, LocalDateTime.of(2026, 9, 1, 0, 0));
+        givenRows(List.of(UsageType.USING), List.of(older, newer));
+
+        UserProductListResponse response = service.list(userId, UserProductFilter.USING, UserProductSort.RECENT, 1, 20, TODAY);
+
+        assertThat(response.getItems()).extracting(Item::getUserProductId).containsExactly(newer.getId(), older.getId());
+    }
+
+    @Test
+    void 다_쓴_제품은_다_쓴_행과_버린_행을_함께_읽고_같은_제품의_여러_통이_각각_나온다() {
+        LocalDateTime created = LocalDateTime.of(2026, 1, 1, 0, 0);
+        UserProduct firstBottle = row(serum, UsageType.USED, LocalDate.of(2025, 1, 1), null, created);
+        UserProduct secondBottle = row(serum, UsageType.USED, LocalDate.of(2025, 7, 1), null, created.plusDays(1));
+        UserProduct discarded = row(lip, UsageType.DISCARDED, LocalDate.of(2026, 1, 1), null, created.plusDays(2));
+        givenRows(List.of(UsageType.USED, UsageType.DISCARDED), List.of(firstBottle, secondBottle, discarded));
+
+        UserProductListResponse response = service.list(userId, UserProductFilter.FINISHED, UserProductSort.RECENT, 1, 20, TODAY);
+
+        assertThat(response.getItems()).extracting(Item::getUserProductId)
+                .containsExactly(discarded.getId(), secondBottle.getId(), firstBottle.getId());
+    }
+
+    @Test
+    void 페이지는_1부터_세고_전체_개수는_자르기_전_개수다() {
+        LocalDateTime created = LocalDateTime.of(2026, 1, 1, 0, 0);
+        List<UserProduct> rows = List.of(
+                row(serum, UsageType.USING, null, null, created.plusDays(3)),
+                row(serum, UsageType.USING, null, null, created.plusDays(2)),
+                row(lip, UsageType.USING, null, null, created.plusDays(1)));
+        givenRows(List.of(UsageType.USING), rows);
+
+        UserProductListResponse page2 = service.list(userId, UserProductFilter.USING, UserProductSort.RECENT, 2, 2, TODAY);
+
+        assertThat(page2.getItems()).extracting(Item::getUserProductId).containsExactly(rows.get(2).getId());
+        assertThat(page2.getTotal()).isEqualTo(3);
+    }
+
+    @Test
+    void 개봉일이_없는_예전_행은_구매일_그다음_등록일을_시작일로_쓴다() {
+        UserProduct purchased = UserProduct.builder().purchasedAt(LocalDate.of(2026, 2, 1))
+                .createdAt(LocalDateTime.of(2026, 3, 1, 9, 0)).build();
+        UserProduct createdOnly = UserProduct.builder().createdAt(LocalDateTime.of(2026, 3, 1, 9, 0)).build();
+
+        assertThat(UserProductService.startedAt(purchased)).isEqualTo(LocalDate.of(2026, 2, 1));
+        assertThat(UserProductService.startedAt(createdOnly)).isEqualTo(LocalDate.of(2026, 3, 1));
     }
 }
