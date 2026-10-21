@@ -1,6 +1,8 @@
 package com.capstone.backend.domain.product.dto.request;
 
 import com.capstone.backend.domain.product.enums.RegistrationSource;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -42,4 +44,11 @@ public class UserProductCreateRequest {
 
     @NotNull(message = "source는 필수입니다.")
     private RegistrationSource source;
+
+    /** 사진 등록은 인식 결과가 있어야 원본을 남겨 정확도를 잴 수 있다. 없으면 사진 경로로 받지 않는다 */
+    @JsonIgnore
+    @AssertTrue(message = "사진 등록(PHOTO)에는 recognitionId가 필요합니다.")
+    public boolean isRecognitionIdPresentForPhoto() {
+        return source != RegistrationSource.PHOTO || (recognitionId != null && !recognitionId.isBlank());
+    }
 }

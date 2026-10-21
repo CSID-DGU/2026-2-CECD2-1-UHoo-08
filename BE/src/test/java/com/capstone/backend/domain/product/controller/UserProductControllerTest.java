@@ -264,4 +264,16 @@ class UserProductControllerTest {
                 .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"));
         verify(userProductService).create(eq(userId), any());
     }
+    @Test
+    void 사진_등록인데_인식ID가_없으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/user-products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","remainingPct":70,"source":"PHOTO"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.message").value("사진 등록(PHOTO)에는 recognitionId가 필요합니다."));
+        verifyNoInteractions(userProductService);
+    }
 }
