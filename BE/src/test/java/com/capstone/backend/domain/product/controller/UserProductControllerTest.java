@@ -4,15 +4,18 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.exception.GlobalExceptionHandler;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
+import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse.ReadValue;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse.Candidate;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.enums.ReplaceStatus;
 import com.capstone.backend.domain.product.enums.UserProductFilter;
 import com.capstone.backend.domain.product.enums.UserProductSort;
+import com.capstone.backend.domain.product.enums.UserProductStatus;
 import com.capstone.backend.domain.product.enums.RegistrationSource;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
 import com.capstone.backend.domain.product.service.UserProductService;
@@ -50,6 +53,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -348,5 +352,82 @@ class UserProductControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
         verifyNoInteractions(userProductService);
+    }
+    // 보유 제품 수정
+
+    @Test
+    void 보유_제품을_다_씀으로_수정하면_상태와_잔량을_돌려준다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        ArgumentCaptor<UserProductUpdateRequest> request = ArgumentCaptor.forClass(UserProductUpdateRequest.class);
+        given(userProductService.update(eq(userId), eq(userProductId), request.capture()))
+                .willReturn(new UserProductUpdateResponse(userProductId, UserProductStatus.FINISHED, 0));
+
+        mockMvc.perform(patch("/user-products/{id}", userProductId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"FINISHED","finishedAt":"2026-09-10","storageLocation":"VANITY"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userProductId").value(userProductId.toString()))
+                .andExpect(jsonPath("$.data.status").value("FINISHED"))
+                .andExpect(jsonPath("$.data.remainingPct").value(0));
+
+        assertThat(request.getValue().getStatus()).isEqualTo(UserProductStatus.FINISHED);
+        assertThat(request.getValue().getFinishedAt()).isEqualTo(LocalDate.of(2026, 9, 10));
+        assertThat(request.getValue().getRemainingPct()).isNull();
+    }
+
+    @Test
+    void 수정에서_잔량이_범위를_벗어나면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(patch("/user-products/{id}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"remainingPct":-1}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(userProductService);
+    }
+
+    @Test
+    void 수정에서_모르는_상태_값이면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(patch("/user-products/{id}", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"USED"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(userProductService);
+    }
+
+    @Test
+    void 없거나_남의_보유_제품을_수정하면_404_USER_PRODUCT_NOT_FOUND다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        given(userProductService.update(eq(userId), eq(userProductId), any()))
+                .willThrow(new BusinessException(ErrorCode.USER_PRODUCT_NOT_FOUND));
+
+        mockMvc.perform(patch("/user-products/{id}", userProductId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"remainingPct":40}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("USER_PRODUCT_NOT_FOUND"));
+    }
+
+    @Test
+    void 되돌릴_때_같은_제품을_쓰는_중인_다른_통이_있으면_409_ALREADY_REGISTERED다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        given(userProductService.update(eq(userId), eq(userProductId), any()))
+                .willThrow(new BusinessException(ErrorCode.ALREADY_REGISTERED));
+
+        mockMvc.perform(patch("/user-products/{id}", userProductId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"USING"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("ALREADY_REGISTERED"));
     }
 }

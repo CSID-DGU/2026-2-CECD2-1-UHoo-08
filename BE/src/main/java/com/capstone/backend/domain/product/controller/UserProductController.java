@@ -4,10 +4,12 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
+import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.enums.UserProductFilter;
 import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
@@ -21,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -76,6 +79,21 @@ public class UserProductController {
         UserProductListResponse result = userProductService.list(userId,
                 parse(UserProductFilter.class, status), parse(UserProductSort.class, sort), page, size);
         return ResponseEntity.ok(ApiResponse.success(result, new ApiResponse.Meta(page, size, result.getTotal())));
+    }
+
+    @Operation(
+            summary = "보유 제품 수정",
+            description = "보낸 필드만 바꾸고 null 이거나 보내지 않은 필드는 그대로 둔다. " +
+                    "'모두 사용' = status FINISHED (다 쓴 날 오늘), '진작 다 씀' = status FINISHED + finishedAt. 다 쓰면 remainingPct 는 0. " +
+                    "status USING 으로 되돌릴 때 같은 제품을 쓰는 중인 다른 통이 있으면 409 ALREADY_REGISTERED. " +
+                    "없거나 내 것이 아니면 404 USER_PRODUCT_NOT_FOUND."
+    )
+    @PatchMapping("/user-products/{userProductId}")
+    public ResponseEntity<ApiResponse<UserProductUpdateResponse>> update(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID userProductId,
+            @Valid @RequestBody UserProductUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(userProductService.update(userId, userProductId, request)));
     }
 
     @Operation(
