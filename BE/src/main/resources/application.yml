@@ -40,6 +40,9 @@ hwadam:
   batch:
     zone: Asia/Seoul           # cron 해석 시간대. 서버는 UTC 로 돈다
     photo-recognition-cleanup-cron: "0 0 * * * *"   # 만료된 사진 인식 결과 정리, 매시 정각
+    stuck-job-cleanup-cron: "0 */10 * * * *"         # 멈춘 추천 job 정리, 10분마다
+    stuck-job-timeout: 15m                           # 대기·진행 중인 job 이 이만큼 갱신되지 않으면 실패
+    clarification-timeout: 24h                       # 되묻는 중인 job 이 이만큼 답을 못 받으면 실패
 
 ai:
   server-url: ${AI_SERVER_URL}   # FastAPI 주소

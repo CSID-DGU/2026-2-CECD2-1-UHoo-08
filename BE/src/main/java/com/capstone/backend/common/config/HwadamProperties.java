@@ -8,6 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import java.time.ZoneId;
 
 /**
@@ -41,5 +42,17 @@ public class HwadamProperties {
         /** 만료된 사진 인식 결과 정리. 기본 매시 정각 */
         @NotBlank
         private String photoRecognitionCleanupCron = "0 0 * * * *";
+
+        /** 멈춘 추천 job 정리. 기본 10분마다 */
+        @NotBlank
+        private String stuckJobCleanupCron = "0 */10 * * * *";
+
+        /** 대기·진행 중인 job 이 이만큼 갱신되지 않으면 멈춘 것으로 본다 */
+        @NotNull
+        private Duration stuckJobTimeout = Duration.ofMinutes(15);
+
+        /** 되묻는 중인 job 이 이만큼 답을 받지 못하면 실패로 둔다. 사용자를 기다리는 정상 상태라 길게 둔다 */
+        @NotNull
+        private Duration clarificationTimeout = Duration.ofHours(24);
     }
 }
