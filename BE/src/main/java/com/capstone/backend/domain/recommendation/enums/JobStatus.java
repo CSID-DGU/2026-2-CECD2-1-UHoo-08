@@ -5,9 +5,9 @@ package com.capstone.backend.domain.recommendation.enums;
  *
  * PENDING → IN_PROGRESS → (NEEDS_CLARIFICATION) → COMPLETED | FAILED
  *
- * {@code recommendation_jobs.status} 에 문자열로 저장된다. 지금까지 각 서비스가
- * {@code "COMPLETED".equals(...)} 처럼 문자열을 직접 비교해 왔는데, 오타가 나면
- * 조건이 조용히 false 가 되어 완료된 job 을 미완료로 읽는다.
+ * {@code recommendation_jobs.status} 에 이름 그대로 저장되고 Recommendation.status 가 이 enum 으로 매핑한다.
+ * 문자열로 비교하면 오타가 나도 조건이 조용히 false 가 되어 완료된 job 을 미완료로 읽는다.
+ * AI 도 같은 다섯 값만 쓴다. 다른 값이 들어오면 BE 가 그 행을 읽지 못하므로 값을 늘릴 때는 AI 와 함께 바꾼다.
  */
 public enum JobStatus {
 
@@ -27,10 +27,5 @@ public enum JobStatus {
     /** 더 진행되지 않는 상태인가. */
     public boolean isFinal() {
         return this == COMPLETED || this == FAILED;
-    }
-
-    /** 저장된 문자열이 이 상태인가. 알 수 없는 값이면 false 다. */
-    public boolean matches(String raw) {
-        return name().equals(raw);
     }
 }
