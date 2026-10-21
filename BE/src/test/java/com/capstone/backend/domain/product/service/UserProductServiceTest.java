@@ -3,9 +3,12 @@ package com.capstone.backend.domain.product.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
+import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
+import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
@@ -14,6 +17,7 @@ import com.capstone.backend.domain.product.enums.ReplaceStatus;
 import com.capstone.backend.domain.product.enums.UsageType;
 import com.capstone.backend.domain.product.enums.UserProductFilter;
 import com.capstone.backend.domain.product.enums.UserProductSort;
+import com.capstone.backend.domain.product.enums.UserProductStatus;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import org.junit.jupiter.api.Test;
@@ -331,5 +335,206 @@ class UserProductServiceTest {
 
         assertThat(UserProductService.startedAt(purchased)).isEqualTo(LocalDate.of(2026, 2, 1));
         assertThat(UserProductService.startedAt(createdOnly)).isEqualTo(LocalDate.of(2026, 3, 1));
+    }
+    // 보유 제품 수정
+
+    private UserProduct mine(UsageType usageType) {
+        return UserProduct.builder().id(userProductId).userId(userId).productId(productId)
+                .usageType(usageType).openedAt(LocalDate.of(2026, 1, 1)).remainingPct(70)
+                .createdAt(LocalDateTime.of(2026, 1, 1, 0, 0)).build();
+    }
+
+    private UserProduct givenMine(UsageType usageType) {
+        UserProduct row = mine(usageType);
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(row));
+        given(userProductRepository.saveAndFlush(row)).willReturn(row);
+        return row;
+    }
+
+    @Test
+    void 잔량만_보내면_잔량만_바뀌고_상태와_다른_값은_그대로다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        UserProductUpdateResponse response = service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().remainingPct(40).build(), TODAY);
+
+        assertThat(response.getUserProductId()).isEqualTo(userProductId);
+        assertThat(response.getStatus()).isEqualTo(UserProductStatus.USING);
+        assertThat(response.getRemainingPct()).isEqualTo(40);
+        assertThat(row.getOpenedAt()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(row.getFinishedAt()).isNull();
+        assertThat(row.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void 기한_정보는_보낸_것만_바뀐다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        service.update(userId, userProductId, UserProductUpdateRequest.builder()
+                .expiryDate(LocalDate.of(2027, 4, 18)).paoMonths(12).build(), TODAY);
+
+        assertThat(row.getExpiryDate()).isEqualTo(LocalDate.of(2027, 4, 18));
+        assertThat(row.getPaoMonths()).isEqualTo(12);
+        assertThat(row.getOpenedAt()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(row.getRemainingPct()).isEqualTo(70);
+    }
+
+    @Test
+    void 모두_사용은_다_쓴_날을_오늘로_두고_잔량을_0으로_한다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        UserProductUpdateResponse response = service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().status(UserProductStatus.FINISHED).build(), TODAY);
+
+        assertThat(response.getStatus()).isEqualTo(UserProductStatus.FINISHED);
+        assertThat(response.getRemainingPct()).isZero();
+        assertThat(row.getUsageType()).isEqualTo(UsageType.USED);
+        assertThat(row.getFinishedAt()).isEqualTo(TODAY);
+    }
+
+    @Test
+    void 진작_다_씀은_고른_날을_다_쓴_날로_둔다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        service.update(userId, userProductId, UserProductUpdateRequest.builder()
+                .status(UserProductStatus.FINISHED).finishedAt(LocalDate.of(2026, 9, 10)).remainingPct(30).build(), TODAY);
+
+        assertThat(row.getFinishedAt()).isEqualTo(LocalDate.of(2026, 9, 10));
+        // 다 쓴 제품은 남은 양이 없다
+        assertThat(row.getRemainingPct()).isZero();
+    }
+
+    @Test
+    void 이미_다_쓴_제품은_다_쓴_날만_고칠_수_있다() {
+        UserProduct row = givenMine(UsageType.USED);
+        row.finish(LocalDate.of(2026, 9, 1));
+
+        service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().finishedAt(LocalDate.of(2026, 8, 1)).build(), TODAY);
+
+        assertThat(row.getUsageType()).isEqualTo(UsageType.USED);
+        assertThat(row.getFinishedAt()).isEqualTo(LocalDate.of(2026, 8, 1));
+    }
+
+    @Test
+    void 쓰는_중인_제품에_다_쓴_날만_오면_무시한다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().finishedAt(LocalDate.of(2026, 8, 1)).build(), TODAY);
+
+        assertThat(row.getUsageType()).isEqualTo(UsageType.USING);
+        assertThat(row.getFinishedAt()).isNull();
+    }
+
+    @Test
+    void 버림으로_바꾼다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        UserProductUpdateResponse response = service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().status(UserProductStatus.DISCARDED).build(), TODAY);
+
+        assertThat(response.getStatus()).isEqualTo(UserProductStatus.DISCARDED);
+        assertThat(row.getUsageType()).isEqualTo(UsageType.DISCARDED);
+    }
+
+    @Test
+    void 다_씀을_되돌리면_쓰는_중이_되고_다_쓴_날을_비운다() {
+        UserProduct row = givenMine(UsageType.USED);
+        row.finish(LocalDate.of(2026, 9, 1));
+        given(userProductRepository.existsByUserIdAndProductIdAndUsageTypeAndIdNot(
+                userId, productId, UsageType.USING, userProductId)).willReturn(false);
+
+        UserProductUpdateResponse response = service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().status(UserProductStatus.USING).remainingPct(60).build(), TODAY);
+
+        assertThat(response.getStatus()).isEqualTo(UserProductStatus.USING);
+        assertThat(response.getRemainingPct()).isEqualTo(60);
+        assertThat(row.getFinishedAt()).isNull();
+    }
+
+    @Test
+    void 되돌릴_때_같은_제품을_쓰는_중인_다른_통이_있으면_ALREADY_REGISTERED다() {
+        UserProduct row = mine(UsageType.USED);
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(row));
+        given(userProductRepository.existsByUserIdAndProductIdAndUsageTypeAndIdNot(
+                userId, productId, UsageType.USING, userProductId)).willReturn(true);
+
+        assertThatThrownBy(() -> service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().status(UserProductStatus.USING).build(), TODAY))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.ALREADY_REGISTERED);
+        verify(userProductRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void 이미_쓰는_중인_제품을_쓰는_중으로_보내면_확인_없이_그대로다() {
+        UserProduct row = givenMine(UsageType.USING);
+
+        service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().status(UserProductStatus.USING).build(), TODAY);
+
+        assertThat(row.getUsageType()).isEqualTo(UsageType.USING);
+        verify(userProductRepository, never()).existsByUserIdAndProductIdAndUsageTypeAndIdNot(any(), any(), any(), any());
+    }
+
+    @Test
+    void 남의_보유_제품을_수정하면_USER_PRODUCT_NOT_FOUND다() {
+        UserProduct others = UserProduct.builder().id(userProductId).userId(UUID.randomUUID()).productId(productId)
+                .usageType(UsageType.USING).build();
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(others));
+
+        assertThatThrownBy(() -> service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().remainingPct(10).build(), TODAY))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        verify(userProductRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void 없는_보유_제품을_수정하면_USER_PRODUCT_NOT_FOUND다() {
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.update(userId, userProductId,
+                UserProductUpdateRequest.builder().remainingPct(10).build(), TODAY))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+    }
+    // 보유 제품 삭제
+
+    @Test
+    void 보유_제품은_그_통_하나만_지우고_같은_제품의_다른_통은_남긴다() {
+        UserProduct row = mine(UsageType.USING);
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(row));
+
+        UserProductDeleteResponse response = service.delete(userId, userProductId);
+
+        assertThat(response.getUserProductId()).isEqualTo(userProductId);
+        verify(userProductRepository).delete(row);
+        // (user, product) 조건으로 한꺼번에 지우지 않는다
+        verify(userProductRepository, never()).deleteAll(any());
+        verify(userProductRepository, never()).deleteAllInBatch(any());
+    }
+
+    @Test
+    void 남의_보유_제품을_지우면_USER_PRODUCT_NOT_FOUND이고_지우지_않는다() {
+        UserProduct others = UserProduct.builder().id(userProductId).userId(UUID.randomUUID()).productId(productId)
+                .usageType(UsageType.USING).build();
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.of(others));
+
+        assertThatThrownBy(() -> service.delete(userId, userProductId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        verify(userProductRepository, never()).delete(any());
+    }
+
+    @Test
+    void 없는_보유_제품을_지우면_USER_PRODUCT_NOT_FOUND다() {
+        given(userProductRepository.findById(userProductId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(userId, userProductId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.USER_PRODUCT_NOT_FOUND);
+        verify(userProductRepository, never()).delete(any());
     }
 }
