@@ -339,4 +339,14 @@ class UserProductControllerTest {
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
         verifyNoInteractions(userProductService);
     }
+    @Test
+    void 페이지나_크기가_숫자가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(get("/user-products").param("page", "abc"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(get("/user-products").param("size", "abc"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(userProductService);
+    }
 }
