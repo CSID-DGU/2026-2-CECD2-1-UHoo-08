@@ -82,4 +82,42 @@ public class UserProduct {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    /** 기한·잔량 정보 중 값이 있는 것만 바꾼다 */
+    public void updateInfo(Integer remainingPct, LocalDate openedAt, LocalDate expiryDate, Integer paoMonths) {
+        if (remainingPct != null) {
+            this.remainingPct = remainingPct;
+        }
+        if (openedAt != null) {
+            this.openedAt = openedAt;
+        }
+        if (expiryDate != null) {
+            this.expiryDate = expiryDate;
+        }
+        if (paoMonths != null) {
+            this.paoMonths = paoMonths;
+        }
+    }
+
+    /** 다 썼다. 다 쓴 제품은 남은 양이 없다 */
+    public void finish(LocalDate finishedAt) {
+        this.usageType = UsageType.USED;
+        this.finishedAt = finishedAt;
+        this.remainingPct = 0;
+    }
+
+    /** 버렸다 */
+    public void discard() {
+        this.usageType = UsageType.DISCARDED;
+    }
+
+    /** 다 썼거나 버렸다고 잘못 누른 것을 되돌린다. 다 쓴 날은 더 이상 맞지 않아 비운다 */
+    public void reuse() {
+        this.usageType = UsageType.USING;
+        this.finishedAt = null;
+    }
+
+    public void touch(OffsetDateTime now) {
+        this.updatedAt = now;
+    }
 }

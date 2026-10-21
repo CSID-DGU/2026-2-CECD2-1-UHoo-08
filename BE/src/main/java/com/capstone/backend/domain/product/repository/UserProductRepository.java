@@ -22,4 +22,7 @@ public interface UserProductRepository extends JpaRepository<UserProduct, UUID> 
 
     /** 이 사용자의 보유 제품 중 주어진 상태인 행. 교체 필요도순은 계산값으로 정렬하므로 모두 읽는다 */
     List<UserProduct> findByUserIdAndUsageTypeIn(UUID userId, Collection<UsageType> usageTypes);
+
+    /** 이 행 말고 같은 제품을 이 상태로 가진 다른 행이 있는지. 쓰는 중으로 되돌릴 때 쓴다 */
+    boolean existsByUserIdAndProductIdAndUsageTypeAndIdNot(UUID userId, UUID productId, UsageType usageType, UUID id);
 }

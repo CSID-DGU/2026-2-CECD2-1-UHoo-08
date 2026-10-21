@@ -3,10 +3,12 @@ package com.capstone.backend.domain.product.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
+import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.ConflictSummary;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
+import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
@@ -15,6 +17,7 @@ import com.capstone.backend.domain.product.enums.ReplaceStatus;
 import com.capstone.backend.domain.product.enums.UsageType;
 import com.capstone.backend.domain.product.enums.UserProductFilter;
 import com.capstone.backend.domain.product.enums.UserProductSort;
+import com.capstone.backend.domain.product.enums.UserProductStatus;
 import com.capstone.backend.domain.product.service.ReplaceCalculator.Estimate;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
@@ -84,19 +87,45 @@ public class UserProductService {
                 .updatedAt(OffsetDateTime.now())
                 .build();
 
-        UserProduct saved;
-        try {
-            saved = userProductRepository.saveAndFlush(userProduct);
-        } catch (DataIntegrityViolationException e) {
-            // 위 확인과 저장 사이에 같은 제품이 먼저 등록된 경우. 쓰는 중인 행은 제품당 하나다
-            if (!String.valueOf(e.getMostSpecificCause().getMessage()).contains(ACTIVE_ONCE_INDEX)) {
-                throw e;
-            }
-            log.warn("[UserProduct] 쓰는 중인 같은 제품이 동시에 등록됨: productId={}", product.getId());
-            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
-        }
-
+        UserProduct saved = saveAndFlush(userProduct);
         return new UserProductCreateResponse(saved.getId(), product.getId(), product.getName(), List.of());
+    }
+
+    /**
+     * 보유 제품 수정. 대상은 path 의 행 하나이고, 보낸 필드만 바꾼다.
+     * 다 씀은 다 쓴 날(없으면 오늘)을 남기고 잔량을 0 으로 둔다. 쓰는 중으로 되돌릴 때 같은 제품을 쓰는 중인 다른 통이 있으면 막는다.
+     */
+    @Transactional
+    public UserProductUpdateResponse update(UUID userId, UUID userProductId, UserProductUpdateRequest request) {
+        return update(userId, userProductId, request, LocalDate.now());
+    }
+
+    UserProductUpdateResponse update(UUID userId, UUID userProductId, UserProductUpdateRequest request, LocalDate today) {
+        UserProduct userProduct = getMine(userId, userProductId);
+        userProduct.updateInfo(request.getRemainingPct(), request.getOpenedAt(), request.getExpiryDate(),
+                request.getPaoMonths());
+
+        UserProductStatus status = request.getStatus();
+        if (status == UserProductStatus.FINISHED
+                || (status == null && userProduct.getUsageType() == UsageType.USED && request.getFinishedAt() != null)) {
+            LocalDate finishedAt = request.getFinishedAt() != null ? request.getFinishedAt()
+                    : userProduct.getFinishedAt() != null ? userProduct.getFinishedAt()
+                    : today;
+            userProduct.finish(finishedAt);
+        } else if (status == UserProductStatus.DISCARDED) {
+            userProduct.discard();
+        } else if (status == UserProductStatus.USING && userProduct.getUsageType() != UsageType.USING) {
+            if (userProductRepository.existsByUserIdAndProductIdAndUsageTypeAndIdNot(
+                    userId, userProduct.getProductId(), UsageType.USING, userProduct.getId())) {
+                throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
+            }
+            userProduct.reuse();
+        }
+        userProduct.touch(OffsetDateTime.now());
+
+        UserProduct saved = saveAndFlush(userProduct);
+        return new UserProductUpdateResponse(saved.getId(), UserProductStatus.from(saved.getUsageType()),
+                saved.getRemainingPct());
     }
 
     /**
@@ -172,6 +201,29 @@ public class UserProductService {
             return new Item(row.getId(), product.getId(), product.getName(), product.getBrand(),
                     product.getImageUrl(), row.getOpenedAt(), row.getRemainingPct(),
                     estimate.status(), estimate.text(), estimate.progress(), null);
+        }
+    }
+
+    /** 내 보유 제품 행. 없거나 남의 것이면 존재 여부를 드러내지 않도록 같은 404 */
+    private UserProduct getMine(UUID userId, UUID userProductId) {
+        return userProductRepository.findById(userProductId)
+                .filter(row -> row.getUserId().equals(userId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_PRODUCT_NOT_FOUND));
+    }
+
+    /**
+     * 쓰는 중인 행은 제품당 하나다. 미리 확인했어도 그사이 다른 요청이 같은 제품을 쓰는 중으로 만들면
+     * 유니크 인덱스에 걸리므로, 그 경우만 ALREADY_REGISTERED 로 바꾼다.
+     */
+    private UserProduct saveAndFlush(UserProduct userProduct) {
+        try {
+            return userProductRepository.saveAndFlush(userProduct);
+        } catch (DataIntegrityViolationException e) {
+            if (!String.valueOf(e.getMostSpecificCause().getMessage()).contains(ACTIVE_ONCE_INDEX)) {
+                throw e;
+            }
+            log.warn("[UserProduct] 쓰는 중인 같은 제품이 동시에 생김: productId={}", userProduct.getProductId());
+            throw new BusinessException(ErrorCode.ALREADY_REGISTERED);
         }
     }
 
