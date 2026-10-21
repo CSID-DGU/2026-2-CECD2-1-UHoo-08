@@ -2,11 +2,14 @@ package com.capstone.backend.domain.recommendation.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
+import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
+import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +29,22 @@ import java.util.UUID;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final RecommendationJobService recommendationJobService;
+
+    @Operation(
+            summary = "자연어 추천 요청",
+            description = "검색창 문장으로 추천 job 을 만들고 202 로 jobId 를 바로 돌려준다. 진행은 statusUrl 로 폴링한다. " +
+                    "basis: SELF(기본, 내 피부), POPULAR(전체 인기), OTHER(다른 사람, targetProfile 함께). " +
+                    "SELF 인데 피부 정보가 없으면 404 SKIN_PROFILE_NOT_FOUND. " +
+                    "POST /recommendations/search(동기)를 대체한다."
+    )
+    @PostMapping("/queries")
+    public ResponseEntity<ApiResponse<RecommendationQueryResponse>> requestQuery(
+            @AuthenticationPrincipal UUID userId,
+            @Valid @RequestBody RecommendationQueryRequest request) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponse.success(recommendationJobService.requestQuery(userId, request)));
+    }
 
     @Operation(summary = "자연어 제품 검색", description = "검색창 자연어 입력 → FastAPI 벡터 검색 → 결과 반환 (동기)")
     @PostMapping("/search")
