@@ -1,6 +1,7 @@
 package com.capstone.backend.domain.recommendation.entity;
 
 import com.capstone.backend.domain.product.entity.Product;
+import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.user.entity.User;
 import io.hypersistence.utils.hibernate.type.array.StringArrayType;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
@@ -41,8 +42,9 @@ public class Recommendation {
     @Column(name = "price_tolerance_percent")
     private Integer priceTolerancePercent;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private JobStatus status;
 
     @Column(name = "step", length = 50)
     private String step;

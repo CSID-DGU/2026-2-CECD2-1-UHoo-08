@@ -10,6 +10,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationJob
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
+import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
@@ -61,7 +62,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .product(product)
                 .searchPurpose(request.getSearchPurpose())
                 .priceTolerancePercent(tolerancePercent)
-                .status("PENDING")
+                .status(JobStatus.PENDING)
                 .progress(0)
                 .createdAt(now)
                 .updatedAt(now)
@@ -102,7 +103,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         Recommendation job = recommendationRepository.findByIdAndUserId(jobId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        if (!"COMPLETED".equals(job.getStatus())) {
+        if (job.getStatus() != JobStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.JOB_NOT_COMPLETED);
         }
 

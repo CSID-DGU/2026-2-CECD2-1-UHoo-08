@@ -17,7 +17,7 @@ public class RecommendationStatusResponse {
     public static RecommendationStatusResponse from(Recommendation r) {
         return RecommendationStatusResponse.builder()
                 .jobId(r.getId())
-                .status(r.getStatus())
+                .status(r.getStatus().name())
                 .step(r.getStep())
                 .progress(r.getProgress())
                 .build();
