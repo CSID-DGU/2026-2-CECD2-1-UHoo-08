@@ -9,6 +9,10 @@ import com.capstone.backend.domain.product.dto.response.ExpiryRecognitionRespons
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse;
 import com.capstone.backend.domain.product.dto.response.PhotoRecognitionResponse.Candidate;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.enums.ReplaceStatus;
+import com.capstone.backend.domain.product.enums.UserProductFilter;
+import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.enums.RegistrationSource;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
 import com.capstone.backend.domain.product.service.UserProductService;
@@ -20,7 +24,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +48,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -66,6 +74,9 @@ class UserProductControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                // 앱 설정(spring.jackson.serialization.write-dates-as-timestamps: false)과 같게 날짜를 문자열로 쓴다
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(Jackson2ObjectMapperBuilder.json()
+                        .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build()))
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
         SecurityContextHolder.getContext().setAuthentication(
@@ -274,6 +285,68 @@ class UserProductControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error.message").value("사진 등록(PHOTO)에는 recognitionId가 필요합니다."));
+        verifyNoInteractions(userProductService);
+    }
+    // 보유 제품 목록
+
+    @Test
+    void 보유_제품_목록은_기본값으로_쓰는_중_교체_필요도순_1페이지_20개를_조회하고_meta를_준다() throws Exception {
+        UUID userProductId = UUID.randomUUID();
+        given(userProductService.list(userId, UserProductFilter.USING, UserProductSort.REPLACE_NEED, 1, 20))
+                .willReturn(new UserProductListResponse(List.of(new UserProductListResponse.Item(
+                        userProductId, UUID.randomUUID(), "레티놀 나이트 앰플", "닥터지", null, LocalDate.of(2025, 8, 20),
+                        20, ReplaceStatus.EXPIRED, "기한이 2주 지났어요", 100, null)),
+                        UserProductListResponse.ConflictSummary.none(), 8));
+
+        mockMvc.perform(get("/user-products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].userProductId").value(userProductId.toString()))
+                .andExpect(jsonPath("$.data.items[0].openedAt").value("2025-08-20"))
+                .andExpect(jsonPath("$.data.items[0].replaceStatus").value("EXPIRED"))
+                .andExpect(jsonPath("$.data.items[0].replaceProgress").value(100))
+                .andExpect(content().string(containsString("\"conflictText\":null")))
+                .andExpect(jsonPath("$.data.conflictSummary.avoidCount").value(0))
+                .andExpect(jsonPath("$.data.total").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].storageLocation").doesNotExist())
+                .andExpect(jsonPath("$.meta.page").value(1))
+                .andExpect(jsonPath("$.meta.size").value(20))
+                .andExpect(jsonPath("$.meta.total").value(8));
+    }
+
+    @Test
+    void 상태와_정렬은_대소문자를_가리지_않는다() throws Exception {
+        given(userProductService.list(userId, UserProductFilter.FINISHED, UserProductSort.RECENT, 2, 10))
+                .willReturn(new UserProductListResponse(List.of(), UserProductListResponse.ConflictSummary.none(), 0));
+
+        mockMvc.perform(get("/user-products").param("status", "finished").param("sort", "recent")
+                        .param("page", "2").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isEmpty());
+    }
+
+    @Test
+    void 모르는_상태_값이면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(get("/user-products").param("status", "DISCARDED"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(userProductService);
+    }
+
+    @Test
+    void 페이지가_1보다_작으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(get("/user-products").param("page", "0"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(userProductService);
+    }
+    @Test
+    void 페이지나_크기가_숫자가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(get("/user-products").param("page", "abc"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(get("/user-products").param("size", "abc"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
         verifyNoInteractions(userProductService);
     }
 }

@@ -4,11 +4,18 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse.ConflictSummary;
+import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.enums.RegistrationSource;
+import com.capstone.backend.domain.product.enums.ReplaceStatus;
 import com.capstone.backend.domain.product.enums.UsageType;
+import com.capstone.backend.domain.product.enums.UserProductFilter;
+import com.capstone.backend.domain.product.enums.UserProductSort;
+import com.capstone.backend.domain.product.service.ReplaceCalculator.Estimate;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 보유 제품(user_products). 산 제품 한 통마다 한 줄이고, 다시 사면 새 줄을 넣는다.
@@ -86,6 +97,82 @@ public class UserProductService {
         }
 
         return new UserProductCreateResponse(saved.getId(), product.getId(), product.getName(), List.of());
+    }
+
+    /**
+     * 보유 제품 목록. 교체 시기는 저장하지 않고 조회할 때 계산한다.
+     * 교체 필요도순은 계산값으로 정렬하므로 이 사용자의 해당 상태 행을 모두 읽어 정렬한 뒤 페이지로 자른다.
+     * 충돌 문구와 배너는 루틴 점검 결과가 연결되기 전까지 비워 둔다.
+     *
+     * @param page 1부터 시작
+     */
+    @Transactional(readOnly = true)
+    public UserProductListResponse list(UUID userId, UserProductFilter filter, UserProductSort sort, int page, int size) {
+        return list(userId, filter, sort, page, size, LocalDate.now());
+    }
+
+    UserProductListResponse list(UUID userId, UserProductFilter filter, UserProductSort sort, int page, int size,
+                                 LocalDate today) {
+        List<UserProduct> rows = userProductRepository.findByUserIdAndUsageTypeIn(userId, filter.usageTypes());
+        Map<UUID, Product> products = productRepository.findAllById(
+                        rows.stream().map(UserProduct::getProductId).distinct().toList()).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        List<Listed> listed = rows.stream()
+                .filter(row -> products.containsKey(row.getProductId()))
+                .map(row -> {
+                    Product product = products.get(row.getProductId());
+                    Estimate estimate = ReplaceCalculator.estimate(startedAt(row), row.getExpiryDate(),
+                            row.getPaoMonths(), product.getCategory(), today);
+                    return new Listed(row, product, estimate);
+                })
+                .sorted(comparator(sort))
+                .toList();
+
+        List<Item> items = listed.stream()
+                .skip((long) (page - 1) * size)
+                .limit(size)
+                .map(Listed::toItem)
+                .toList();
+        return new UserProductListResponse(items, ConflictSummary.none(), listed.size());
+    }
+
+    /** 경과 비율의 기준일. 개봉일이 없는 예전 행은 구매일, 그것도 없으면 등록일 */
+    static LocalDate startedAt(UserProduct row) {
+        if (row.getOpenedAt() != null) {
+            return row.getOpenedAt();
+        }
+        if (row.getPurchasedAt() != null) {
+            return row.getPurchasedAt();
+        }
+        return row.getCreatedAt().toLocalDate();
+    }
+
+    private static Comparator<Listed> comparator(UserProductSort sort) {
+        Comparator<Listed> recent = Comparator.comparing((Listed l) -> l.row().getCreatedAt()).reversed();
+        if (sort == UserProductSort.RECENT) {
+            return recent;
+        }
+        return Comparator.comparingInt((Listed l) -> replaceUrgency(l.estimate().status()))
+                .thenComparing(Comparator.comparingInt((Listed l) -> l.estimate().progress()).reversed())
+                .thenComparing(recent);
+    }
+
+    /** 작을수록 급하다 */
+    private static int replaceUrgency(ReplaceStatus status) {
+        return switch (status) {
+            case EXPIRED -> 0;
+            case SOON -> 1;
+            case OK -> 2;
+        };
+    }
+
+    private record Listed(UserProduct row, Product product, Estimate estimate) {
+        Item toItem() {
+            return new Item(row.getId(), product.getId(), product.getName(), product.getBrand(),
+                    product.getImageUrl(), row.getOpenedAt(), row.getRemainingPct(),
+                    estimate.status(), estimate.text(), estimate.progress(), null);
+        }
     }
 
     private static UUID toRecognitionId(String recognitionId) {
