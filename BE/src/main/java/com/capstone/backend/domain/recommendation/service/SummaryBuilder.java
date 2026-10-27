@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -110,7 +111,8 @@ public final class SummaryBuilder {
             long thousands = amount / 1000;
             return thousands % 10 == 0 ? (thousands / 10) + "만원" : (thousands / 10) + "." + (thousands % 10) + "만원";
         }
-        return String.format("%,d원", amount);
+        // 서버 기본 로케일에 따라 천 단위 구분자가 달라지지 않게 한국 로케일로 고정한다
+        return String.format(Locale.KOREA, "%,d원", amount);
     }
 
     private static List<String> texts(JsonNode array) {

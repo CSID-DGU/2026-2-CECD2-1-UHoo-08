@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SummaryBuilderTest {
@@ -87,5 +89,16 @@ class SummaryBuilderTest {
     })
     void 금액은_만원_단위로_줄여_쓴다(long amount, String expected) {
         assertThat(SummaryBuilder.won(amount)).isEqualTo(expected);
+    }
+
+    @Test
+    void 서버_기본_로케일이_달라도_금액은_쉼표로_구분한다() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMANY);
+            assertThat(SummaryBuilder.won(12345)).isEqualTo("12,345원");
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 }
