@@ -8,6 +8,7 @@ import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
@@ -50,6 +51,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final ObjectMapper objectMapper;
     private final SearchLogRepository searchLogRepository;
     private final JsonUtil jsonUtil;
+    private final ResultAssembler resultAssembler;
+    private final AppliedPreferenceFinder appliedPreferenceFinder;
 
     /** 진행 단계 목록이 아직 없을 때(AI 반영 전) 현재 단계 문구 하나로 대신하는 항목의 key */
     static final String CURRENT_STEP_KEY = "current";
@@ -166,24 +169,34 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
     }
 
-    // 상태 조회는 화면이 계속 폴링하므로, AI 가 쓴 값 하나가 깨져도 조회 자체는 실패시키지 않는다
+    // AI 가 쓴 jsonb 하나가 깨져도 조회 자체는 실패시키지 않는다. 상태 조회는 화면이 계속 폴링하고, 결과 조회는 읽을 수 있는 부분만이라도 보여 준다
     private JsonNode readTreeOrMissing(String json, UUID jobId) {
         try {
             return jsonUtil.readTree(json);
         } catch (BusinessException e) {
-            log.warn("[RecommendationStatus] job 의 jsonb 를 읽지 못해 비어 있는 것으로 본다: jobId={}", jobId);
+            log.warn("[Recommendation] job 의 jsonb 를 읽지 못해 비어 있는 것으로 본다: jobId={}", jobId);
             return MissingNode.getInstance();
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RecommendationResultResponse getResult(UUID userId, UUID jobId) {
+    public RecommendationResultBody getResult(UUID userId, UUID jobId) {
         Recommendation job = recommendationRepository.findByIdAndUserId(jobId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
         if (job.getStatus() != JobStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.JOB_NOT_COMPLETED);
+        }
+        // 자연어 추천 job 은 공통 결과 형식으로, 상품 기준 추천(v1) job 은 아래의 기존 형식으로 내린다
+        if (job.getBasis() != null) {
+            return resultAssembler.assemble(new ResultAssembler.Source(
+                    job.getId(), job.getParentJobId(), job.getScenario(), job.getBasis(),
+                    readTreeOrMissing(job.getResult(), job.getId()),
+                    readTreeOrMissing(job.getStateSnapshot(), job.getId()),
+                    job.getUser().getSkinType(),
+                    readTreeOrMissing(job.getTargetProfile(), job.getId())),
+                    appliedPreferenceFinder.find(userId));
         }
 
         Product baseProduct = job.getProduct();

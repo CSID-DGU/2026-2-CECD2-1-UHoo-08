@@ -10,7 +10,7 @@ import java.util.UUID;
 /** 자연어 추천 결과. 검색 결과, 결과 보고서, 조건 수정, 예산 세트, 홈 추천이 모두 이 모양이다 */
 @Getter
 @AllArgsConstructor
-public class RecommendationResultV2Response {
+public class RecommendationResultV2Response implements RecommendationResultBody {
 
     private UUID jobId;
     /** 조건 수정으로 만들어진 결과면 직전 job */

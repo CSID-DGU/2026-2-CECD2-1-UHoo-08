@@ -3,8 +3,10 @@ package com.capstone.backend.domain.recommendation.controller;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.exception.GlobalExceptionHandler;
+import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
@@ -12,6 +14,9 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.service.ClarifyFieldMapper;
+import com.capstone.backend.domain.recommendation.service.ResultAssembler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
 import com.capstone.backend.domain.recommendation.enums.TargetRelation;
@@ -40,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -212,5 +218,49 @@ class RecommendationControllerTest {
         mockMvc.perform(get("/recommendations/{jobId}/status", jobId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+    // 추천 결과 조회
+
+    @Test
+    void 자연어_추천_결과는_공통_결과_형식으로_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RecommendationResultV2Response result = assembleSample(jobId, "S6_BUNDLE");
+        given(recommendationService.getResult(userId, jobId)).willReturn(result);
+
+        mockMvc.perform(get("/recommendations/{jobId}", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.scenario").value("S6_BUNDLE"))
+                .andExpect(jsonPath("$.data.basis").value("SELF"))
+                .andExpect(jsonPath("$.data.summary.categoryLabel").value("스킨케어"))
+                .andExpect(jsonPath("$.data.summary.conditions[3]").value("총 10만원"))
+                .andExpect(jsonPath("$.data.excluded.count").value(0))
+                .andExpect(jsonPath("$.data.alternativesDroppedCount").value(0))
+                .andExpect(jsonPath("$.data.bundles[0].index").value(1))
+                .andExpect(jsonPath("$.data.bundles[0].remaining").value(8000))
+                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("2"))
+                .andExpect(content().string(containsString("\"parentJobId\":null")))
+                .andExpect(content().string(containsString("\"appliedPreference\":null")))
+                .andExpect(content().string(containsString("\"type\":null")))
+                .andExpect(jsonPath("$.data.similarUserProducts").isEmpty());
+    }
+
+    @Test
+    void 완료되지_않은_job의_결과를_읽으면_409_JOB_NOT_COMPLETED다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationService.getResult(userId, jobId)).willThrow(new BusinessException(ErrorCode.JOB_NOT_COMPLETED));
+
+        mockMvc.perform(get("/recommendations/{jobId}", jobId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
+    }
+
+    /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
+    private static RecommendationResultV2Response assembleSample(UUID jobId, String scenario) throws Exception {
+        try (var in = RecommendationControllerTest.class.getResourceAsStream("/ai-results/" + scenario + ".json")) {
+            ResultAssembler assembler = new ResultAssembler(mock(ProductRepository.class));
+            return assembler.assemble(new ResultAssembler.Source(jobId, null, scenario, RecommendationBasis.SELF,
+                    new ObjectMapper().readTree(in), MissingNode.getInstance(), null, MissingNode.getInstance()), null);
+        }
     }
 }
