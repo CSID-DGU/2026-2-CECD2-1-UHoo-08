@@ -7,7 +7,7 @@ import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequ
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
-import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
@@ -77,9 +77,14 @@ public class RecommendationController {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getStatus(userId, jobId)));
     }
 
-    @Operation(summary = "추천 결과 조회", description = "status=COMPLETED 확인 후 1회 호출")
+    @Operation(
+            summary = "추천 결과 조회",
+            description = "status=COMPLETED 확인 후 1회 호출. 아직 완료되지 않았으면 409 JOB_NOT_COMPLETED. " +
+                    "자연어 추천 job 은 검색 결과, 결과 보고서, 조건 수정, 예산 세트가 모두 같은 형식으로 내려오고 scenario 로 화면을 고른다. " +
+                    "breakdown 은 항목 수가 바뀔 수 있다. 상품 기준 추천 job 은 기존 형식 그대로다."
+    )
     @GetMapping("/{jobId}")
-    public ResponseEntity<ApiResponse<RecommendationResultResponse>> getResult(
+    public ResponseEntity<ApiResponse<RecommendationResultBody>> getResult(
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID jobId) {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getResult(userId, jobId)));

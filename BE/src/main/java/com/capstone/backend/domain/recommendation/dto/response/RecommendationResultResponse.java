@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Getter
 @Builder
-public class RecommendationResultResponse {
+public class RecommendationResultResponse implements RecommendationResultBody {
 
     private UUID jobId;
     private BaseProductInfo baseProduct;

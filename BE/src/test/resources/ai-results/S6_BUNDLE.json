@@ -1,0 +1,30 @@
+{
+  "jobId": "3b1e8c2a-0000-0000-0000-000000000006",
+  "scenario": "S6_BUNDLE",
+  "query": {"raw": "10만원으로 기초 세트", "category": "skincare", "conditions": ["토너", "세럼", "크림"], "budgetTotal": 100000, "target": "SELF", "valueSeeking": true},
+  "items": [],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [
+    {
+      "label": "균형형",
+      "totalPrice": 92000,
+      "overBudgetReason": null,
+      "items": [
+        {"productId": "11111111-1111-1111-1111-111111111111", "name": "그린티 토너", "brand": "이니스프리", "price": 22000, "totalScore": 80, "breakdown": [], "badges": []},
+        {"productId": "22222222-2222-2222-2222-222222222222", "name": "비타 세럼", "brand": "클리오", "price": 38000, "totalScore": 75, "breakdown": [], "badges": []},
+        {"productId": "33333333-3333-3333-3333-333333333333", "name": "수분 크림", "brand": "헤라", "price": 32000, "totalScore": 70, "breakdown": [], "badges": []}
+      ]
+    },
+    {
+      "label": "알뜰형",
+      "totalPrice": 61000,
+      "overBudgetReason": null,
+      "items": [
+        {"productId": "44444444-4444-4444-4444-444444444444", "name": "순한 토너", "brand": "라운드랩", "price": 15000, "totalScore": 72, "breakdown": [], "badges": []},
+        {"productId": "55555555-5555-5555-5555-555555555555", "name": "앰플", "brand": "토리든", "price": null, "totalScore": 68, "breakdown": [], "badges": []}
+      ]
+    }
+  ],
+  "excluded": []
+}

@@ -1,0 +1,21 @@
+{
+  "jobId": "home-env",
+  "scenario": "HOME_ENV",
+  "query": {"raw": "", "category": "sun", "conditions": ["자외선 강함", "건조함"], "target": "SELF", "useEnv": true},
+  "items": [
+    {
+      "productId": "11111111-1111-1111-1111-111111111111",
+      "name": "데일리 선크림",
+      "brand": "라운드랩",
+      "price": 21000,
+      "totalScore": 88,
+      "breakdown": [{"key": "env_fit", "label": "환경 적합", "score": 95.0, "weight": 0.3}],
+      "badges": [{"type": "ENV", "text": "요즘 자외선이 강해요"}],
+      "reason": "이번 주 자외선 지수가 높았어요"
+    }
+  ],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [],
+  "excluded": []
+}

@@ -4,6 +4,8 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.recommendation.dto.response.ClarifyFieldResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response.AppliedPreference;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
@@ -13,10 +15,13 @@ import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
 import com.capstone.backend.domain.recommendation.repository.SearchLogRepository;
+import com.capstone.backend.domain.recommendation.service.ResultAssembler.Source;
+import com.capstone.backend.domain.user.entity.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,7 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -39,6 +46,10 @@ class RecommendationServiceImplTest {
     RecommendationRepository recommendationRepository;
     @Mock
     SearchLogRepository searchLogRepository;
+    @Mock
+    ResultAssembler resultAssembler;
+    @Mock
+    AppliedPreferenceFinder appliedPreferenceFinder;
 
     RecommendationServiceImpl service;
 
@@ -49,7 +60,7 @@ class RecommendationServiceImplTest {
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         service = new RecommendationServiceImpl(recommendationRepository, null, null, null, objectMapper,
-                searchLogRepository, new JsonUtil(objectMapper));
+                searchLogRepository, new JsonUtil(objectMapper), resultAssembler, appliedPreferenceFinder);
     }
 
     private Recommendation.RecommendationBuilder v2Job(JobStatus status) {
@@ -212,5 +223,44 @@ class RecommendationServiceImplTest {
         assertThat(JobStatus.FAILED.isFinal()).isTrue();
         assertThat(JobStatus.NEEDS_CLARIFICATION.isFinal()).isFalse();
         assertThat(JobStatus.PENDING.isFinal()).isFalse();
+    }
+    // 추천 결과 조회
+
+    @Test
+    void 완료된_자연어_추천_job은_결과_조립기로_공통_형식을_만들고_개인화_안내를_붙인다() {
+        UUID parentJobId = UUID.randomUUID();
+        User user = User.builder().id(userId).name("하림").provider("KAKAO").skinType("OILY").build();
+        givenJob(v2Job(JobStatus.COMPLETED).user(user).scenario("S7_REFINE").parentJobId(parentJobId)
+                .basis(RecommendationBasis.OTHER)
+                .result("{\"scenario\":\"S7_REFINE\",\"items\":[]}")
+                .stateSnapshot("{\"alternativesDroppedCount\":1}")
+                .targetProfile("{\"relation\":\"MOM\"}").build());
+        AppliedPreference applied = new AppliedPreference("가격 비중 ↑", UUID.randomUUID());
+        given(appliedPreferenceFinder.find(userId)).willReturn(applied);
+        RecommendationResultV2Response assembled = mock(RecommendationResultV2Response.class);
+        ArgumentCaptor<Source> source = ArgumentCaptor.forClass(Source.class);
+        given(resultAssembler.assemble(source.capture(), eq(applied))).willReturn(assembled);
+
+        assertThat(service.getResult(userId, jobId)).isSameAs(assembled);
+
+        Source value = source.getValue();
+        assertThat(value.jobId()).isEqualTo(jobId);
+        assertThat(value.parentJobId()).isEqualTo(parentJobId);
+        assertThat(value.scenario()).isEqualTo("S7_REFINE");
+        assertThat(value.basis()).isEqualTo(RecommendationBasis.OTHER);
+        assertThat(value.result().path("scenario").asText()).isEqualTo("S7_REFINE");
+        assertThat(value.stateSnapshot().path("alternativesDroppedCount").asInt()).isEqualTo(1);
+        assertThat(value.userSkinType()).isEqualTo("OILY");
+        assertThat(value.targetProfile().path("relation").asText()).isEqualTo("MOM");
+    }
+
+    @Test
+    void 자연어_추천_job도_완료되지_않았으면_JOB_NOT_COMPLETED다() {
+        givenJob(v2Job(JobStatus.IN_PROGRESS).build());
+
+        assertThatThrownBy(() -> service.getResult(userId, jobId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.JOB_NOT_COMPLETED);
+        verify(resultAssembler, never()).assemble(any(), any());
     }
 }
