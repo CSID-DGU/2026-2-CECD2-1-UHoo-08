@@ -296,6 +296,25 @@ class RecommendationControllerTest {
     }
 
     @Test
+    void 답이_너무_길면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"text\":\"%s\"}}".formatted("가".repeat(501))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[%s]}}"
+                                .formatted(String.join(",", Collections.nCopies(11, "\"스킨\"")))))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[\"%s\"]}}".formatted("가".repeat(51))))
+                .andExpect(status().isUnprocessableEntity());
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
     void 되묻는_중이_아닌_job에_답하면_409_CLARIFY_NOT_REQUIRED다() throws Exception {
         UUID jobId = UUID.randomUUID();
         given(recommendationJobService.answerClarification(eq(userId), eq(jobId), any()))
