@@ -45,6 +45,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
@@ -224,7 +225,7 @@ class RecommendationJobServiceTest {
 
         assertThat(response.getJobId()).isEqualTo(jobId);
         assertThat(response.getStatus()).isEqualTo(JobStatus.IN_PROGRESS);
-        verify(aiInternalClient).clarify(new AgentClarifyRequest(jobId.toString(), "예산 50000원, 구성: 스킨, 로션"));
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "예산 50000원, 구성: 스킨, 로션")), any());
         verify(searchLogRepository).markClarified(jobId);
     }
 
@@ -248,7 +249,7 @@ class RecommendationJobServiceTest {
         service.answerClarification(userId, jobId, new ClarificationRequest(
                 Answers.builder().baseProduct(productId.toString()).build()));
 
-        verify(aiInternalClient).clarify(new AgentClarifyRequest(jobId.toString(), "기준 제품: 베어 워터 쿠션"));
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "기준 제품: 베어 워터 쿠션")), any());
     }
 
     @Test
@@ -258,7 +259,7 @@ class RecommendationJobServiceTest {
         service.answerClarification(userId, jobId, new ClarificationRequest(
                 Answers.builder().baseProduct("롬앤 쿠션").build()));
 
-        verify(aiInternalClient).clarify(new AgentClarifyRequest(jobId.toString(), "기준 제품: 롬앤 쿠션"));
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "기준 제품: 롬앤 쿠션")), any());
         verifyNoInteractions(productRepository);
     }
 
@@ -299,11 +300,26 @@ class RecommendationJobServiceTest {
     @Test
     void 되묻기_답변의_AI_호출이_실패해도_접수_결과를_돌려준다() {
         givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
-        willThrow(new RuntimeException("connection refused")).given(aiInternalClient).clarify(any());
+        willThrow(new RuntimeException("connection refused")).given(aiInternalClient).clarify(any(), any());
 
         assertThat(service.answerClarification(userId, jobId,
                 new ClarificationRequest(Answers.builder().text("쿠션").build())).getStatus())
                 .isEqualTo(JobStatus.IN_PROGRESS);
+        // 다시 답할 수 있게 표시를 되돌린다
+        verify(searchLogRepository).unmarkClarified(jobId);
+    }
+
+    @Test
+    void AI가_답을_받았다고_응답하지_않으면_답_받음_표시를_되돌린다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(Answers.builder().text("쿠션").build()));
+
+        ArgumentCaptor<Runnable> onFailure = ArgumentCaptor.forClass(Runnable.class);
+        verify(aiInternalClient).clarify(any(), onFailure.capture());
+        verify(searchLogRepository, never()).unmarkClarified(any());
+        onFailure.getValue().run();
+        verify(searchLogRepository).unmarkClarified(jobId);
     }
 
     @Test
@@ -315,6 +331,6 @@ class RecommendationJobServiceTest {
 
         verifyNoInteractions(aiInternalClient);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
-        verify(aiInternalClient).clarify(any());
+        verify(aiInternalClient).clarify(any(), any());
     }
 }

@@ -78,6 +78,7 @@ public class RecommendationJobService {
      * 먼저 진행 중으로 바꾸면 AI 가 답을 무시한다. 응답은 곧 진행될 상태(IN_PROGRESS)로 내린다.
      * 대신 검색 기록의 답 받음 표시를 조건부로 바꿔, 같은 job 에 답이 동시에 와도 한 요청만 AI 에 넘긴다.
      * AI 는 한 job 에 한 번만 되묻으므로 이 표시는 한 번만 바뀌면 된다.
+     * AI 에 넘기지 못하면 표시를 되돌려, job 이 되묻는 중으로 남아 있는 동안 사용자가 답을 다시 보낼 수 있게 한다.
      */
     @Transactional
     public ClarificationResponse answerClarification(UUID userId, UUID jobId, ClarificationRequest request) {
@@ -97,12 +98,22 @@ public class RecommendationJobService {
         AgentClarifyRequest aiRequest = new AgentClarifyRequest(jobId.toString(), answer);
         afterCommit(() -> {
             try {
-                aiInternalClient.clarify(aiRequest);
+                aiInternalClient.clarify(aiRequest, () -> releaseClarification(jobId));
             } catch (RuntimeException e) {
                 log.warn("[RecommendationJob] AI 되묻기 답변 호출 실패: jobId={}, error={}", jobId, e.getMessage());
+                releaseClarification(jobId);
             }
         });
         return new ClarificationResponse(jobId, JobStatus.IN_PROGRESS);
+    }
+
+    /** 답을 AI 에 넘기지 못했으니 답 받음 표시를 되돌린다 */
+    private void releaseClarification(UUID jobId) {
+        try {
+            searchLogRepository.unmarkClarified(jobId);
+        } catch (RuntimeException e) {
+            log.warn("[RecommendationJob] 되묻기 답변 표시 되돌리기 실패: jobId={}, error={}", jobId, e.getMessage());
+        }
     }
 
     /** 기준 제품 답이 상품 ID 면 AI 가 알아듣도록 제품 이름으로 바꾼다. 이름으로 왔거나 찾을 수 없으면 받은 그대로 */
