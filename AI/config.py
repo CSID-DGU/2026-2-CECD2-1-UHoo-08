@@ -73,4 +73,12 @@ class Settings(BaseSettings):
     # 기상청 단기예보 (공공데이터포털)
     KMA_SERVICE_KEY: str = ""
 
+    # Instagram Graph API. 인플루언서 게시물 수집이 읽는다.
+    #
+    # 토큰은 화담 페이지 토큰이라 만료가 없다. 수집 배치를 쓰지 않는
+    # 환경에서도 서버가 떠야 하므로 필수 값으로 두지 않는다.
+    META_PAGE_ACCESS_TOKEN: str = ""
+    META_IG_USER_ID: str = ""
+    META_GRAPH_API_VERSION: str = "v26.0"
+
 settings = Settings()
