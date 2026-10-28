@@ -1,9 +1,11 @@
 package com.capstone.backend.domain.recommendation.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
+import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
@@ -62,6 +64,21 @@ public class RecommendationController {
             @Valid @RequestBody RecommendationRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ApiResponse.success(recommendationService.requestRecommendation(userId, request)));
+    }
+
+    @Operation(
+            summary = "추가 질문 답변",
+            description = "되묻는 중(NEEDS_CLARIFICATION)인 job 에 답을 보내 같은 job 을 이어서 진행한다. 202 뒤에는 다시 상태 조회를 폴링한다. " +
+                    "answers 의 키는 clarify.fields[].key(budget, bundleSteps, category, baseProduct)와 자유 답변 text. " +
+                    "되묻는 중이 아니면 409 CLARIFY_NOT_REQUIRED, 답이 하나도 없으면 422 VALIDATION_ERROR."
+    )
+    @PostMapping("/{jobId}/clarifications")
+    public ResponseEntity<ApiResponse<ClarificationResponse>> answerClarification(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @Valid @RequestBody ClarificationRequest request) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponse.success(recommendationJobService.answerClarification(userId, jobId, request)));
     }
 
     @Operation(

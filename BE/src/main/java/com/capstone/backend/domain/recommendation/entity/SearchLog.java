@@ -66,4 +66,9 @@ public class SearchLog {
         this.querySpec = querySpec;
         this.confidence = confidence;
     }
+
+    /** 되물어서 답을 받았다 */
+    public void markClarified() {
+        this.clarified = true;
+    }
 }
