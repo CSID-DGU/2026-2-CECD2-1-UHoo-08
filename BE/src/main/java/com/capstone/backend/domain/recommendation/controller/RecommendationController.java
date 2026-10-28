@@ -11,7 +11,9 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationJob
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
+import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +34,7 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
     private final RecommendationJobService recommendationJobService;
+    private final RecommendationRefineService recommendationRefineService;
 
     @Operation(
             summary = "자연어 추천 요청",
@@ -105,5 +108,18 @@ public class RecommendationController {
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID jobId) {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getResult(userId, jobId)));
+    }
+
+    @Operation(
+            summary = "조건 추가 선택지 조회",
+            description = "'어떤 조건을 더할까요?' 시트에 보여줄 지금 조건 칩과 고를 수 있는 조건. " +
+                    "지금 조건은 결과 상단의 조건 칩과 같고, 결과가 아직 없으면 빈 배열. " +
+                    "frequent=true 는 최근 30일 동안 두 번 이상 고른 조건이라 앞쪽에 보여 준다."
+    )
+    @GetMapping("/{jobId}/refinement-options")
+    public ResponseEntity<ApiResponse<RefinementOptionsResponse>> getRefinementOptions(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId) {
+        return ResponseEntity.ok(ApiResponse.success(recommendationRefineService.getOptions(userId, jobId)));
     }
 }
