@@ -4,7 +4,9 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.exception.GlobalExceptionHandler;
 import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
@@ -253,6 +255,78 @@ class RecommendationControllerTest {
         mockMvc.perform(get("/recommendations/{jobId}", jobId))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
+    }
+
+    // 추가 질문 답변
+
+    @Test
+    void 답을_보내면_202와_같은_jobId와_진행_중_상태를_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        ArgumentCaptor<ClarificationRequest> request = ArgumentCaptor.forClass(ClarificationRequest.class);
+        given(recommendationJobService.answerClarification(eq(userId), eq(jobId), request.capture()))
+                .willReturn(new ClarificationResponse(jobId, JobStatus.IN_PROGRESS));
+
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"budget":50000,"bundleSteps":["스킨","로션","선크림"]}}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+
+        assertThat(request.getValue().getAnswers().getBudget()).isEqualTo(50000);
+        assertThat(request.getValue().getAnswers().getBundleSteps()).containsExactly("스킨", "로션", "선크림");
+    }
+
+    @Test
+    void 답이_하나도_없으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"text":"  "}}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity());
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 답이_너무_길면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"text\":\"%s\"}}".formatted("가".repeat(501))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[%s]}}"
+                                .formatted(String.join(",", Collections.nCopies(11, "\"스킨\"")))))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[\"%s\"]}}".formatted("가".repeat(51))))
+                .andExpect(status().isUnprocessableEntity());
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 되묻는_중이_아닌_job에_답하면_409_CLARIFY_NOT_REQUIRED다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationJobService.answerClarification(eq(userId), eq(jobId), any()))
+                .willThrow(new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED));
+
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"text":"쿠션"}}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CLARIFY_NOT_REQUIRED"));
     }
 
     /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */

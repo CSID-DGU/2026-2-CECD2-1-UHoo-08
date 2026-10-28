@@ -1,11 +1,17 @@
 package com.capstone.backend.domain.recommendation.service;
 
 import com.capstone.backend.common.ai.AiInternalClient;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.product.entity.Product;
+import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest.Answers;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.entity.SearchLog;
@@ -28,7 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 추천 job 을 만들고 AI 추천 실행을 맡긴다. 자연어 추천 요청과 조건 수정(재탐색)이 함께 쓴다.
+ * 추천 job 을 만들고 AI 추천 실행을 맡긴다. 자연어 추천 요청과 조건 수정(재탐색)이 함께 쓰고, 되묻기 답도 여기서 AI 에 넘긴다.
  *
  * AI 는 job 행을 읽고 갱신하므로, job 이 커밋된 뒤에 호출한다. 커밋 전에 부르면 AI 가 아직 없는 job 을 찾게 된다.
  * AI 호출은 비동기이고 실패해도 요청은 접수된 것으로 둔다. 실패한 job 은 진행되지 않는 것으로 드러나고 정리 배치가 실패로 바꾼다.
@@ -45,6 +51,7 @@ public class RecommendationJobService {
     private final UserRepository userRepository;
     private final AiInternalClient aiInternalClient;
     private final JsonUtil jsonUtil;
+    private final ProductRepository productRepository;
 
     /** 검색창 문장으로 추천을 요청한다. 내 피부 기준인데 피부 정보가 없으면 SKIN_PROFILE_NOT_FOUND */
     @Transactional
@@ -62,6 +69,65 @@ public class RecommendationJobService {
         Recommendation job = startJob(user, request.getQuery().strip(), basis, targetProfile, null);
         return new RecommendationQueryResponse(job.getId(), ESTIMATED_SECONDS,
                 "/recommendations/" + job.getId() + "/status");
+    }
+
+    /**
+     * 되묻는 중인 job 에 사용자의 답을 넘겨 같은 job 을 이어서 돌린다. 되묻는 중이 아니거나 이미 답을 받았으면 CLARIFY_NOT_REQUIRED.
+     *
+     * job 상태는 여기서 바꾸지 않는다. AI 는 job 이 아직 되묻는 중일 때만 답을 받아 이어 돌리고 그때 진행 중으로 바꾼다.
+     * 먼저 진행 중으로 바꾸면 AI 가 답을 무시한다. 응답은 곧 진행될 상태(IN_PROGRESS)로 내린다.
+     * 대신 검색 기록의 답 받음 표시를 조건부로 바꿔, 같은 job 에 답이 동시에 와도 한 요청만 AI 에 넘긴다.
+     * AI 는 한 job 에 한 번만 되묻으므로 이 표시는 한 번만 바뀌면 된다.
+     * AI 에 넘기지 못하면 표시를 되돌려, job 이 되묻는 중으로 남아 있는 동안 사용자가 답을 다시 보낼 수 있게 한다.
+     */
+    @Transactional
+    public ClarificationResponse answerClarification(UUID userId, UUID jobId, ClarificationRequest request) {
+        Recommendation job = recommendationRepository.findByIdAndUserId(jobId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        if (job.getStatus() != JobStatus.NEEDS_CLARIFICATION) {
+            throw new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED);
+        }
+
+        if (searchLogRepository.markClarified(jobId) == 0) {
+            throw new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED);
+        }
+
+        Answers answers = request.getAnswers();
+        String answer = ClarifyAnswerFormatter.format(answers, baseProductName(answers.getBaseProduct()));
+
+        AgentClarifyRequest aiRequest = new AgentClarifyRequest(jobId.toString(), answer);
+        afterCommit(() -> {
+            try {
+                aiInternalClient.clarify(aiRequest, () -> releaseClarification(jobId));
+            } catch (RuntimeException e) {
+                log.warn("[RecommendationJob] AI 되묻기 답변 호출 실패: jobId={}, error={}", jobId, e.getMessage());
+                releaseClarification(jobId);
+            }
+        });
+        return new ClarificationResponse(jobId, JobStatus.IN_PROGRESS);
+    }
+
+    /** 답을 AI 에 넘기지 못했으니 답 받음 표시를 되돌린다 */
+    private void releaseClarification(UUID jobId) {
+        try {
+            searchLogRepository.unmarkClarified(jobId);
+        } catch (RuntimeException e) {
+            log.warn("[RecommendationJob] 되묻기 답변 표시 되돌리기 실패: jobId={}, error={}", jobId, e.getMessage());
+        }
+    }
+
+    /** 기준 제품 답이 상품 ID 면 AI 가 알아듣도록 제품 이름으로 바꾼다. 이름으로 왔거나 찾을 수 없으면 받은 그대로 */
+    private String baseProductName(String baseProduct) {
+        if (baseProduct == null || baseProduct.isBlank()) {
+            return null;
+        }
+        try {
+            return productRepository.findById(UUID.fromString(baseProduct.strip()))
+                    .map(Product::getName)
+                    .orElse(baseProduct);
+        } catch (IllegalArgumentException e) {
+            return baseProduct;
+        }
     }
 
     /**

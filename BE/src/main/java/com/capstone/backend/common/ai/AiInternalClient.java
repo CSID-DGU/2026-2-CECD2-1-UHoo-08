@@ -52,8 +52,9 @@ public class AiInternalClient {
         postAsync("/internal/agent/run/v2", request);
     }
 
-    public void clarify(AgentClarifyRequest request) {
-        postAsync("/internal/agent/clarify", request);
+    /** 받았다는 응답을 받지 못하면 onFailure 를 부른다. 사용자가 답을 다시 보낼 수 있게 되돌릴 때 쓴다 */
+    public void clarify(AgentClarifyRequest request, Runnable onFailure) {
+        postAsync("/internal/agent/clarify", request, onFailure);
     }
 
     public void runHome(HomeRunRequest request) {
@@ -95,6 +96,12 @@ public class AiInternalClient {
      * 있어 상태가 엇갈린다. 실패는 job 이 진행되지 않는 것으로 드러난다.
      */
     private void postAsync(String path, Object body) {
+        postAsync(path, body, () -> {
+        });
+    }
+
+    /** 실패하면 로그를 남기고 onFailure 를 부른다 */
+    private void postAsync(String path, Object body, Runnable onFailure) {
         webClient.post()
                 .uri(aiServerUrl + path)
                 .bodyValue(body)
@@ -107,7 +114,10 @@ public class AiInternalClient {
                                 log.warn("AI {} 는 아직 stub 이다. 결과가 오지 않는다.", path);
                             }
                         },
-                        error -> log.error("AI {} 호출 실패: {}", path, error.getMessage())
+                        error -> {
+                            log.error("AI {} 호출 실패: {}", path, error.getMessage());
+                            onFailure.run();
+                        }
                 );
     }
 
