@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,6 +17,11 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
     @Query("SELECT r FROM Recommendation r WHERE r.id = :id AND r.user.id = :userId")
     Optional<Recommendation> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    /** 이 사용자가 since 이후에 만든 job 들의 조건 수정 선택지. 고르지 않은 job 은 뺀다 */
+    @Query("SELECT r.refinePresets FROM Recommendation r "
+            + "WHERE r.user.id = :userId AND r.createdAt >= :since AND r.refinePresets IS NOT NULL")
+    List<String[]> findRefinePresetsSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
 
     /**
      * 주어진 상태이면서 cutoff 전에 마지막으로 갱신된 job 을 한 문장으로 실패로 바꾸고 바꾼 개수를 돌려준다.
