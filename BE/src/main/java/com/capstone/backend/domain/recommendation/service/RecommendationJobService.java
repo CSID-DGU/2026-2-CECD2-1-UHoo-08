@@ -72,10 +72,12 @@ public class RecommendationJobService {
     }
 
     /**
-     * 되묻는 중인 job 에 사용자의 답을 넘겨 같은 job 을 이어서 돌린다. 되묻는 중이 아니면 CLARIFY_NOT_REQUIRED.
+     * 되묻는 중인 job 에 사용자의 답을 넘겨 같은 job 을 이어서 돌린다. 되묻는 중이 아니거나 이미 답을 받았으면 CLARIFY_NOT_REQUIRED.
      *
      * job 상태는 여기서 바꾸지 않는다. AI 는 job 이 아직 되묻는 중일 때만 답을 받아 이어 돌리고 그때 진행 중으로 바꾼다.
      * 먼저 진행 중으로 바꾸면 AI 가 답을 무시한다. 응답은 곧 진행될 상태(IN_PROGRESS)로 내린다.
+     * 대신 검색 기록의 답 받음 표시를 조건부로 바꿔, 같은 job 에 답이 동시에 와도 한 요청만 AI 에 넘긴다.
+     * AI 는 한 job 에 한 번만 되묻으므로 이 표시는 한 번만 바뀌면 된다.
      */
     @Transactional
     public ClarificationResponse answerClarification(UUID userId, UUID jobId, ClarificationRequest request) {
@@ -85,9 +87,12 @@ public class RecommendationJobService {
             throw new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED);
         }
 
+        if (searchLogRepository.markClarified(jobId) == 0) {
+            throw new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED);
+        }
+
         Answers answers = request.getAnswers();
         String answer = ClarifyAnswerFormatter.format(answers, baseProductName(answers.getBaseProduct()));
-        searchLogRepository.findByJobId(jobId).forEach(SearchLog::markClarified);
 
         AgentClarifyRequest aiRequest = new AgentClarifyRequest(jobId.toString(), answer);
         afterCommit(() -> {

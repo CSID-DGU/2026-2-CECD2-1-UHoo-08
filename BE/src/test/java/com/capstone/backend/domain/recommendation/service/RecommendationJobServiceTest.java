@@ -208,18 +208,16 @@ class RecommendationJobServiceTest {
     }
     // 추가 질문 답변
 
-    private SearchLog givenClarifyingJob(JobStatus status) {
+    private void givenClarifyingJob(JobStatus status) {
         Recommendation job = Recommendation.builder().id(jobId).status(status).progress(10)
                 .basis(RecommendationBasis.SELF).build();
         given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.of(job));
-        SearchLog searchLog = SearchLog.builder().jobId(jobId).rawQuery("10만원 세트").build();
-        lenient().when(searchLogRepository.findByJobId(jobId)).thenReturn(List.of(searchLog));
-        return searchLog;
+        lenient().when(searchLogRepository.markClarified(jobId)).thenReturn(1);
     }
 
     @Test
     void 되묻는_중인_job에_답을_문장으로_합쳐_AI에_넘기고_검색_기록에_남긴다() {
-        SearchLog searchLog = givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
 
         ClarificationResponse response = service.answerClarification(userId, jobId, new ClarificationRequest(
                 Answers.builder().budget(50000).bundleSteps(List.of("스킨", "로션")).build()));
@@ -227,7 +225,7 @@ class RecommendationJobServiceTest {
         assertThat(response.getJobId()).isEqualTo(jobId);
         assertThat(response.getStatus()).isEqualTo(JobStatus.IN_PROGRESS);
         verify(aiInternalClient).clarify(new AgentClarifyRequest(jobId.toString(), "예산 50000원, 구성: 스킨, 로션"));
-        assertThat(searchLog.isClarified()).isTrue();
+        verify(searchLogRepository).markClarified(jobId);
     }
 
     @Test
@@ -266,14 +264,26 @@ class RecommendationJobServiceTest {
 
     @Test
     void 되묻는_중이_아니면_CLARIFY_NOT_REQUIRED이고_AI를_부르지_않는다() {
-        SearchLog searchLog = givenClarifyingJob(JobStatus.IN_PROGRESS);
+        givenClarifyingJob(JobStatus.IN_PROGRESS);
 
         assertThatThrownBy(() -> service.answerClarification(userId, jobId,
                 new ClarificationRequest(Answers.builder().text("쿠션").build())))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.CLARIFY_NOT_REQUIRED);
         verifyNoInteractions(aiInternalClient);
-        assertThat(searchLog.isClarified()).isFalse();
+        verify(searchLogRepository, never()).markClarified(any());
+    }
+
+    @Test
+    void 이미_답을_받은_job이면_CLARIFY_NOT_REQUIRED이고_AI를_부르지_않는다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        given(searchLogRepository.markClarified(jobId)).willReturn(0);
+
+        assertThatThrownBy(() -> service.answerClarification(userId, jobId,
+                new ClarificationRequest(Answers.builder().text("쿠션").build())))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.CLARIFY_NOT_REQUIRED);
+        verifyNoInteractions(aiInternalClient);
     }
 
     @Test
