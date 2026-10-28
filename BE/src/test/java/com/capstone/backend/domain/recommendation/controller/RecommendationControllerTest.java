@@ -13,6 +13,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.service.ClarifyFieldMapper;
@@ -20,9 +21,11 @@ import com.capstone.backend.domain.recommendation.service.ResultAssembler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
+import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
 import com.capstone.backend.domain.recommendation.enums.TargetRelation;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
+import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +66,8 @@ class RecommendationControllerTest {
     RecommendationService recommendationService;
     @Mock
     RecommendationJobService recommendationJobService;
+    @Mock
+    RecommendationRefineService recommendationRefineService;
     @InjectMocks
     RecommendationController controller;
 
@@ -327,6 +332,35 @@ class RecommendationControllerTest {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("CLARIFY_NOT_REQUIRED"));
+    }
+
+    // 조건 추가 선택지 조회
+
+    @Test
+    void 조건_추가_선택지는_지금_조건과_선택지를_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getOptions(userId, jobId)).willReturn(new RefinementOptionsResponse(
+                List.of("쿠션", "매트", "3만원 이하"),
+                List.of(new RefinementOptionsResponse.Preset(RefinePreset.CHEAPER, "더 저렴하게", true),
+                        new RefinementOptionsResponse.Preset(RefinePreset.UNSCENTED, "향 없는 걸로", false))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinement-options", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.currentConditions[2]").value("3만원 이하"))
+                .andExpect(jsonPath("$.data.presets[0].key").value("CHEAPER"))
+                .andExpect(jsonPath("$.data.presets[0].label").value("더 저렴하게"))
+                .andExpect(jsonPath("$.data.presets[0].frequent").value(true))
+                .andExpect(jsonPath("$.data.presets[1].frequent").value(false));
+    }
+
+    @Test
+    void 남의_job의_선택지를_조회하면_404_NOT_FOUND다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getOptions(userId, jobId)).willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinement-options", jobId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
