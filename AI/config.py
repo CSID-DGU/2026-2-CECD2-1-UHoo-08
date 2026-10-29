@@ -80,5 +80,8 @@ class Settings(BaseSettings):
     META_PAGE_ACCESS_TOKEN: str = ""
     META_IG_USER_ID: str = ""
     META_GRAPH_API_VERSION: str = "v26.0"
+    # 게시물 수집 시각 (KST, 쉼표 구분). 비우면 스케줄을 띄우지 않는다.
+    # 호출 횟수 제한이 있어 하루 몇 번만 돈다.
+    INFLUENCER_COLLECT_HOURS: str = "6,18"
 
 settings = Settings()
