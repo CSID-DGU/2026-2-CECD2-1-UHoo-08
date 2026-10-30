@@ -3,21 +3,27 @@ package com.capstone.backend.domain.recommendation.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse.Preset;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
+import com.capstone.backend.domain.recommendation.service.RecommendationJobService.NewJob;
+import com.capstone.backend.domain.user.entity.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +33,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class RecommendationRefineServiceTest {
@@ -35,6 +43,8 @@ class RecommendationRefineServiceTest {
 
     @Mock
     RecommendationRepository recommendationRepository;
+    @Mock
+    RecommendationJobService recommendationJobService;
 
     RecommendationRefineService service;
 
@@ -43,7 +53,8 @@ class RecommendationRefineServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RecommendationRefineService(recommendationRepository, new JsonUtil(new ObjectMapper()));
+        service = new RecommendationRefineService(recommendationRepository, new JsonUtil(new ObjectMapper()),
+                recommendationJobService);
     }
 
     private void givenJob(Recommendation job) {
@@ -108,6 +119,107 @@ class RecommendationRefineServiceTest {
         given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getOptions(userId, jobId, NOW))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FOUND);
+    }
+    // 조건 추가(재탐색)
+
+    private final UUID newJobId = UUID.randomUUID();
+
+    private User user() {
+        return User.builder().id(userId).name("하림").provider("KAKAO").skinType("OILY").build();
+    }
+
+    private ArgumentCaptor<NewJob> givenStartJob() {
+        ArgumentCaptor<NewJob> captor = ArgumentCaptor.forClass(NewJob.class);
+        given(recommendationJobService.startJob(captor.capture()))
+                .willReturn(Recommendation.builder().id(newJobId).status(JobStatus.PENDING).progress(0).build());
+        return captor;
+    }
+
+    @Test
+    void 직전_job의_추천_기준과_쓰실_분_정보를_이어받아_새_job을_만들고_가중치_반영을_알린다() {
+        User user = user();
+        givenJob(completedJob().user(user).basis(RecommendationBasis.OTHER).targetProfile("{\"relation\":\"MOM\"}").build());
+        ArgumentCaptor<NewJob> newJob = givenStartJob();
+
+        RefinementResponse response = service.refine(userId, jobId, RefinementRequest.builder()
+                .presetKeys(List.of(RefinePreset.UNSCENTED, RefinePreset.CHEAPER)).freeText(" 팩트 말고 쿠션만 보여줘 ").build());
+
+        assertThat(response.getJobId()).isEqualTo(newJobId);
+        assertThat(response.getParentJobId()).isEqualTo(jobId);
+        assertThat(response.getEstimatedSeconds()).isEqualTo(4);
+
+        NewJob value = newJob.getValue();
+        assertThat(value.user()).isSameAs(user);
+        assertThat(value.parentJobId()).isEqualTo(jobId);
+        assertThat(value.basis()).isEqualTo(RecommendationBasis.OTHER);
+        assertThat(value.targetProfile()).isEqualTo("{\"relation\":\"MOM\"}");
+        // 고른 조건은 선택지 순서로, 직접 쓴 조건은 뒤에 붙인다
+        assertThat(value.refinePresets()).containsExactly("CHEAPER", "UNSCENTED");
+        assertThat(value.refineText()).isEqualTo("팩트 말고 쿠션만 보여줘");
+        assertThat(value.rawQuery()).isEqualTo("더 저렴한 제품으로, 무향 제품으로, 팩트 말고 쿠션만 보여줘");
+        verify(recommendationJobService).requestFeedbackApply(userId);
+    }
+
+    @Test
+    void 직접_쓴_조건만_있으면_고른_조건은_비워_둔다() {
+        givenJob(completedJob().user(user()).build());
+        ArgumentCaptor<NewJob> newJob = givenStartJob();
+
+        service.refine(userId, jobId, RefinementRequest.builder().freeText("쿠션만").build());
+
+        assertThat(newJob.getValue().refinePresets()).isNull();
+        assertThat(newJob.getValue().rawQuery()).isEqualTo("쿠션만");
+    }
+
+    @Test
+    void 같은_조건이_겹쳐_와도_한_번만_남긴다() {
+        assertThat(RecommendationRefineService.presetsOf(RefinementRequest.builder()
+                .presetKeys(Arrays.asList(RefinePreset.UV_PROTECT, null, RefinePreset.UV_PROTECT)).build()))
+                .containsExactly(RefinePreset.UV_PROTECT);
+    }
+
+    @Test
+    void 고른_조건도_직접_쓴_조건도_없으면_VALIDATION_ERROR다() {
+        givenJob(completedJob().user(user()).build());
+
+        assertThatThrownBy(() -> service.refine(userId, jobId,
+                RefinementRequest.builder().presetKeys(List.of()).freeText("  ").build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 직전_job이_끝나지_않았으면_JOB_NOT_COMPLETED다() {
+        givenJob(Recommendation.builder().id(jobId).status(JobStatus.IN_PROGRESS).progress(50)
+                .basis(RecommendationBasis.SELF).build());
+
+        assertThatThrownBy(() -> service.refine(userId, jobId,
+                RefinementRequest.builder().presetKeys(List.of(RefinePreset.CHEAPER)).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.JOB_NOT_COMPLETED);
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 상품_기준_추천_job은_이어_갈_수_없어_VALIDATION_ERROR다() {
+        givenJob(Recommendation.builder().id(jobId).status(JobStatus.COMPLETED).progress(100).build());
+
+        assertThatThrownBy(() -> service.refine(userId, jobId,
+                RefinementRequest.builder().presetKeys(List.of(RefinePreset.CHEAPER)).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 남의_job에_조건을_더하면_NOT_FOUND다() {
+        given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.refine(userId, jobId,
+                RefinementRequest.builder().presetKeys(List.of(RefinePreset.CHEAPER)).build()))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.NOT_FOUND);
     }
