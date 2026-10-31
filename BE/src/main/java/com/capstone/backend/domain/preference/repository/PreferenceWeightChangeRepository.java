@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public interface PreferenceWeightChangeRepository extends JpaRepository<PreferenceWeightChange, UUID> {
 
+    Optional<PreferenceWeightChange> findByIdAndUserId(UUID id, UUID userId);
+
     /** since 이후에 생긴 변경 중 되돌리지 않은 가장 최근 것 */
     Optional<PreferenceWeightChange> findFirstByUserIdAndRevertedAtIsNullAndCreatedAtAfterOrderByCreatedAtDesc(
             UUID userId, OffsetDateTime since);
