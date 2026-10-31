@@ -6,6 +6,7 @@ import com.capstone.backend.common.exception.GlobalExceptionHandler;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.request.FeedbackRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
@@ -14,10 +15,13 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
+import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
+import com.capstone.backend.domain.recommendation.enums.FeedbackReason;
+import com.capstone.backend.domain.recommendation.enums.FeedbackVote;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.service.ClarifyFieldMapper;
 import com.capstone.backend.domain.recommendation.service.ResultAssembler;
@@ -27,6 +31,7 @@ import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
 import com.capstone.backend.domain.recommendation.enums.TargetRelation;
+import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
@@ -71,6 +76,8 @@ class RecommendationControllerTest {
     RecommendationJobService recommendationJobService;
     @Mock
     RecommendationRefineService recommendationRefineService;
+    @Mock
+    RecommendationFeedbackService recommendationFeedbackService;
     @InjectMocks
     RecommendationController controller;
 
@@ -459,6 +466,63 @@ class RecommendationControllerTest {
         mockMvc.perform(get("/recommendations/{jobId}/refinements/history", jobId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    // 추천 피드백
+
+    @Test
+    void 피드백을_등록하면_201과_피드백_ID_안내_문구를_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        ArgumentCaptor<FeedbackRequest> request = ArgumentCaptor.forClass(FeedbackRequest.class);
+        given(recommendationFeedbackService.submit(eq(userId), eq(jobId), request.capture()))
+                .willReturn(new FeedbackResponse("301", "의견을 다음 추천에 반영할게요", null));
+
+        mockMvc.perform(post("/recommendations/{jobId}/feedback", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","vote":"DOWN","reasonTags":["TOO_EXPENSIVE"]}
+                                """.formatted(productId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.feedbackId").value("301"))
+                .andExpect(jsonPath("$.data.message").value("의견을 다음 추천에 반영할게요"))
+                .andExpect(content().string(containsString("\"changeId\":null")));
+
+        assertThat(request.getValue().getProductId()).isEqualTo(productId);
+        assertThat(request.getValue().getVote()).isEqualTo(FeedbackVote.DOWN);
+        assertThat(request.getValue().getReasonTags()).containsExactly(FeedbackReason.TOO_EXPENSIVE);
+    }
+
+    @Test
+    void vote가_없거나_목록에_없으면_422_VALIDATION_ERROR다() throws Exception {
+        UUID productId = UUID.randomUUID();
+        for (String body : List.of(
+                "{\"productId\":\"" + productId + "\"}",
+                "{\"productId\":\"" + productId + "\",\"vote\":\"LIKE\"}",
+                "{\"productId\":\"" + productId + "\",\"vote\":\"DOWN\",\"reasonTags\":[\"TOO_SMALL\"]}",
+                "{\"vote\":\"UP\"}")) {
+            mockMvc.perform(post("/recommendations/{jobId}/feedback", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+        verifyNoInteractions(recommendationFeedbackService);
+    }
+
+    @Test
+    void 결과에_없는_제품에_피드백하면_422_VALIDATION_ERROR다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationFeedbackService.submit(eq(userId), eq(jobId), any()))
+                .willThrow(new BusinessException(ErrorCode.VALIDATION_ERROR));
+
+        mockMvc.perform(post("/recommendations/{jobId}/feedback", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","vote":"UP"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
     }
 
     /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
