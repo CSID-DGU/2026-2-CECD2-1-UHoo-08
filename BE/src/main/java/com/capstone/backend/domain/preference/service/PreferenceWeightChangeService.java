@@ -3,7 +3,6 @@ package com.capstone.backend.domain.preference.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.preference.dto.response.PreferenceChangeRevertResponse;
-import com.capstone.backend.domain.preference.entity.PreferenceWeightChange;
 import com.capstone.backend.domain.preference.repository.PreferenceWeightChangeRepository;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import lombok.RequiredArgsConstructor;
@@ -25,21 +24,23 @@ public class PreferenceWeightChangeService {
     private final PreferenceWeightChangeRepository changeRepository;
     private final RecommendationJobService recommendationJobService;
 
-    /** 내 변경이 아니면 NOT_FOUND, 이미 되돌렸으면 CHANGE_NOT_REVERTIBLE. 커밋되면 AI 에 가중치를 다시 계산하라고 알린다 */
+    /**
+     * 내 변경이 아니면 NOT_FOUND, 이미 되돌렸으면 CHANGE_NOT_REVERTIBLE. 커밋되면 AI 에 가중치를 다시 계산하라고 알린다.
+     * 되돌린 시각은 조건부로 남겨, 같은 변경을 동시에 되돌려도 한 요청만 성공한다.
+     */
     @Transactional
     public PreferenceChangeRevertResponse revert(UUID userId, UUID changeId) {
         return revert(userId, changeId, OffsetDateTime.now());
     }
 
     PreferenceChangeRevertResponse revert(UUID userId, UUID changeId, OffsetDateTime now) {
-        PreferenceWeightChange change = changeRepository.findByIdAndUserId(changeId, userId)
+        changeRepository.findByIdAndUserId(changeId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        if (change.getRevertedAt() != null) {
+        if (changeRepository.markReverted(changeId, now) == 0) {
             throw new BusinessException(ErrorCode.CHANGE_NOT_REVERTIBLE);
         }
 
-        change.revert(now);
         recommendationJobService.requestFeedbackApply(userId);
-        return new PreferenceChangeRevertResponse(change.getId(), true);
+        return new PreferenceChangeRevertResponse(changeId, true);
     }
 }
