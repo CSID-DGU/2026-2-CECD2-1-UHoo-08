@@ -3,6 +3,7 @@ package com.capstone.backend.domain.recommendation.service;
 import com.capstone.backend.common.ai.AiInternalClient;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.FeedbackApplyRequest;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
@@ -66,7 +67,7 @@ public class RecommendationJobService {
         // 쓰실 분 정보는 다른 사람 기준일 때만 의미가 있다
         String targetProfile = basis == RecommendationBasis.OTHER ? jsonUtil.write(request.getTargetProfile()) : null;
 
-        Recommendation job = startJob(user, request.getQuery().strip(), basis, targetProfile, null);
+        Recommendation job = startJob(new NewJob(user, request.getQuery().strip(), basis, targetProfile, null, null, null));
         return new RecommendationQueryResponse(job.getId(), ESTIMATED_SECONDS,
                 "/recommendations/" + job.getId() + "/status");
     }
@@ -131,21 +132,33 @@ public class RecommendationJobService {
     }
 
     /**
-     * job 을 대기 상태로 만들고 검색 기록을 남긴 뒤, 커밋되면 AI 추천 실행을 부른다. 호출하는 쪽의 트랜잭션 안에서 불러야 한다.
+     * 새로 만들 job 의 값.
      *
-     * @param parentJobId 조건 수정이면 이어 온 부모 job
+     * @param parentJobId   조건 수정이면 이어 온 직전 job
+     * @param refinePresets 조건 수정에서 고른 조건 키. 고르지 않았으면 null
+     * @param refineText    조건 수정에서 직접 쓴 조건. 없으면 null
      */
-    Recommendation startJob(User user, String rawQuery, RecommendationBasis basis, String targetProfile,
-                            UUID parentJobId) {
+    record NewJob(User user, String rawQuery, RecommendationBasis basis, String targetProfile,
+                  UUID parentJobId, String[] refinePresets, String refineText) {
+    }
+
+    /**
+     * job 을 대기 상태로 만들고 검색 기록을 남긴 뒤, 커밋되면 AI 추천 실행을 부른다. 호출하는 쪽의 트랜잭션 안에서 불러야 한다.
+     * 조건 수정이면 직전 job 을 함께 알려, AI 가 직전 상태에서 조건을 이어받아 후보를 다시 찾게 한다.
+     */
+    Recommendation startJob(NewJob newJob) {
+        User user = newJob.user();
         LocalDateTime now = LocalDateTime.now();
         Recommendation job = recommendationRepository.save(Recommendation.builder()
                 .user(user)
                 .status(JobStatus.PENDING)
                 .progress(0)
-                .rawQuery(rawQuery)
-                .basis(basis)
-                .targetProfile(targetProfile)
-                .parentJobId(parentJobId)
+                .rawQuery(newJob.rawQuery())
+                .basis(newJob.basis())
+                .targetProfile(newJob.targetProfile())
+                .parentJobId(newJob.parentJobId())
+                .refinePresets(newJob.refinePresets())
+                .refineText(newJob.refineText())
                 .createdAt(now)
                 .updatedAt(now)
                 .build());
@@ -153,13 +166,30 @@ public class RecommendationJobService {
         searchLogRepository.save(SearchLog.builder()
                 .userId(user.getId())
                 .jobId(job.getId())
-                .rawQuery(rawQuery)
+                .rawQuery(newJob.rawQuery())
                 .build());
 
+        UUID parentJobId = newJob.parentJobId();
         AgentRunV2Request aiRequest = new AgentRunV2Request(job.getId().toString(), user.getId().toString(),
-                rawQuery, basis.name(), toMap(targetProfile), parentJobId == null ? null : parentJobId.toString());
+                newJob.rawQuery(), newJob.basis().name(), toMap(newJob.targetProfile()),
+                parentJobId == null ? null : parentJobId.toString());
         afterCommit(() -> runAgent(aiRequest));
         return job;
+    }
+
+    /**
+     * 커밋되면 AI 에 이 사용자의 가중치를 다시 계산하라고 알린다. 피드백과 조건 수정 패턴을 반영하는 규칙은 AI 에 있다.
+     * 비동기 호출이고 실패해도 요청은 그대로 접수된다.
+     */
+    void requestFeedbackApply(UUID userId) {
+        FeedbackApplyRequest request = new FeedbackApplyRequest(userId.toString());
+        afterCommit(() -> {
+            try {
+                aiInternalClient.applyFeedback(request);
+            } catch (RuntimeException e) {
+                log.warn("[RecommendationJob] AI 가중치 반영 호출 실패: userId={}, error={}", userId, e.getMessage());
+            }
+        });
     }
 
     private void runAgent(AgentRunV2Request request) {

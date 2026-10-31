@@ -3,6 +3,7 @@ package com.capstone.backend.domain.recommendation.service;
 import com.capstone.backend.common.ai.AiInternalClient;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.FeedbackApplyRequest;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
@@ -332,5 +333,34 @@ class RecommendationJobServiceTest {
         verifyNoInteractions(aiInternalClient);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
         verify(aiInternalClient).clarify(any(), any());
+    }
+    // 조건 수정의 새 job, 가중치 반영 알림
+
+    @Test
+    void 조건_수정_job은_직전_job과_고른_조건을_남기고_AI에_직전_job을_알린다() {
+        User user = User.builder().id(userId).name("하림").provider("KAKAO").skinType("OILY").build();
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        UUID parentJobId = UUID.randomUUID();
+
+        service.startJob(new RecommendationJobService.NewJob(user, "더 저렴한 제품으로", RecommendationBasis.SELF, null,
+                parentJobId, new String[]{"CHEAPER"}, null));
+
+        assertThat(saved.getValue().getParentJobId()).isEqualTo(parentJobId);
+        assertThat(saved.getValue().getRefinePresets()).containsExactly("CHEAPER");
+        assertThat(saved.getValue().getRefineText()).isNull();
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                "더 저렴한 제품으로", "SELF", null, parentJobId.toString()));
+    }
+
+    @Test
+    void 가중치_반영은_커밋된_뒤에_알리고_실패해도_예외를_올리지_않는다() {
+        TransactionSynchronizationManager.initSynchronization();
+        willThrow(new RuntimeException("connection refused")).given(aiInternalClient).applyFeedback(any());
+
+        service.requestFeedbackApply(userId);
+
+        verifyNoInteractions(aiInternalClient);
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        verify(aiInternalClient).applyFeedback(new FeedbackApplyRequest(userId.toString()));
     }
 }
