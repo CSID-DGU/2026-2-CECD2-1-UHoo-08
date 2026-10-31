@@ -2,11 +2,13 @@ package com.capstone.backend.domain.recommendation.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
+import com.capstone.backend.domain.recommendation.dto.request.FeedbackRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
+import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
@@ -15,6 +17,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
+import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
@@ -38,6 +41,7 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
     private final RecommendationJobService recommendationJobService;
     private final RecommendationRefineService recommendationRefineService;
+    private final RecommendationFeedbackService recommendationFeedbackService;
 
     @Operation(
             summary = "자연어 추천 요청",
@@ -153,5 +157,21 @@ public class RecommendationController {
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID jobId) {
         return ResponseEntity.ok(ApiResponse.success(recommendationRefineService.getHistory(userId, jobId)));
+    }
+
+    @Operation(
+            summary = "추천 피드백 등록",
+            description = "결과 카드의 좋아요(UP)/별로예요(DOWN)와 이유를 저장한다. 같은 job 의 같은 제품에 다시 보내면 덮어쓴다. " +
+                    "reasonTags 는 DOWN 일 때만 저장한다(TOO_EXPENSIVE, NOT_MY_SKIN, BAD_REVIEWS, ALREADY_HAVE_SIMILAR). " +
+                    "message 는 토스트 문구이고, 가중치는 AI 가 비동기로 반영해 changeId 는 항상 null. " +
+                    "vote 나 reasonTags 값이 목록에 없거나 결과 추천 목록(items)에 없는 제품이면 422 VALIDATION_ERROR."
+    )
+    @PostMapping("/{jobId}/feedback")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> submitFeedback(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @Valid @RequestBody FeedbackRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(recommendationFeedbackService.submit(userId, jobId, request)));
     }
 }
