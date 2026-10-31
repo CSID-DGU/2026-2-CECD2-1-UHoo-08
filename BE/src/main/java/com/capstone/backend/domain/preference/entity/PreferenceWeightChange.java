@@ -53,9 +53,4 @@ public class PreferenceWeightChange {
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    /** 되돌린 시각을 남긴다. 이 엔티티에서 BE 가 바꿀 수 있는 값은 이것뿐이다 */
-    public void revert(OffsetDateTime now) {
-        this.revertedAt = now;
-    }
 }

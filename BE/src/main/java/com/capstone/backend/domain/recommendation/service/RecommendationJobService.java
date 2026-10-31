@@ -179,9 +179,9 @@ public class RecommendationJobService {
 
     /**
      * 커밋되면 AI 에 이 사용자의 가중치를 다시 계산하라고 알린다. 피드백과 조건 수정 패턴을 반영하는 규칙은 AI 에 있다.
-     * 비동기 호출이고 실패해도 요청은 그대로 접수된다.
+     * 피드백 등록, 조건 수정, 가중치 변경 되돌리기 뒤에 부른다. 비동기 호출이고 실패해도 요청은 그대로 접수된다.
      */
-    void requestFeedbackApply(UUID userId) {
+    public void requestFeedbackApply(UUID userId) {
         FeedbackApplyRequest request = new FeedbackApplyRequest(userId.toString());
         afterCommit(() -> {
             try {
