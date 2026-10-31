@@ -4,6 +4,8 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse.Step;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse.Preset;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
@@ -12,6 +14,8 @@ import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService.NewJob;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,9 +25,12 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,6 +39,7 @@ import java.util.UUID;
  *
  * 직전 결과를 거르는 것이 아니라, 새 job 으로 AI 추천 실행을 다시 부르고 직전 job 을 알려 준다.
  * AI 가 직전 상태에서 조건을 이어받아 더한 조건으로 후보를 다시 찾으므로 후보 수는 유지된다.
+ * 조건 추가 선택지와 지금까지의 조건 수정 이력도 여기서 만든다.
  */
 @Slf4j
 @Service
@@ -42,6 +50,9 @@ public class RecommendationRefineService {
     static final Duration FREQUENT_WINDOW = Duration.ofDays(30);
     /** 조건 수정은 직전 상태를 이어받아 처음 검색보다 빠르다 */
     static final int REFINE_ESTIMATED_SECONDS = 4;
+    static final String FIRST_STEP_LABEL = "처음 검색";
+    /** 이력에 담는 최대 단계 수. 직전 job 이 잘못 이어져 있어도 끝없이 올라가지 않게 한다 */
+    static final int MAX_HISTORY_STEPS = 50;
 
     private final RecommendationRepository recommendationRepository;
     private final JsonUtil jsonUtil;
@@ -119,16 +130,84 @@ public class RecommendationRefineService {
         return String.join(", ", parts);
     }
 
+    /**
+     * 조건 수정 이력. 받은 job 에서 직전 job 을 따라 처음 검색까지 올라간 뒤 처음 → 지금 순서로 나열한다.
+     * 한 줄 경로만 보여 주고, 같은 단계에서 갈라져 나간 다른 job 은 넣지 않는다.
+     * 직전 job 을 찾을 수 없으면 거기서 멈춘다.
+     */
+    @Transactional(readOnly = true)
+    public RefinementHistoryResponse getHistory(UUID userId, UUID jobId) {
+        Recommendation current = recommendationRepository.findByIdAndUserId(jobId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        List<Recommendation> path = new ArrayList<>();
+        Set<UUID> visited = new HashSet<>();
+        Recommendation job = current;
+        while (job != null && visited.add(job.getId()) && path.size() < MAX_HISTORY_STEPS) {
+            path.add(job);
+            job = job.getParentJobId() == null ? null
+                    : recommendationRepository.findByIdAndUserId(job.getParentJobId(), userId).orElse(null);
+        }
+        Collections.reverse(path);
+
+        List<Step> steps = new ArrayList<>();
+        JsonNode previousQuery = MissingNode.getInstance();
+        for (Recommendation step : path) {
+            JsonNode result = resultOf(step);
+            JsonNode query = result.path("query");
+            steps.add(new Step(step.getId(), stepLabel(step), stepDetail(step, previousQuery, query),
+                    result.path("items").size(), step.getId().equals(current.getId())));
+            previousQuery = query;
+        }
+        return new RefinementHistoryResponse(steps, null);
+    }
+
+    /** 처음 검색이면 "처음 검색", 조건 수정이면 "+ " 뒤에 고른 조건 이름과 직접 쓴 조건 */
+    static String stepLabel(Recommendation job) {
+        if (job.getParentJobId() == null) {
+            return FIRST_STEP_LABEL;
+        }
+        List<String> parts = new ArrayList<>();
+        if (job.getRefinePresets() != null) {
+            Arrays.stream(job.getRefinePresets())
+                    .map(RefinePreset::fromKey)
+                    .flatMap(Optional::stream)
+                    .map(RefinePreset::label)
+                    .forEach(parts::add);
+        }
+        if (job.getRefineText() != null && !job.getRefineText().isBlank()) {
+            parts.add(job.getRefineText());
+        }
+        return "+ " + (parts.isEmpty() ? Objects.requireNonNullElse(job.getRawQuery(), "") : String.join(", ", parts));
+    }
+
+    /** 처음 검색이면 검색 문장, 나머지는 직전 단계와 달라진 조건. 비교할 수 없으면 그 단계에서 더한 조건 문장 */
+    private static String stepDetail(Recommendation job, JsonNode previousQuery, JsonNode query) {
+        String rawQuery = Objects.requireNonNullElse(job.getRawQuery(), "");
+        if (job.getParentJobId() == null) {
+            return rawQuery;
+        }
+        return Objects.requireNonNullElse(QueryDiff.describe(previousQuery, query), rawQuery);
+    }
+
     /** 결과의 질의 요약으로 만든 조건 칩. 상품 기준 추천(v1) job 이거나 결과가 없거나 읽을 수 없으면 빈 목록 */
     private List<String> currentConditions(Recommendation job) {
         if (job.getBasis() == null || job.getResult() == null) {
             return List.of();
         }
+        return SummaryBuilder.conditions(resultOf(job).path("query"));
+    }
+
+    /**
+     * job 의 결과. 없거나 읽을 수 없으면 MissingNode.
+     * 결과는 jsonb 라 깨진 JSON 이 저장될 일은 거의 없고, 한 단계를 읽지 못했다고 이력 전체를 실패시키지 않는다
+     */
+    private JsonNode resultOf(Recommendation job) {
         try {
-            return SummaryBuilder.conditions(jsonUtil.readTree(job.getResult()).path("query"));
+            return jsonUtil.readTree(job.getResult());
         } catch (BusinessException e) {
-            log.warn("[RecommendationRefine] job 의 결과를 읽지 못해 지금 조건을 비워 둔다: jobId={}", job.getId());
-            return List.of();
+            log.warn("[RecommendationRefine] job 의 결과를 읽지 못해 비어 있는 것으로 본다: jobId={}", job.getId());
+            return MissingNode.getInstance();
         }
     }
 }

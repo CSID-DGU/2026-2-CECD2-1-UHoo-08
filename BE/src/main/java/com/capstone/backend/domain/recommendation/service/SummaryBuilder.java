@@ -115,7 +115,7 @@ public final class SummaryBuilder {
         return String.format(Locale.KOREA, "%,d원", amount);
     }
 
-    private static List<String> texts(JsonNode array) {
+    static List<String> texts(JsonNode array) {
         List<String> values = new ArrayList<>();
         if (array.isArray()) {
             array.forEach(node -> {

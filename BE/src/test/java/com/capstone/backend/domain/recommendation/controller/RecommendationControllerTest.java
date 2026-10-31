@@ -14,6 +14,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
@@ -425,6 +426,39 @@ class RecommendationControllerTest {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
+    }
+
+    // 조건 수정 이력
+
+    @Test
+    void 조건_수정_이력은_단계와_지금_단계를_내리고_suggestion은_null이다() throws Exception {
+        UUID rootId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getHistory(userId, jobId)).willReturn(new RefinementHistoryResponse(
+                List.of(new RefinementHistoryResponse.Step(rootId, "처음 검색", "여름 가벼운 매트 쿠션", 12, false),
+                        new RefinementHistoryResponse.Step(jobId, "+ 더 저렴하게", "3만원 이하 → 2만원 이하", 12, true)),
+                null));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinements/history", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.steps[0].jobId").value(rootId.toString()))
+                .andExpect(jsonPath("$.data.steps[0].label").value("처음 검색"))
+                .andExpect(jsonPath("$.data.steps[0].isCurrent").value(false))
+                .andExpect(jsonPath("$.data.steps[1].detail").value("3만원 이하 → 2만원 이하"))
+                .andExpect(jsonPath("$.data.steps[1].candidateCount").value(12))
+                .andExpect(jsonPath("$.data.steps[1].isCurrent").value(true))
+                .andExpect(jsonPath("$.data.steps[1].current").doesNotExist())
+                .andExpect(content().string(containsString("\"suggestion\":null")));
+    }
+
+    @Test
+    void 남의_job의_이력을_조회하면_404_NOT_FOUND다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getHistory(userId, jobId)).willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinements/history", jobId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
