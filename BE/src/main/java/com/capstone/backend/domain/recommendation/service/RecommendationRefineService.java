@@ -198,7 +198,10 @@ public class RecommendationRefineService {
         return SummaryBuilder.conditions(resultOf(job).path("query"));
     }
 
-    /** job 의 결과. 없거나 읽을 수 없으면 MissingNode */
+    /**
+     * job 의 결과. 없거나 읽을 수 없으면 MissingNode.
+     * 결과는 jsonb 라 깨진 JSON 이 저장될 일은 거의 없고, 한 단계를 읽지 못했다고 이력 전체를 실패시키지 않는다
+     */
     private JsonNode resultOf(Recommendation job) {
         try {
             return jsonUtil.readTree(job.getResult());
