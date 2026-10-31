@@ -5,10 +5,13 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
 import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
+import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.OnboardingCompleteResponse;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
+import com.capstone.backend.domain.user.dto.response.RegionResponse;
 import com.capstone.backend.domain.user.dto.response.UserMeResponse;
 import com.capstone.backend.domain.user.entity.User;
+import com.capstone.backend.domain.user.enums.SupportedRegion;
 import com.capstone.backend.domain.user.repository.UserRepository;
 import com.capstone.backend.domain.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
@@ -82,4 +85,15 @@ public class UserServiceImpl implements UserService {
         return new OnboardingCompleteResponse(true, saved.getUpdatedAt());
     }
 
+    /** 환경 데이터가 시·도 단위라 지원 지역의 시·도 이름만 받는다. 지원하지 않는 지역이면 VALIDATION_ERROR */
+    @Override
+    @Transactional
+    public RegionResponse updateRegion(UUID userId, RegionUpdateRequest request) {
+        SupportedRegion region = SupportedRegion.fromName(request.getRegionCode().strip())
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        user.updateRegion(region.regionName(), request.getRegionName().strip());
+        return RegionResponse.from(user);
+    }
 }
