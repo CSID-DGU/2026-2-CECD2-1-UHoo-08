@@ -3,7 +3,9 @@ package com.capstone.backend.domain.user.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.storage.StorageService;
+import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
+import com.capstone.backend.domain.user.dto.response.RegionResponse;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -87,5 +89,38 @@ class UserServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void 지역은_시도_이름과_표시_이름을_함께_저장한다() {
+        User user = User.builder().id(userId).name("하림").provider("KAKAO").build();
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        RegionResponse response = userService.updateRegion(userId, new RegionUpdateRequest(" 경기 ", " 고양시 덕양구 "));
+
+        assertThat(user.getRegion()).isEqualTo("경기");
+        assertThat(user.getRegionLabel()).isEqualTo("고양시 덕양구");
+        assertThat(response.getRegionCode()).isEqualTo("경기");
+        assertThat(response.getRegionName()).isEqualTo("고양시 덕양구");
+    }
+
+    @Test
+    void 지원하지_않는_지역이면_저장하지_않고_VALIDATION_ERROR다() {
+        for (String regionCode : new String[]{"41281", "광주", "전남", "Seoul"}) {
+            assertThatThrownBy(() -> userService.updateRegion(userId, new RegionUpdateRequest(regionCode, "고양시 덕양구")))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+        }
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void 광주와_전남은_전남광주로_저장한다() {
+        User user = User.builder().id(userId).name("하림").provider("KAKAO").build();
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        userService.updateRegion(userId, new RegionUpdateRequest("전남광주", "광주 북구"));
+
+        assertThat(user.getRegion()).isEqualTo("전남광주");
     }
 }
