@@ -4,6 +4,7 @@ import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
@@ -12,6 +13,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationQue
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
 import com.capstone.backend.domain.recommendation.service.RecommendationService;
@@ -121,5 +123,20 @@ public class RecommendationController {
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID jobId) {
         return ResponseEntity.ok(ApiResponse.success(recommendationRefineService.getOptions(userId, jobId)));
+    }
+
+    @Operation(
+            summary = "조건 추가 (재탐색)",
+            description = "지금 결과에 조건을 더해 후보를 다시 찾는다. 새 job 이 만들어지고 parentJobId 로 이어진다. " +
+                    "새 jobId 로 상태 폴링 후 결과 조회한다. presetKeys 와 freeText 가 모두 비었으면 422 VALIDATION_ERROR, " +
+                    "직전 job 이 아직 끝나지 않았으면 409 JOB_NOT_COMPLETED."
+    )
+    @PostMapping("/{jobId}/refinements")
+    public ResponseEntity<ApiResponse<RefinementResponse>> refine(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @Valid @RequestBody RefinementRequest request) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponse.success(recommendationRefineService.refine(userId, jobId, request)));
     }
 }

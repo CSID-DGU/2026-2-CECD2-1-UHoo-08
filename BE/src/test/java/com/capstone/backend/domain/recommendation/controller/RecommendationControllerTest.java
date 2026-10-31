@@ -6,6 +6,7 @@ import com.capstone.backend.common.exception.GlobalExceptionHandler;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
@@ -14,6 +15,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.service.ClarifyFieldMapper;
@@ -361,6 +363,68 @@ class RecommendationControllerTest {
         mockMvc.perform(get("/recommendations/{jobId}/refinement-options", jobId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    // 조건 추가(재탐색)
+
+    @Test
+    void 조건을_더하면_202와_새_jobId_직전_jobId_예상_시간을_돌려준다() throws Exception {
+        UUID parentJobId = UUID.randomUUID();
+        UUID newJobId = UUID.randomUUID();
+        ArgumentCaptor<RefinementRequest> request = ArgumentCaptor.forClass(RefinementRequest.class);
+        given(recommendationRefineService.refine(eq(userId), eq(parentJobId), request.capture()))
+                .willReturn(new RefinementResponse(newJobId, parentJobId, 4));
+
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", parentJobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":["CHEAPER","UNSCENTED"],"freeText":null}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.jobId").value(newJobId.toString()))
+                .andExpect(jsonPath("$.data.parentJobId").value(parentJobId.toString()))
+                .andExpect(jsonPath("$.data.estimatedSeconds").value(4));
+
+        assertThat(request.getValue().getPresetKeys()).containsExactly(RefinePreset.CHEAPER, RefinePreset.UNSCENTED);
+    }
+
+    @Test
+    void 고른_조건과_직접_쓴_조건이_모두_비었으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":[],"freeText":"  "}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationRefineService);
+    }
+
+    @Test
+    void 목록에_없는_조건_키면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":["CHEAPEST"]}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationRefineService);
+    }
+
+    @Test
+    void 직전_job이_끝나지_않았으면_409_JOB_NOT_COMPLETED다() throws Exception {
+        UUID parentJobId = UUID.randomUUID();
+        given(recommendationRefineService.refine(eq(userId), eq(parentJobId), any()))
+                .willThrow(new BusinessException(ErrorCode.JOB_NOT_COMPLETED));
+
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", parentJobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"freeText":"쿠션만"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
     }
 
     /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
