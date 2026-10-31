@@ -12,6 +12,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationJob
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
@@ -138,5 +139,19 @@ public class RecommendationController {
             @Valid @RequestBody RefinementRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ApiResponse.success(recommendationRefineService.refine(userId, jobId, request)));
+    }
+
+    @Operation(
+            summary = "조건 수정 이력 조회",
+            description = "처음 검색부터 지금까지의 조건 수정 단계를 오래된 순으로 돌려준다. jobId 는 이력 중 아무 job 이나 된다. " +
+                    "직전 job 쪽으로만 올라가므로 그 job 뒤에 더한 단계와 갈라져 나간 단계는 넣지 않는다. " +
+                    "detail 은 처음 검색이면 검색 문장, 나머지는 직전 단계와 달라진 조건이다. " +
+                    "되돌리기 API 는 따로 없고, 원하는 단계의 jobId 로 추천 결과를 조회한다. suggestion 은 항상 null."
+    )
+    @GetMapping("/{jobId}/refinements/history")
+    public ResponseEntity<ApiResponse<RefinementHistoryResponse>> getRefinementHistory(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId) {
+        return ResponseEntity.ok(ApiResponse.success(recommendationRefineService.getHistory(userId, jobId)));
     }
 }

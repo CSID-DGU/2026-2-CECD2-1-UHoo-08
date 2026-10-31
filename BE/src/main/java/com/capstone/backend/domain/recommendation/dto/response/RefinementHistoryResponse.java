@@ -27,7 +27,7 @@ public class RefinementHistoryResponse {
         private int candidateCount;
         /** 지금 보고 있는 단계 */
         @JsonProperty("isCurrent")
-        private boolean isCurrent;
+        private boolean current;
     }
 
     @Getter
