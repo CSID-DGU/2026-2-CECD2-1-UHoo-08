@@ -1,0 +1,33 @@
+{
+  "jobId": "home-routine",
+  "scenario": "HOME_ROUTINE",
+  "query": {"raw": "", "conditions": [], "target": "SELF"},
+  "items": [],
+  "alternatives": [],
+  "similarUserProducts": [],
+  "bundles": [],
+  "excluded": [],
+  "counts": {"ok": 7, "separate": 2, "avoid": 1},
+  "pairs": [
+    {"a": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000001", "name": "수분 토너"},
+     "b": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000002", "name": "수분 크림"},
+     "level": "OK", "title": "같이 써도 괜찮아요", "reason": "겹치는 자극 성분이 없어요"},
+    {"a": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000003", "name": "AHA 토너"},
+     "b": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000004", "name": "레티놀 앰플"},
+     "level": "SEPARATE", "title": "시간을 나눠 쓰세요", "reason": "함께 쓰면 자극이 커져요"},
+    {"a": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000004", "name": "레티놀 앰플"},
+     "b": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000005", "name": "비타민C 세럼"},
+     "level": "AVOID", "title": "같이 쓰지 마세요", "reason": "둘 다 효과가 약해지고 자극이 커져요"}
+  ],
+  "replacement": {
+    "replaceTarget": {"userProductId": "aaaaaaaa-0000-0000-0000-000000000005", "name": "비타민C 세럼"},
+    "message": "별점이 낮은 쪽을 바꾸는 걸 먼저 권해요",
+    "items": [
+      {"productId": "11111111-1111-1111-1111-111111111111", "name": "잡티 케어 나이아신 세럼", "brand": "토리든",
+       "price": 19800, "totalScore": 84, "badge": "쓰시는 제품 5개와 모두 괜찮아요"}
+    ]
+  },
+  "schedule": {"morning": ["수분 토너", "톤업 세럼", "선크림"], "evening": ["AHA 토너", "레티놀 앰플", "수분 크림"],
+               "tip": "AHA 먼저, 레티놀은 하루 걸러 쓰세요"},
+  "uncomparedCount": 1
+}
