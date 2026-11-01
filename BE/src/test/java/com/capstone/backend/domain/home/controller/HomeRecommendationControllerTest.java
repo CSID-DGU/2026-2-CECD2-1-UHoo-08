@@ -37,6 +37,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -138,7 +139,10 @@ class HomeRecommendationControllerTest {
     void 루틴_점검은_점검_여부_개수_쌍_대체_제안_사용_순서를_내린다() throws Exception {
         RoutineCheckResponse response;
         try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ROUTINE.json")) {
-            response = RoutineCheckBuilder.build(new ObjectMapper().readTree(in), 5);
+            response = RoutineCheckBuilder.build(new ObjectMapper().readTree(in), Set.of(
+                    UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001"), UUID.fromString("aaaaaaaa-0000-0000-0000-000000000002"),
+                    UUID.fromString("aaaaaaaa-0000-0000-0000-000000000003"), UUID.fromString("aaaaaaaa-0000-0000-0000-000000000004"),
+                    UUID.fromString("aaaaaaaa-0000-0000-0000-000000000005")));
         }
         given(homeRecommendationService.getRoutineCheck(userId)).willReturn(response);
 
@@ -163,7 +167,7 @@ class HomeRecommendationControllerTest {
     @Test
     void 아직_점검_전이면_checked_false와_빈_값을_내린다() throws Exception {
         given(homeRecommendationService.getRoutineCheck(userId)).willReturn(
-                RoutineCheckBuilder.build(MissingNode.getInstance(), 3));
+                RoutineCheckBuilder.build(MissingNode.getInstance(), Set.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())));
 
         mockMvc.perform(get("/home/routine-check"))
                 .andExpect(status().isOk())

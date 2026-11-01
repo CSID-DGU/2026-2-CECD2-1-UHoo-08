@@ -41,6 +41,7 @@ public class HomeRecommendationController {
             summary = "내 루틴 점검 조회",
             description = "쓰는 제품끼리 성분 충돌을 검사한 결과와, 같이 쓰면 안 되는 쌍의 대체 추천. 서버가 하루 한 번 미리 계산해 둔 결과다. " +
                     "checked=false 면 아직 점검 전이라 쌍과 개수가 비어 있으니 '준비 중'으로 보여 준다. " +
+                    "점검 뒤에 다 쓰거나 지운 제품이 결과에 있으면 지난 결과라 checked=false 로 내리고, 다음 점검에서 다시 채워진다. " +
                     "productCount 는 쓰는 중인 보유 제품 수다. pairs 는 AVOID → SEPARATE → OK 순이고, 보유 제품이 2개 미만이면 pairs 는 빈 배열, counts 는 0, replacement 는 null 이다. " +
                     "홈 카드는 counts 와 pairs 중 level=AVOID 첫 번째만 쓴다. 성분 정보가 없어 빠진 제품은 uncomparedCount 로 안내한다."
     )

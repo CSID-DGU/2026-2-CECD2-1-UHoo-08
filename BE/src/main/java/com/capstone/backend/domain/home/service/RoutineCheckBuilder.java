@@ -13,11 +13,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * AI 홈 루틴 점검 결과의 점검 블록(counts, pairs, replacement, schedule, uncomparedCount)을 화면 모양으로 바꾼다.
  *
- * 결과에 쌍 목록(pairs)이 없으면 아직 점검 전으로 보고 모두 비운다. 빈 값으로 내리면 충돌이 없는 것처럼 보인다.
+ * 다음이면 점검 전으로 보고 모두 비운다. 빈 값이나 지난 값을 내리면 충돌이 없거나 지금 제품의 결과인 것처럼 보인다.
+ *   결과에 쌍 목록(pairs)이 없다
+ *   쌍 개수(counts)의 세 값 중 하나라도 없다. 쌍 목록은 일부만 실릴 수 있어 쌍으로 개수를 대신 세지 않는다
+ *   쌍이나 대체 제안이 가리키는 보유 제품이 지금 쓰는 중인 제품이 아니다. 점검 뒤에 다 쓰거나 지운 제품이다
  * 보유 제품이 2개 미만이면 비교할 쌍이 없으므로 쌍 목록, 쌍 개수, 대체 제안을 비운다. 사용 순서는 제품 하나여도 남긴다.
  */
 public final class RoutineCheckBuilder {
@@ -29,11 +34,13 @@ public final class RoutineCheckBuilder {
     }
 
     /**
-     * @param result       AI 홈 루틴 점검 결과. 없으면 MissingNode
-     * @param productCount 쓰는 중인 보유 제품 수
+     * @param result   AI 홈 루틴 점검 결과. 없으면 MissingNode
+     * @param usingIds 쓰는 중인 보유 제품 id. 개수가 보유 제품 수다
      */
-    public static RoutineCheckResponse build(JsonNode result, int productCount) {
-        if (!result.path("pairs").isArray()) {
+    public static RoutineCheckResponse build(JsonNode result, Set<UUID> usingIds) {
+        int productCount = usingIds.size();
+        Counts counts = counts(result.path("counts"));
+        if (!result.path("pairs").isArray() || counts == null || !referencesOnly(result, usingIds)) {
             return new RoutineCheckResponse(false, productCount, new Counts(0, 0, 0), List.of(), null, emptySchedule(), 0);
         }
         Schedule schedule = schedule(result.path("schedule"));
@@ -43,7 +50,7 @@ public final class RoutineCheckBuilder {
                     uncomparedCount);
         }
         List<Pair> pairs = pairs(result.path("pairs"));
-        return new RoutineCheckResponse(true, productCount, counts(result.path("counts"), pairs), pairs,
+        return new RoutineCheckResponse(true, productCount, counts, pairs,
                 replacement(result.path("replacement")), schedule, uncomparedCount);
     }
 
@@ -61,17 +68,34 @@ public final class RoutineCheckBuilder {
         return pairs;
     }
 
-    /** 결과에 개수가 없으면 쌍 목록에서 센다 */
-    private static Counts counts(JsonNode node, List<Pair> pairs) {
-        if (node.isObject()) {
-            return new Counts(node.path("ok").asInt(0), node.path("separate").asInt(0), node.path("avoid").asInt(0));
+    /** 세 값이 모두 숫자일 때만 쓴다. 하나라도 없으면 null */
+    private static Counts counts(JsonNode node) {
+        JsonNode ok = node.path("ok");
+        JsonNode separate = node.path("separate");
+        JsonNode avoid = node.path("avoid");
+        if (!ok.isIntegralNumber() || !separate.isIntegralNumber() || !avoid.isIntegralNumber()) {
+            return null;
         }
-        return new Counts(count(pairs, CompatibilityLevel.OK), count(pairs, CompatibilityLevel.SEPARATE),
-                count(pairs, CompatibilityLevel.AVOID));
+        return new Counts(ok.asInt(), separate.asInt(), avoid.asInt());
     }
 
-    private static int count(List<Pair> pairs, CompatibilityLevel level) {
-        return (int) pairs.stream().filter(pair -> pair.getLevel() == level).count();
+    /** 쌍의 두 제품과 대체 제안의 바꿀 제품이 모두 지금 쓰는 중인 보유 제품인지 */
+    private static boolean referencesOnly(JsonNode result, Set<UUID> usingIds) {
+        List<JsonNode> refs = new ArrayList<>();
+        result.path("pairs").forEach(pair -> {
+            refs.add(pair.path("a"));
+            refs.add(pair.path("b"));
+        });
+        if (result.path("replacement").isObject()) {
+            refs.add(result.path("replacement").path("replaceTarget"));
+        }
+        return refs.stream().allMatch(ref -> {
+            try {
+                return usingIds.contains(UUID.fromString(ref.path("userProductId").asText("")));
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        });
     }
 
     private static Replacement replacement(JsonNode node) {

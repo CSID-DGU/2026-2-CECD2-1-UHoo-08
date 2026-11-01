@@ -26,8 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -82,14 +84,15 @@ public class HomeRecommendationService {
     /**
      * 쓰는 제품끼리 성분 충돌을 검사한 결과와 대체 추천. 보유 제품 수는 쓰는 중인 보유 제품을 직접 센다.
      * 온보딩의 자주 사용하는 제품은 세지 않는다. 나머지는 AI 홈 루틴 점검 결과에서 꺼내고, 없거나 읽을 수 없으면 점검 전이다.
+     * 점검 결과는 하루 한 번 만들어지므로, 그 뒤에 다 쓰거나 지운 제품이 결과에 있으면 지난 결과로 보고 점검 전으로 내린다.
      */
     @Transactional(readOnly = true)
     public RoutineCheckResponse getRoutineCheck(UUID userId) {
-        int productCount = (int) userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING);
+        Set<UUID> usingIds = new HashSet<>(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING));
         JsonNode result = homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE))
                 .map(row -> readTree(row.getResult(), userId, HomeRecommendationKind.ROUTINE))
                 .orElse(MissingNode.getInstance());
-        return RoutineCheckBuilder.build(result, productCount);
+        return RoutineCheckBuilder.build(result, usingIds);
     }
 
     private JsonNode readTree(String json, UUID userId, HomeRecommendationKind kind) {

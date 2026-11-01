@@ -30,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -190,7 +191,8 @@ class HomeRecommendationServiceTest {
 
     @Test
     void 루틴_점검은_쓰는_중인_보유_제품을_세고_점검_결과를_꺼낸다() throws Exception {
-        given(userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING)).willReturn(5L);
+        given(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING))
+                .willReturn(List.copyOf(RoutineCheckBuilderTest.SAMPLE_USING_IDS));
         try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ROUTINE.json")) {
             givenHomeRoutine(new String(in.readAllBytes()));
         }
@@ -205,7 +207,8 @@ class HomeRecommendationServiceTest {
 
     @Test
     void 루틴_점검_결과가_없거나_읽을_수_없으면_점검_전이다() {
-        given(userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING)).willReturn(2L);
+        given(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING))
+                .willReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
         given(homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE)))
                 .willReturn(Optional.empty());
 
