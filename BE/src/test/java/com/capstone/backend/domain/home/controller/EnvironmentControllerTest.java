@@ -3,10 +3,12 @@ package com.capstone.backend.domain.home.controller;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.exception.GlobalExceptionHandler;
+import com.capstone.backend.domain.home.dto.response.EnvironmentDailyResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.SeasonChange;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Stats;
+import com.capstone.backend.domain.home.enums.EnvMetric;
 import com.capstone.backend.domain.home.service.EnvironmentService;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.jupiter.api.AfterEach;
@@ -31,6 +33,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,6 +102,61 @@ class EnvironmentControllerTest {
         given(environmentService.getSummary(userId)).willThrow(new BusinessException(ErrorCode.REGION_NOT_SET));
 
         mockMvc.perform(get("/environment/summary"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("REGION_NOT_SET"));
+    }
+
+    // 일별 추이
+
+    @Test
+    void 일별_추이는_지표_기준선_날짜별_값을_내리고_기간_기본값은_28일이다() throws Exception {
+        given(environmentService.getDaily(userId, EnvMetric.UV, 28)).willReturn(new EnvironmentDailyResponse(
+                EnvMetric.UV, "자외선 지수", "6 이상인 날이 22일", "'높음' 구간이 한 달의 79%예요", 6f,
+                List.of(new EnvironmentDailyResponse.Day(LocalDate.of(2026, 8, 20), 4.1f, false),
+                        new EnvironmentDailyResponse.Day(LocalDate.of(2026, 8, 21), null, false))));
+
+        mockMvc.perform(get("/environment/daily").param("metric", "UV"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metric").value("UV"))
+                .andExpect(jsonPath("$.data.label").value("자외선 지수"))
+                .andExpect(jsonPath("$.data.headline").value("6 이상인 날이 22일"))
+                .andExpect(jsonPath("$.data.subText").value("'높음' 구간이 한 달의 79%예요"))
+                .andExpect(jsonPath("$.data.threshold").value(6.0))
+                .andExpect(jsonPath("$.data.days[0].date").value("2026-08-20"))
+                .andExpect(jsonPath("$.data.days[0].value").value(4.1))
+                .andExpect(jsonPath("$.data.days[0].exceeded").value(false))
+                .andExpect(content().string(containsString("\"value\":null")));
+    }
+
+    @Test
+    void 기간을_주면_그만큼_읽는다() throws Exception {
+        given(environmentService.getDaily(userId, EnvMetric.TEMP, 7)).willReturn(new EnvironmentDailyResponse(
+                EnvMetric.TEMP, "기온", "평균 기온 24°C", "가장 낮은 날 18°C, 가장 높은 날 29°C", null, List.of()));
+
+        mockMvc.perform(get("/environment/daily").param("metric", "TEMP").param("days", "7"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"threshold\":null")));
+    }
+
+    @Test
+    void metric이_없거나_목록에_없거나_days가_숫자가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(get("/environment/daily"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(get("/environment/daily").param("metric", "NOISE"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(get("/environment/daily").param("metric", "UV").param("days", "a"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(environmentService);
+    }
+
+    @Test
+    void 일별_추이도_지역이_없으면_404_REGION_NOT_SET이다() throws Exception {
+        given(environmentService.getDaily(userId, EnvMetric.PM, 28)).willThrow(new BusinessException(ErrorCode.REGION_NOT_SET));
+
+        mockMvc.perform(get("/environment/daily").param("metric", "PM"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("REGION_NOT_SET"));
     }
