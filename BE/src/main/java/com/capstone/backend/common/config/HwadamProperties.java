@@ -16,6 +16,7 @@ import java.time.ZoneId;
  *
  * 환경 판정 기준값, 배치 cron 처럼 코드에 박으면 안 되는 값을 여기에 모은다. 각 값은 그 값을 쓰는 작업에서 추가한다.
  * 
+ *   zone: 서비스가 "오늘"을 정하는 시간대. 배치 cron 시간대와 따로 둔다
  *   batch: 배치 공통(시간대). cron 은 멈춘 job 정리, 사진 인식 정리, 홈 배치에서 추가
  *   env: 환경 판정 기준값. 환경 요약, 일별 추이에서 쓴다
  */
@@ -24,6 +25,13 @@ import java.time.ZoneId;
 @Validated
 @ConfigurationProperties(prefix = "hwadam")
 public class HwadamProperties {
+
+    /**
+     * 서비스가 "오늘"을 정하는 시간대. 화면의 날짜와 하루 환경 집계(env_daily.date)는 한국 날짜 기준이다.
+     * 서버(컨테이너)는 UTC 로 돌기 때문에 LocalDate.now() 를 그대로 쓰면 한국 시간 오전 9시 전에는 전날이 된다.
+     */
+    @NotNull
+    private ZoneId zone = ZoneId.of("Asia/Seoul");
 
     @Valid
     private Batch batch = new Batch();
@@ -75,6 +83,10 @@ public class HwadamProperties {
         /** PM2.5 평균(㎍/㎥)이 이 값을 넘으면 미세먼지 나쁜 날 */
         @NotNull
         private Float pm25Bad = 35f;
+
+        /** 습도 평균(%)이 이 값보다 낮으면 건조한 날 */
+        @NotNull
+        private Float humidityLow = 40f;
 
         /** 최근 7일 평균 습도가 3주 전 7일 평균과 이만큼(%p) 이상 다르면 계절이 바뀌는 것으로 본다 */
         @NotNull

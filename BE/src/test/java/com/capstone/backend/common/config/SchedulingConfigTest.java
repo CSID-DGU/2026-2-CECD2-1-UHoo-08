@@ -54,12 +54,24 @@ class SchedulingConfigTest {
     }
 
     @Test
+    void 서비스의_오늘_시간대는_배치_시간대와_따로_받고_없으면_서울이다() {
+        runner.run(context ->
+                assertThat(context.getBean(HwadamProperties.class).getZone()).isEqualTo(ZoneId.of("Asia/Seoul")));
+        runner.withPropertyValues("hwadam.batch.zone=UTC").run(context -> {
+            HwadamProperties properties = context.getBean(HwadamProperties.class);
+            assertThat(properties.getBatch().getZone()).isEqualTo(ZoneId.of("UTC"));
+            assertThat(properties.getZone()).isEqualTo(ZoneId.of("Asia/Seoul"));
+        });
+    }
+
+    @Test
     void 환경_판정_기준값은_설정에서_받고_없으면_기본값이다() {
         runner.run(context -> {
             HwadamProperties.EnvThresholds env = context.getBean(HwadamProperties.class).getEnv();
             assertThat(env.getUvHigh()).isEqualTo(6f);
             assertThat(env.getPm10Bad()).isEqualTo(80f);
             assertThat(env.getPm25Bad()).isEqualTo(35f);
+            assertThat(env.getHumidityLow()).isEqualTo(40f);
             assertThat(env.getHumidityChange()).isEqualTo(15f);
         });
         runner.withPropertyValues("hwadam.env.uv-high=8", "hwadam.env.humidity-change=10").run(context -> {
