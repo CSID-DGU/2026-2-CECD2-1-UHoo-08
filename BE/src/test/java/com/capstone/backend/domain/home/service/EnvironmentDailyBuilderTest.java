@@ -52,7 +52,7 @@ class EnvironmentDailyBuilderTest {
         assertThat(response.getLabel()).isEqualTo("자외선 지수");
         assertThat(response.getThreshold()).isEqualTo(6f);
         assertThat(response.getHeadline()).isEqualTo("6 이상인 날이 1일");
-        assertThat(response.getSubText()).isEqualTo("'높음' 구간이 최근 4일의 50%예요");
+        assertThat(response.getSubText()).isEqualTo("'높음' 구간이 기록된 2일의 50%예요");
     }
 
     @Test
@@ -67,6 +67,16 @@ class EnvironmentDailyBuilderTest {
 
         assertThat(response.getHeadline()).isEqualTo("6 이상인 날이 22일");
         assertThat(response.getSubText()).isEqualTo("'높음' 구간이 한 달의 79%예요");
+    }
+
+    @Test
+    void 기간_중_기록된_날이_하루뿐이면_그_하루를_분모로_밝힌다() {
+        LocalDate start = END.minusDays(27);
+
+        EnvironmentDailyResponse response = EnvironmentDailyBuilder.build(EnvMetric.UV, start, END,
+                List.of(day(END, 24, null, null, 8f, null)), THRESHOLDS);
+
+        assertThat(response.getSubText()).isEqualTo("'높음' 구간이 기록된 1일의 100%예요");
     }
 
     @Test

@@ -61,7 +61,7 @@ public class EnvironmentService {
     /** 지역을 설정하지 않았으면 REGION_NOT_SET */
     @Transactional(readOnly = true)
     public EnvironmentSummaryResponse getSummary(UUID userId) {
-        return getSummary(userId, LocalDate.now(hwadamProperties.getBatch().getZone()));
+        return getSummary(userId, LocalDate.now(hwadamProperties.getZone()));
     }
 
     EnvironmentSummaryResponse getSummary(UUID userId, LocalDate today) {
@@ -92,7 +92,7 @@ public class EnvironmentService {
     /** 오늘을 포함해 거슬러 올라간 days 일(1~28) 동안의 지표 값. 기간이 범위 밖이면 VALIDATION_ERROR, 지역이 없으면 REGION_NOT_SET */
     @Transactional(readOnly = true)
     public EnvironmentDailyResponse getDaily(UUID userId, EnvMetric metric, int days) {
-        return getDaily(userId, metric, days, LocalDate.now(hwadamProperties.getBatch().getZone()));
+        return getDaily(userId, metric, days, LocalDate.now(hwadamProperties.getZone()));
     }
 
     EnvironmentDailyResponse getDaily(UUID userId, EnvMetric metric, int days, LocalDate today) {

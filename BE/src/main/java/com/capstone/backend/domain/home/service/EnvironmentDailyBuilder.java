@@ -53,7 +53,9 @@ public final class EnvironmentDailyBuilder {
         }
         int exceededCount = (int) days.stream().filter(Day::isExceeded).count();
         int percent = (int) Math.round(exceededCount * 100.0 / values.size());
-        String period = dayCount == MONTH_DAYS ? "한 달" : "최근 " + dayCount + "일";
+        // 기록이 빠진 날이 있으면 비율의 분모가 기간 전체가 아니므로 기록된 날 수를 밝힌다
+        String period = values.size() < dayCount ? "기록된 " + values.size() + "일"
+                : dayCount == MONTH_DAYS ? "한 달" : "최근 " + dayCount + "일";
 
         String headline;
         String subText;
