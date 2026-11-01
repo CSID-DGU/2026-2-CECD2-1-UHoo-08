@@ -7,10 +7,13 @@ import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationRe
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.CoveredCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.MissingCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
+import com.capstone.backend.domain.home.dto.response.RoutineCheckResponse;
 import com.capstone.backend.domain.home.entity.HomeRecommendation;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.enums.HomeRecommendationState;
 import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
+import com.capstone.backend.domain.product.enums.UsageType;
+import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
 import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.service.ResultAssembler;
@@ -37,6 +40,7 @@ public class HomeRecommendationService {
 
     private final UserRepository userRepository;
     private final HomeRecommendationRepository homeRecommendationRepository;
+    private final UserProductRepository userProductRepository;
     private final ResultAssembler resultAssembler;
     private final JsonUtil jsonUtil;
 
@@ -55,7 +59,8 @@ public class HomeRecommendationService {
 
         Optional<HomeRecommendation> found = homeRecommendationRepository.findById(
                 new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV));
-        JsonNode result = found.map(row -> readTree(row.getResult(), userId)).orElse(MissingNode.getInstance());
+        JsonNode result = found.map(row -> readTree(row.getResult(), userId, HomeRecommendationKind.ENV))
+                .orElse(MissingNode.getInstance());
         if (found.isEmpty() || !result.isObject()) {
             return new EnvironmentRecommendationResponse(HomeRecommendationState.NOT_READY, List.of(), List.of(), null, null);
         }
@@ -74,11 +79,24 @@ public class HomeRecommendationService {
                 row.getGeneratedAt());
     }
 
-    private JsonNode readTree(String json, UUID userId) {
+    /**
+     * 쓰는 제품끼리 성분 충돌을 검사한 결과와 대체 추천. 보유 제품 수는 쓰는 중인 보유 제품을 직접 센다.
+     * 온보딩의 자주 사용하는 제품은 세지 않는다. 나머지는 AI 홈 루틴 점검 결과에서 꺼내고, 없거나 읽을 수 없으면 점검 전이다.
+     */
+    @Transactional(readOnly = true)
+    public RoutineCheckResponse getRoutineCheck(UUID userId) {
+        int productCount = (int) userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING);
+        JsonNode result = homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE))
+                .map(row -> readTree(row.getResult(), userId, HomeRecommendationKind.ROUTINE))
+                .orElse(MissingNode.getInstance());
+        return RoutineCheckBuilder.build(result, productCount);
+    }
+
+    private JsonNode readTree(String json, UUID userId, HomeRecommendationKind kind) {
         try {
             return jsonUtil.readTree(json);
         } catch (BusinessException e) {
-            log.warn("[HomeRecommendation] 홈 환경 추천 결과를 읽지 못해 계산 전으로 본다: userId={}", userId, e);
+            log.warn("[HomeRecommendation] 홈 추천 결과를 읽지 못해 계산 전으로 본다: userId={}, kind={}", userId, kind, e);
             return MissingNode.getInstance();
         }
     }

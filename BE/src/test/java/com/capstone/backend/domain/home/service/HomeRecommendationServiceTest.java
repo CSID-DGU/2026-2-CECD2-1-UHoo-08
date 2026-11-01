@@ -6,11 +6,14 @@ import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.CoveredCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.MissingCondition;
+import com.capstone.backend.domain.home.dto.response.RoutineCheckResponse;
 import com.capstone.backend.domain.home.entity.HomeRecommendation;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.enums.HomeRecommendationState;
 import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
+import com.capstone.backend.domain.product.enums.UsageType;
 import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.recommendation.service.ResultAssembler;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
@@ -52,6 +55,8 @@ class HomeRecommendationServiceTest {
     HomeRecommendationRepository homeRecommendationRepository;
     @Mock
     ProductRepository productRepository;
+    @Mock
+    UserProductRepository userProductRepository;
 
     HomeRecommendationService service;
 
@@ -60,7 +65,7 @@ class HomeRecommendationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HomeRecommendationService(userRepository, homeRecommendationRepository,
+        service = new HomeRecommendationService(userRepository, homeRecommendationRepository, userProductRepository,
                 new ResultAssembler(productRepository), new JsonUtil(MAPPER));
     }
 
@@ -169,5 +174,48 @@ class HomeRecommendationServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.REGION_NOT_SET);
         verifyNoInteractions(homeRecommendationRepository);
+    }
+
+    // 루틴 점검
+
+    private void givenHomeRoutine(String result) {
+        HomeRecommendation row = BeanUtils.instantiateClass(HomeRecommendation.class);
+        ReflectionTestUtils.setField(row, "userId", userId);
+        ReflectionTestUtils.setField(row, "kind", HomeRecommendationKind.ROUTINE);
+        ReflectionTestUtils.setField(row, "result", result);
+        ReflectionTestUtils.setField(row, "generatedAt", GENERATED);
+        given(homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE)))
+                .willReturn(Optional.of(row));
+    }
+
+    @Test
+    void 루틴_점검은_쓰는_중인_보유_제품을_세고_점검_결과를_꺼낸다() throws Exception {
+        given(userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING)).willReturn(5L);
+        try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ROUTINE.json")) {
+            givenHomeRoutine(new String(in.readAllBytes()));
+        }
+
+        RoutineCheckResponse response = service.getRoutineCheck(userId);
+
+        assertThat(response.isChecked()).isTrue();
+        assertThat(response.getProductCount()).isEqualTo(5);
+        assertThat(response.getPairs()).hasSize(3);
+        assertThat(response.getReplacement()).isNotNull();
+    }
+
+    @Test
+    void 루틴_점검_결과가_없거나_읽을_수_없으면_점검_전이다() {
+        given(userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING)).willReturn(2L);
+        given(homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE)))
+                .willReturn(Optional.empty());
+
+        RoutineCheckResponse empty = service.getRoutineCheck(userId);
+
+        assertThat(empty.isChecked()).isFalse();
+        assertThat(empty.getProductCount()).isEqualTo(2);
+
+        givenHomeRoutine("{깨진 json");
+        assertThat(service.getRoutineCheck(userId).isChecked()).isFalse();
+        verifyNoInteractions(userRepository);
     }
 }
