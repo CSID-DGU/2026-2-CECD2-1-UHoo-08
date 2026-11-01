@@ -5,12 +5,14 @@ import com.capstone.backend.common.config.HwadamProperties.EnvThresholds;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.home.dto.response.EnvironmentDailyResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.SeasonChange;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Stats;
 import com.capstone.backend.domain.home.entity.EnvDaily;
 import com.capstone.backend.domain.home.entity.HomeRecommendation;
+import com.capstone.backend.domain.home.enums.EnvMetric;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.repository.EnvDailyRepository;
 import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
@@ -34,7 +36,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 
 /**
- * 사용자 지역의 최근 4주 환경 요약.
+ * 사용자 지역의 최근 4주 환경 요약과 지표별 일별 추이.
  *
  * 하루 환경 집계는 AI 가 쓰고 BE 는 읽어서 센다. 관측이 없는 날(sample_count=0)은 "괜찮은 날"로 세지 않도록 아예 뺀다.
  * 환경이 요구하는 제품 조건과 보유 제품이 채우는지는 AI 홈 환경 추천 결과에서 읽는다.
@@ -63,11 +65,7 @@ public class EnvironmentService {
     }
 
     EnvironmentSummaryResponse getSummary(UUID userId, LocalDate today) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        if (user.getRegion() == null || user.getRegion().isBlank()) {
-            throw new BusinessException(ErrorCode.REGION_NOT_SET);
-        }
+        User user = userWithRegion(userId);
 
         LocalDate periodStart = today.minusDays(PERIOD_DAYS - 1);
         List<EnvDaily> rows = envDailyRepository.findByRegionAndDateBetween(user.getRegion(), periodStart, today);
@@ -89,6 +87,31 @@ public class EnvironmentService {
                 (int) conditions.stream().filter(condition -> !condition.isCovered()).count(),
                 rows.stream().map(EnvDaily::getUpdatedAt).filter(Objects::nonNull)
                         .max(Comparator.naturalOrder()).orElse(null));
+    }
+
+    /** 오늘을 포함해 거슬러 올라간 days 일(1~28) 동안의 지표 값. 기간이 범위 밖이면 VALIDATION_ERROR, 지역이 없으면 REGION_NOT_SET */
+    @Transactional(readOnly = true)
+    public EnvironmentDailyResponse getDaily(UUID userId, EnvMetric metric, int days) {
+        return getDaily(userId, metric, days, LocalDate.now(hwadamProperties.getBatch().getZone()));
+    }
+
+    EnvironmentDailyResponse getDaily(UUID userId, EnvMetric metric, int days, LocalDate today) {
+        if (days < 1 || days > PERIOD_DAYS) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        User user = userWithRegion(userId);
+        LocalDate start = today.minusDays(days - 1);
+        return EnvironmentDailyBuilder.build(metric, start, today,
+                envDailyRepository.findByRegionAndDateBetween(user.getRegion(), start, today), hwadamProperties.getEnv());
+    }
+
+    private User userWithRegion(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        if (user.getRegion() == null || user.getRegion().isBlank()) {
+            throw new BusinessException(ErrorCode.REGION_NOT_SET);
+        }
+        return user;
     }
 
     private Stats stats(List<EnvDaily> observed) {

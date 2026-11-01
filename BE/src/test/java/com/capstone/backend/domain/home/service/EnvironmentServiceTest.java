@@ -4,10 +4,12 @@ import com.capstone.backend.common.config.HwadamProperties;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.home.dto.response.EnvironmentDailyResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
 import com.capstone.backend.domain.home.entity.EnvDaily;
 import com.capstone.backend.domain.home.entity.HomeRecommendation;
+import com.capstone.backend.domain.home.enums.EnvMetric;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.repository.EnvDailyRepository;
 import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
@@ -244,5 +246,41 @@ class EnvironmentServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.REGION_NOT_SET);
         verifyNoInteractions(envDailyRepository, homeRecommendationRepository);
+    }
+
+    // 일별 추이
+
+    @Test
+    void 일별_추이는_오늘을_포함해_요청한_날_수만큼_지역_기록을_읽는다() {
+        givenUser("경기", "고양시 덕양구");
+        given(envDailyRepository.findByRegionAndDateBetween("경기", TODAY.minusDays(6), TODAY))
+                .willReturn(List.of(day(TODAY, 24, null, 7f, null, null)));
+
+        EnvironmentDailyResponse response = service.getDaily(userId, EnvMetric.UV, 7, TODAY);
+
+        assertThat(response.getMetric()).isEqualTo(EnvMetric.UV);
+        assertThat(response.getDays()).hasSize(7);
+        assertThat(response.getDays().get(0).getDate()).isEqualTo(TODAY.minusDays(6));
+        assertThat(response.getDays().get(6).getValue()).isEqualTo(7f);
+    }
+
+    @Test
+    void 일별_추이_기간이_1에서_28일_밖이면_VALIDATION_ERROR다() {
+        for (int days : new int[]{0, 29}) {
+            assertThatThrownBy(() -> service.getDaily(userId, EnvMetric.UV, days, TODAY))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+        }
+        verifyNoInteractions(userRepository, envDailyRepository);
+    }
+
+    @Test
+    void 일별_추이도_지역이_없으면_REGION_NOT_SET이다() {
+        givenUser(" ", null);
+
+        assertThatThrownBy(() -> service.getDaily(userId, EnvMetric.UV, 28, TODAY))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.REGION_NOT_SET);
+        verifyNoInteractions(envDailyRepository);
     }
 }
