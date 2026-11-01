@@ -60,6 +60,7 @@ class SchedulingConfigTest {
             assertThat(env.getUvHigh()).isEqualTo(6f);
             assertThat(env.getPm10Bad()).isEqualTo(80f);
             assertThat(env.getPm25Bad()).isEqualTo(35f);
+            assertThat(env.getHumidityLow()).isEqualTo(40f);
             assertThat(env.getHumidityChange()).isEqualTo(15f);
         });
         runner.withPropertyValues("hwadam.env.uv-high=8", "hwadam.env.humidity-change=10").run(context -> {

@@ -3,6 +3,7 @@ package com.capstone.backend.common.exception;
 import com.capstone.backend.common.response.ApiResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
@@ -23,6 +24,15 @@ class GlobalExceptionHandlerTest {
     void 요청_값을_타입으로_바꾸지_못하면_422_VALIDATION_ERROR로_응답한다() {
         ResponseEntity<ApiResponse<Void>> response = new GlobalExceptionHandler().handleTypeMismatchException(
                 new MethodArgumentTypeMismatchException("abc", Integer.class, "page", null, new NumberFormatException()));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(422);
+        assertThat(response.getBody().getError().getCode()).isEqualTo("VALIDATION_ERROR");
+    }
+
+    @Test
+    void 필수_쿼리_값이_빠지면_422_VALIDATION_ERROR로_응답한다() {
+        ResponseEntity<ApiResponse<Void>> response = new GlobalExceptionHandler().handleMissingParameterException(
+                new MissingServletRequestParameterException("metric", "EnvMetric"));
 
         assertThat(response.getStatusCode().value()).isEqualTo(422);
         assertThat(response.getBody().getError().getCode()).isEqualTo("VALIDATION_ERROR");

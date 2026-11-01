@@ -76,6 +76,10 @@ public class HwadamProperties {
         @NotNull
         private Float pm25Bad = 35f;
 
+        /** 습도 평균(%)이 이 값보다 낮으면 건조한 날 */
+        @NotNull
+        private Float humidityLow = 40f;
+
         /** 최근 7일 평균 습도가 3주 전 7일 평균과 이만큼(%p) 이상 다르면 계절이 바뀌는 것으로 본다 */
         @NotNull
         private Float humidityChange = 15f;
