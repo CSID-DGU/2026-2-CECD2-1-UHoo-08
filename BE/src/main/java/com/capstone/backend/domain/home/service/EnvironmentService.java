@@ -151,7 +151,7 @@ public class EnvironmentService {
         try {
             return jsonUtil.readTree(json);
         } catch (BusinessException e) {
-            log.warn("[Environment] 홈 환경 추천 결과를 읽지 못해 조건을 비워 둔다: userId={}", userId);
+            log.warn("[Environment] 홈 환경 추천 결과를 읽지 못해 조건을 비워 둔다: userId={}", userId, e);
             return MissingNode.getInstance();
         }
     }
