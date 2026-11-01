@@ -6,6 +6,8 @@ import com.capstone.backend.common.exception.GlobalExceptionHandler;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.CoveredCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.MissingCondition;
+import com.capstone.backend.domain.home.dto.response.RoutineCheckResponse;
+import com.capstone.backend.domain.home.service.RoutineCheckBuilder;
 import com.capstone.backend.domain.home.enums.HomeRecommendationState;
 import com.capstone.backend.domain.home.service.HomeRecommendationService;
 import com.capstone.backend.domain.product.repository.ProductRepository;
@@ -128,5 +130,48 @@ class HomeRecommendationControllerTest {
         mockMvc.perform(get("/home/recommendations/environment"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("REGION_NOT_SET"));
+    }
+
+    // 루틴 점검
+
+    @Test
+    void 루틴_점검은_점검_여부_개수_쌍_대체_제안_사용_순서를_내린다() throws Exception {
+        RoutineCheckResponse response;
+        try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ROUTINE.json")) {
+            response = RoutineCheckBuilder.build(new ObjectMapper().readTree(in), 5);
+        }
+        given(homeRecommendationService.getRoutineCheck(userId)).willReturn(response);
+
+        mockMvc.perform(get("/home/routine-check"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checked").value(true))
+                .andExpect(jsonPath("$.data.productCount").value(5))
+                .andExpect(jsonPath("$.data.counts.ok").value(7))
+                .andExpect(jsonPath("$.data.counts.separate").value(2))
+                .andExpect(jsonPath("$.data.counts.avoid").value(1))
+                .andExpect(jsonPath("$.data.pairs[0].level").value("AVOID"))
+                .andExpect(jsonPath("$.data.pairs[0].a.name").value("레티놀 앰플"))
+                .andExpect(jsonPath("$.data.pairs[0].b.userProductId").value("aaaaaaaa-0000-0000-0000-000000000005"))
+                .andExpect(jsonPath("$.data.pairs[0].title").value("같이 쓰지 마세요"))
+                .andExpect(jsonPath("$.data.replacement.replaceTarget.name").value("비타민C 세럼"))
+                .andExpect(jsonPath("$.data.replacement.items[0].totalScore").value(84))
+                .andExpect(jsonPath("$.data.schedule.evening[1]").value("레티놀 앰플"))
+                .andExpect(jsonPath("$.data.schedule.tip").value("AHA 먼저, 레티놀은 하루 걸러 쓰세요"))
+                .andExpect(jsonPath("$.data.uncomparedCount").value(1));
+    }
+
+    @Test
+    void 아직_점검_전이면_checked_false와_빈_값을_내린다() throws Exception {
+        given(homeRecommendationService.getRoutineCheck(userId)).willReturn(
+                RoutineCheckBuilder.build(MissingNode.getInstance(), 3));
+
+        mockMvc.perform(get("/home/routine-check"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checked").value(false))
+                .andExpect(jsonPath("$.data.productCount").value(3))
+                .andExpect(jsonPath("$.data.pairs").isEmpty())
+                .andExpect(content().string(containsString("\"replacement\":null")))
+                .andExpect(jsonPath("$.data.schedule.morning").isEmpty())
+                .andExpect(content().string(containsString("\"tip\":null")));
     }
 }
