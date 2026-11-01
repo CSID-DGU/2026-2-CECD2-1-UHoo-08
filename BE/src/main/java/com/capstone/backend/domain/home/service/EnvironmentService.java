@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.UUID;
 
@@ -72,7 +73,9 @@ public class EnvironmentService {
         List<EnvDaily> rows = envDailyRepository.findByRegionAndDateBetween(user.getRegion(), periodStart, today);
         List<EnvDaily> observed = rows.stream().filter(day -> day.getSampleCount() > 0).toList();
 
-        List<Condition> conditions = conditions(userId);
+        Optional<HomeRecommendation> recommendation = homeRecommendationRepository.findById(
+                new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV));
+        List<Condition> conditions = recommendation.map(found -> conditions(found, userId)).orElseGet(List::of);
         return new EnvironmentSummaryResponse(
                 user.getRegionLabel() != null ? user.getRegionLabel() : user.getRegion(),
                 periodStart,
@@ -80,6 +83,7 @@ public class EnvironmentService {
                 observed.size(),
                 stats(observed),
                 seasonChange(observed, today),
+                recommendation.isPresent(),
                 conditions,
                 (int) conditions.stream().filter(condition -> !condition.isCovered()).count(),
                 rows.stream().map(EnvDaily::getUpdatedAt).filter(Objects::nonNull)
@@ -125,13 +129,11 @@ public class EnvironmentService {
         return days.stream().map(EnvDaily::getHumidityAvg).filter(Objects::nonNull).mapToDouble(Float::doubleValue).average();
     }
 
-    /** AI 홈 환경 추천 결과의 조건 목록. 아직 돌지 않았거나 조건 블록이 없으면 빈 목록 */
-    private List<Condition> conditions(UUID userId) {
-        JsonNode items = homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV))
-                .map(recommendation -> readTree(recommendation.getResult(), userId).path("conditions"))
-                .orElse(null);
+    /** AI 홈 환경 추천 결과의 조건 목록. 조건 블록이 없으면 빈 목록 */
+    private List<Condition> conditions(HomeRecommendation recommendation, UUID userId) {
+        JsonNode items = readTree(recommendation.getResult(), userId).path("conditions");
         List<Condition> conditions = new ArrayList<>();
-        if (items == null || !items.isArray()) {
+        if (!items.isArray()) {
             return conditions;
         }
         items.forEach(item -> {

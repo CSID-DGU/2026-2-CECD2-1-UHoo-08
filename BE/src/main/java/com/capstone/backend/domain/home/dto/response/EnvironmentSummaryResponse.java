@@ -20,6 +20,8 @@ public class EnvironmentSummaryResponse {
     private Stats stats;
     /** 계절이 바뀌는 중이 아니면 null */
     private SeasonChange seasonChange;
+    /** AI 홈 환경 추천이 돌았는지. false 면 아직 분석 전이라 conditions 가 비어 있다 */
+    private boolean recommendationAvailable;
     private List<Condition> conditions;
     /** 보유 제품이 채우지 못한 조건 수 */
     private int missingCount;

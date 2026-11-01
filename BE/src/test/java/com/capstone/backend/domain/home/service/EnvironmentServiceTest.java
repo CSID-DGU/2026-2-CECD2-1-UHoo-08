@@ -110,6 +110,7 @@ class EnvironmentServiceTest {
         assertThat(response.getStats().getDustBadDays()).isEqualTo(2);
         assertThat(response.getStats().getAvgHumidity()).isEqualTo(41);
         assertThat(response.getUpdatedAt()).isEqualTo(UPDATED);
+        assertThat(response.isRecommendationAvailable()).isFalse();
         assertThat(response.getConditions()).isEmpty();
         assertThat(response.getMissingCount()).isZero();
     }
@@ -189,6 +190,7 @@ class EnvironmentServiceTest {
 
         EnvironmentSummaryResponse response = service.getSummary(userId, TODAY);
 
+        assertThat(response.isRecommendationAvailable()).isTrue();
         assertThat(response.getConditions())
                 .extracting(Condition::getKey, Condition::isCovered, Condition::getCoveredBy)
                 .containsExactly(
@@ -196,6 +198,22 @@ class EnvironmentServiceTest {
                         tuple("SOOTHING", false, null),
                         tuple("BARRIER", false, null));
         assertThat(response.getMissingCount()).isEqualTo(2);
+    }
+
+    @Test
+    void 홈_환경_추천이_돌았지만_채울_조건이_없으면_추천은_있고_조건은_비어_있다() {
+        givenUser("경기", "고양시 덕양구");
+        givenDays(List.of());
+        HomeRecommendation home = BeanUtils.instantiateClass(HomeRecommendation.class);
+        ReflectionTestUtils.setField(home, "result", "{\"conditions\":[]}");
+        given(homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV)))
+                .willReturn(Optional.of(home));
+
+        EnvironmentSummaryResponse response = service.getSummary(userId, TODAY);
+
+        assertThat(response.isRecommendationAvailable()).isTrue();
+        assertThat(response.getConditions()).isEmpty();
+        assertThat(response.getMissingCount()).isZero();
     }
 
     @Test

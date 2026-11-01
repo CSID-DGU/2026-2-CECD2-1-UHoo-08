@@ -72,6 +72,7 @@ class EnvironmentControllerTest {
                 "고양시 덕양구", LocalDate.of(2026, 8, 20), LocalDate.of(2026, 9, 16), 28,
                 new Stats(22, 14, 41),
                 new SeasonChange("계절이 바뀌고 있어요", "습도가 3주 만에 62% → 41%로 떨어졌어요"),
+                true,
                 List.of(new Condition("SOOTHING", "진정, 항산화", "미세먼지 14일", false, null)),
                 1, null));
 
@@ -85,6 +86,7 @@ class EnvironmentControllerTest {
                 .andExpect(jsonPath("$.data.stats.dustBadDays").value(14))
                 .andExpect(jsonPath("$.data.stats.avgHumidity").value(41))
                 .andExpect(jsonPath("$.data.seasonChange.message").value("습도가 3주 만에 62% → 41%로 떨어졌어요"))
+                .andExpect(jsonPath("$.data.recommendationAvailable").value(true))
                 .andExpect(jsonPath("$.data.conditions[0].key").value("SOOTHING"))
                 .andExpect(jsonPath("$.data.conditions[0].covered").value(false))
                 .andExpect(content().string(containsString("\"coveredBy\":null")))
