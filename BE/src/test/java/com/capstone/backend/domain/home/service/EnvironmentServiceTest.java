@@ -217,6 +217,26 @@ class EnvironmentServiceTest {
     }
 
     @Test
+    void 홈_환경_추천_행이_있어도_조건_블록이_없거나_읽을_수_없으면_분석_전으로_본다() {
+        givenUser("경기", "고양시 덕양구");
+        givenDays(List.of());
+        for (String result : List.of(
+                "{\"jobId\":\"x\",\"scenario\":\"HOME_ENV\",\"query\":{\"conditions\":[\"여름\"]},\"items\":[]}",
+                "{깨진 json")) {
+            HomeRecommendation home = BeanUtils.instantiateClass(HomeRecommendation.class);
+            ReflectionTestUtils.setField(home, "result", result);
+            given(homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV)))
+                    .willReturn(Optional.of(home));
+
+            EnvironmentSummaryResponse response = service.getSummary(userId, TODAY);
+
+            assertThat(response.isRecommendationAvailable()).isFalse();
+            assertThat(response.getConditions()).isEmpty();
+            assertThat(response.getMissingCount()).isZero();
+        }
+    }
+
+    @Test
     void 지역을_설정하지_않았으면_REGION_NOT_SET이다() {
         givenUser(null, null);
 

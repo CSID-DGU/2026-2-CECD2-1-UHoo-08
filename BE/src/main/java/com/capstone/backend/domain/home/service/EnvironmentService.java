@@ -75,7 +75,8 @@ public class EnvironmentService {
 
         Optional<HomeRecommendation> recommendation = homeRecommendationRepository.findById(
                 new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV));
-        List<Condition> conditions = recommendation.map(found -> conditions(found, userId)).orElseGet(List::of);
+        Optional<List<Condition>> found = recommendation.flatMap(row -> conditions(row, userId));
+        List<Condition> conditions = found.orElseGet(List::of);
         return new EnvironmentSummaryResponse(
                 user.getRegionLabel() != null ? user.getRegionLabel() : user.getRegion(),
                 periodStart,
@@ -83,7 +84,7 @@ public class EnvironmentService {
                 observed.size(),
                 stats(observed),
                 seasonChange(observed, today),
-                recommendation.isPresent(),
+                found.isPresent(),
                 conditions,
                 (int) conditions.stream().filter(condition -> !condition.isCovered()).count(),
                 rows.stream().map(EnvDaily::getUpdatedAt).filter(Objects::nonNull)
@@ -129,13 +130,16 @@ public class EnvironmentService {
         return days.stream().map(EnvDaily::getHumidityAvg).filter(Objects::nonNull).mapToDouble(Float::doubleValue).average();
     }
 
-    /** AI 홈 환경 추천 결과의 조건 목록. 조건 블록이 없으면 빈 목록 */
-    private List<Condition> conditions(HomeRecommendation recommendation, UUID userId) {
+    /**
+     * AI 홈 환경 추천 결과의 조건 목록. 결과에 조건 블록이 없거나 읽을 수 없으면 비어 있다.
+     * 조건 블록을 싣기 전의 결과는 행이 있어도 분석 전으로 본다. 빈 목록으로 내리면 채울 조건이 없는 것처럼 보인다.
+     */
+    private Optional<List<Condition>> conditions(HomeRecommendation recommendation, UUID userId) {
         JsonNode items = readTree(recommendation.getResult(), userId).path("conditions");
-        List<Condition> conditions = new ArrayList<>();
         if (!items.isArray()) {
-            return conditions;
+            return Optional.empty();
         }
+        List<Condition> conditions = new ArrayList<>();
         items.forEach(item -> {
             String key = item.path("key").asText(null);
             if (key == null || key.isBlank()) {
@@ -144,7 +148,7 @@ public class EnvironmentService {
             conditions.add(new Condition(key, item.path("label").asText(key), item.path("basis").asText(null),
                     item.path("covered").asBoolean(false), item.path("coveredBy").asText(null)));
         });
-        return conditions;
+        return Optional.of(conditions);
     }
 
     private JsonNode readTree(String json, UUID userId) {

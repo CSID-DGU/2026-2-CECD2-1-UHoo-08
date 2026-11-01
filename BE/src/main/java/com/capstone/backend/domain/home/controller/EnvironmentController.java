@@ -27,7 +27,8 @@ public class EnvironmentController {
             description = "사용자 지역의 최근 4주(오늘 포함 28일) 환경과, 그 환경이 요구하는 제품 조건을 지금 루틴이 채우는지 돌려준다. " +
                     "관측이 없는 날은 세지 않고 dayCount 는 관측이 있는 날 수다. " +
                     "seasonChange 는 최근 7일 평균 습도가 3주 전 7일보다 15%p 이상 다를 때만 있다. " +
-                    "conditions 는 홈 환경 추천 결과에서 읽고, 아직 없으면 빈 배열이다. covered=false 인 것만 '비어 있어요'로 표시하고 개수는 missingCount 를 쓴다. " +
+                    "conditions 는 홈 환경 추천 결과에서 읽는다. 결과에 조건이 아직 실리지 않았으면 recommendationAvailable=false 이고 빈 배열이라 '분석 전'으로 보여 준다. " +
+                    "recommendationAvailable=true 일 때 covered=false 인 것만 '비어 있어요'로 표시하고 개수는 missingCount 를 쓴다. " +
                     "기록이 하나도 없으면 updatedAt 과 stats.avgHumidity 가 null 이다. 지역을 설정하지 않았으면 404 REGION_NOT_SET."
     )
     @GetMapping("/summary")
