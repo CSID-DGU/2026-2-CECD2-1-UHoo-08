@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -153,25 +152,9 @@ public class EnvironmentService {
         return days.stream().map(EnvDaily::getHumidityAvg).filter(Objects::nonNull).mapToDouble(Float::doubleValue).average();
     }
 
-    /**
-     * AI 홈 환경 추천 결과의 조건 목록. 결과에 조건 블록이 없거나 읽을 수 없으면 비어 있다.
-     * 조건 블록을 싣기 전의 결과는 행이 있어도 분석 전으로 본다. 빈 목록으로 내리면 채울 조건이 없는 것처럼 보인다.
-     */
+    /** AI 홈 환경 추천 결과의 조건 목록. 결과에 조건 블록이 없거나 읽을 수 없으면 비어 있다 */
     private Optional<List<Condition>> conditions(HomeRecommendation recommendation, UUID userId) {
-        JsonNode items = readTree(recommendation.getResult(), userId).path("conditions");
-        if (!items.isArray()) {
-            return Optional.empty();
-        }
-        List<Condition> conditions = new ArrayList<>();
-        items.forEach(item -> {
-            String key = item.path("key").asText(null);
-            if (key == null || key.isBlank()) {
-                return;
-            }
-            conditions.add(new Condition(key, item.path("label").asText(key), item.path("basis").asText(null),
-                    item.path("covered").asBoolean(false), item.path("coveredBy").asText(null)));
-        });
-        return Optional.of(conditions);
+        return EnvConditions.parse(readTree(recommendation.getResult(), userId));
     }
 
     private JsonNode readTree(String json, UUID userId) {
