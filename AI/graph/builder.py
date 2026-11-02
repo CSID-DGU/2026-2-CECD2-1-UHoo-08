@@ -2,7 +2,7 @@
 
 노드가 신경 쓰지 않아도 되는 일을 여기서 한다.
 
-    진행률   각 단계 앞에서 "지금 무엇을 하는 중"을 기록한다
+    진행률   각 단계 앞에서 "지금 무엇을 하는 중"과 단계 목록을 기록한다
     trace    지나간 단계를 남긴다. 실패했을 때 어디까지 갔는지 보려면 필요하다
     실패     예외를 잡아 job 을 실패로 남기고 다시 올린다
 
@@ -28,8 +28,8 @@ from graph.state import GraphState
 logger = logging.getLogger(__name__)
 
 Node = Callable[[GraphState], Awaitable[dict]]
-# (화면에 보일 문구, 0~100)
-ProgressHook = Callable[[str, int], Awaitable[None]]
+# (화면에 보일 문구, 0~100, 단계 목록)
+ProgressHook = Callable[[str, int, list[dict]], Awaitable[None]]
 FailHook = Callable[[Exception], Awaitable[None]]
 
 
@@ -57,9 +57,26 @@ def _load(name: str) -> Node | None:
     return fn
 
 
+def 단계_목록(이름들: tuple[str, ...], 지금: int) -> list[dict]:
+    """화면에 보일 단계 목록. 지금 앞은 DONE, 지금은 NOW, 뒤는 TODO 다.
+
+    지금이 목록 길이와 같으면 모두 끝난 것이다.
+    """
+    def 상태(순번: int) -> str:
+        if 순번 < 지금:
+            return "DONE"
+        return "NOW" if 순번 == 지금 else "TODO"
+
+    return [
+        {"key": 이름, "label": NODE_LABELS.get(이름, 이름), "state": 상태(순번)}
+        for 순번, 이름 in enumerate(이름들)
+    ]
+
+
 def _wrap(
     name: str, fn: Node, 순번: int, 전체: int,
     on_progress: ProgressHook | None, 구간: tuple[int, int] = (0, 100),
+    끝난_단계: tuple[str, ...] = (), 단계들: tuple[str, ...] = (),
 ) -> Node:
     문구 = NODE_LABELS.get(name, name)
     stub = fn is _pass_through
@@ -68,13 +85,24 @@ def _wrap(
         if on_progress is not None:
             # 단계를 시작할 때 알린다. 끝나고 알리면 화면이 한 단계 늦는다.
             시작, 끝 = 구간
-            await on_progress(문구, 시작 + round(순번 / 전체 * (끝 - 시작)))
+            await on_progress(
+                문구,
+                시작 + round(순번 / 전체 * (끝 - 시작)),
+                단계_목록(끝난_단계 + 단계들, len(끝난_단계) + 순번),
+            )
         바뀐 = await fn(state)
         자취 = list(state.get("trace", []))
         자취.append(f"{name}(stub)" if stub else name)
         return {**(바뀐 or {}), "trace": 자취}
 
     return 실행
+
+
+def _경로_단계(scenario: str, use_env: bool, include_entry: bool) -> tuple[str, ...]:
+    단계들 = full_path(scenario, use_env=use_env)
+    if not include_entry:
+        단계들 = tuple(s for s in 단계들 if s not in SEARCH_ENTRY)
+    return 단계들
 
 
 def build(
@@ -84,6 +112,7 @@ def build(
     include_entry: bool = True,
     on_progress: ProgressHook | None = None,
     progress_from: int = 0,
+    done_steps: tuple[str, ...] = (),
 ):
     """시나리오 하나를 실행할 수 있는 그래프로 만든다.
 
@@ -92,10 +121,11 @@ def build(
 
     progress_from 은 진행률의 시작점이다. 관문을 먼저 돌린 뒤 경로를 도는
     경우, 0 부터 다시 세면 화면의 막대가 뒤로 돌아간다.
+
+    done_steps 는 이 그래프 앞에서 이미 끝난 단계다. 단계 목록의 앞에 끝난
+    것으로 싣는다. 그래프에는 넣지 않는다.
     """
-    단계들 = full_path(scenario, use_env=use_env)
-    if not include_entry:
-        단계들 = tuple(s for s in 단계들 if s not in SEARCH_ENTRY)
+    단계들 = _경로_단계(scenario, use_env, include_entry)
 
     중복 = [s for s in 단계들 if 단계들.count(s) > 1]
     if 중복:
@@ -111,7 +141,9 @@ def build(
         if 구현 is None:
             logger.info("노드 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
             구현 = _pass_through
-        그래프.add_node(이름, _wrap(이름, 구현, 순번, 전체, on_progress, (progress_from, 100)))
+        그래프.add_node(이름, _wrap(
+            이름, 구현, 순번, 전체, on_progress, (progress_from, 100), done_steps, 단계들,
+        ))
         그래프.add_edge(이전, 이름)
         이전 = 이름
     그래프.add_edge(이전, END)
@@ -126,6 +158,7 @@ async def run_scenario(
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
     progress_from: int = 0,
+    done_steps: tuple[str, ...] = (),
 ) -> GraphState:
     """경로 하나를 끝까지 돌린다.
 
@@ -144,6 +177,7 @@ async def run_scenario(
         include_entry=include_entry,
         on_progress=on_progress,
         progress_from=progress_from,
+        done_steps=done_steps,
     )
 
     try:
@@ -156,7 +190,8 @@ async def run_scenario(
         raise
 
     if on_progress is not None:
-        await on_progress("완료", 100)
+        전체_단계 = done_steps + _경로_단계(scenario, use_env, include_entry)
+        await on_progress("완료", 100, 단계_목록(전체_단계, len(전체_단계)))
     return 결과
 
 
@@ -175,6 +210,7 @@ async def run_query(
     관문(Normalize·Router)은 그래프 안에 넣을 수 없다. 빌더는 시나리오를
     알아야 경로를 조립하는데, 그 시나리오를 정하는 것이 라우터이기 때문이다.
     그래서 관문을 먼저 돌리고, 나온 시나리오로 경로를 조립한다.
+    단계 목록도 같은 이유로 관문 동안에는 관문만 싣고, 경로가 정해지면 이어서 싣는다.
 
     되물어야 하는 질의면 경로를 돌지 않고 돌아온다. 부른 쪽이 job 을
     멈춘 상태로 남기고 사용자의 답을 기다린다.
@@ -188,7 +224,9 @@ async def run_query(
             if 구현 is None:
                 logger.info("관문 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
                 구현 = _pass_through
-            단계 = _wrap(이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간))
+            단계 = _wrap(
+                이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간), (), SEARCH_ENTRY,
+            )
             상태.update(await 단계(상태))
     except Exception as e:
         logger.exception("관문 실행 실패")
@@ -206,6 +244,7 @@ async def run_query(
         on_progress=on_progress,
         on_fail=on_fail,
         progress_from=관문_구간,
+        done_steps=SEARCH_ENTRY,
     )
 
 

@@ -77,7 +77,7 @@ async def test_노드가_터지면_알리고_그대로_올린다(monkeypatch):
 async def test_진행률은_단계_시작에_알리고_끝에_100이_된다():
     기록: list[tuple[str, int]] = []
 
-    async def hook(문구, 비율):
+    async def hook(문구, 비율, 단계들):
         기록.append((문구, 비율))
 
     await run_scenario("S2_SEARCH", on_progress=hook)
@@ -96,7 +96,7 @@ async def test_실패하면_100을_알리지_않는다(monkeypatch):
     monkeypatch.setattr(builder, "_load", lambda name: 망가진 if name == "retrieve" else None)
     기록: list[tuple[str, int]] = []
 
-    async def hook(문구, 비율):
+    async def hook(문구, 비율, 단계들):
         기록.append((문구, 비율))
 
     with pytest.raises(RuntimeError):
@@ -152,9 +152,85 @@ async def test_진행률이_관문에서_경로로_이어진다(monkeypatch):
     monkeypatch.setattr(builder, "_load", lambda name: None)
     기록: list[int] = []
 
-    async def hook(문구, 비율):
+    async def hook(문구, 비율, 단계들):
         기록.append(비율)
 
     await builder.run_query({"raw_query": "쿠션"}, on_progress=hook)
     assert 기록 == sorted(기록)
     assert 기록[-1] == 100
+
+
+def _상태들(단계들):
+    return [(단계["key"], 단계["state"]) for 단계 in 단계들]
+
+
+def test_단계_목록은_끝난_것_지금_것_남은_것을_나눈다():
+    assert builder.단계_목록(("normalize", "router", "retrieve"), 1) == [
+        {"key": "normalize", "label": "요청 이해", "state": "DONE"},
+        {"key": "router", "label": "경로 결정", "state": "NOW"},
+        {"key": "retrieve", "label": "조건에 맞는 상품 찾기", "state": "TODO"},
+    ]
+
+
+def test_단계_목록의_지금이_길이와_같으면_모두_끝난_것이다():
+    assert _상태들(builder.단계_목록(("normalize", "router"), 2)) == [
+        ("normalize", "DONE"), ("router", "DONE"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_관문_동안에는_관문만_싣고_경로가_정해지면_이어서_싣는다(monkeypatch):
+    """라우터를 지나기 전에는 어느 경로로 갈지 모른다."""
+    async def router(state):
+        return {"scenario": "S2_SEARCH"}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+    기록: list[list[dict]] = []
+
+    async def hook(문구, 비율, 단계들):
+        기록.append(단계들)
+
+    await builder.run_query({"raw_query": "쿠션"}, on_progress=hook)
+
+    assert _상태들(기록[0]) == [("normalize", "NOW"), ("router", "TODO")]
+    assert _상태들(기록[1]) == [("normalize", "DONE"), ("router", "NOW")]
+    경로 = ["retrieve", "inventory", "prefilter", "score", "collaborative", "compose", "guard"]
+    assert [단계["key"] for 단계 in 기록[2]] == ["normalize", "router", *경로]
+    assert 기록[2][0]["state"] == "DONE" and 기록[2][1]["state"] == "DONE"
+    assert 기록[2][2]["state"] == "NOW"
+    assert {단계["state"] for 단계 in 기록[2][3:]} == {"TODO"}
+    # 도는 동안 지금 단계는 하나이고, 끝나면 모두 DONE 이다
+    assert all(sum(단계["state"] == "NOW" for 단계 in 단계들) == 1 for 단계들 in 기록[:-1])
+    assert {단계["state"] for 단계 in 기록[-1]} == {"DONE"}
+    assert len(기록[-1]) == 9
+
+
+@pytest.mark.asyncio
+async def test_되묻는_경로는_관문_단계에서_멈춘다(monkeypatch):
+    async def router(state):
+        return {"scenario": "S2_SEARCH", "clarify_question": "예산이 얼마인가요?"}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+    기록: list[list[dict]] = []
+
+    async def hook(문구, 비율, 단계들):
+        기록.append(단계들)
+
+    await builder.run_query({"raw_query": "세트"}, on_progress=hook)
+    assert _상태들(기록[-1]) == [("normalize", "DONE"), ("router", "NOW")]
+
+
+@pytest.mark.asyncio
+async def test_실패하면_실패한_단계가_지금_단계로_남는다(monkeypatch):
+    async def 망가진(state):
+        raise RuntimeError("실패")
+
+    monkeypatch.setattr(builder, "_load", lambda name: 망가진 if name == "inventory" else None)
+    기록: list[list[dict]] = []
+
+    async def hook(문구, 비율, 단계들):
+        기록.append(단계들)
+
+    with pytest.raises(RuntimeError):
+        await run_scenario("S2_SEARCH", on_progress=hook)
+    assert _상태들(기록[-1])[:2] == [("retrieve", "DONE"), ("inventory", "NOW")]
