@@ -1,7 +1,35 @@
 {
   "bundle": {
-    "type": "BALANCED",
-    "total": 48000
+    "label": "균형형",
+    "totalPrice": 48000,
+    "items": [
+      {
+        "productId": "11111111-1111-1111-1111-111111111111",
+        "name": "수분 토너",
+        "brand": "라운드랩",
+        "imageUrl": "https://storage.example.com/products/toner.jpg",
+        "price": 48000,
+        "totalScore": 82,
+        "breakdown": [
+          {
+            "key": "budget_fit",
+            "label": "예산 적합",
+            "score": 90.0,
+            "weight": 0.3
+          }
+        ],
+        "badges": [
+          {
+            "type": "ENV",
+            "text": "요즘 건조해요"
+          }
+        ],
+        "reason": "예산 안에서 점수가 가장 높아요",
+        "change": null,
+        "rankDelta": null
+      }
+    ],
+    "overBudgetReason": null
   },
   "stub": false
 }
