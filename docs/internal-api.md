@@ -7,6 +7,7 @@ BE 가 AI 서버를 부르는 경로 목록이다. 값의 정확한 모양은 �
 - BE: `BE/.../common/ai/dto/AiInternalDtos.java`
 
 경로별 요청과 응답 예시는 `docs/internal-api-fixtures/` 에 있다. 계약을 바꿀 때는 예시를 먼저 고치고 코드를 고친다.
+AI 는 `AI/tests/v2/test_internal_api_fixtures.py`, BE 는 `AiContractTest` 로 같은 예시를 자기 계약과 비교한다.
 
 ## 경로
 
