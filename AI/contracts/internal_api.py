@@ -62,14 +62,27 @@ class Accepted(WireModel):
 
 # ── POST /internal/agent/run/v2 ───────────────────────────────
 class AgentRunV2Request(WireModel):
+    """추천 실행 요청. 질의와 기준 상품 중 하나는 있어야 한다.
+
+    기준 상품이 있으면 무엇을 평가할지 이미 아는 요청이다. 문장을 해석하지
+    않고 평가 경로로 바로 간다. 질의가 함께 와도 조건으로 읽지 않는다.
+    """
+
     job_id: str = Field(min_length=1)
     user_id: str = Field(min_length=1)
-    raw_query: str = Field(min_length=1)
+    raw_query: str | None = Field(default=None, min_length=1)
+    base_product_id: str | None = Field(default=None, min_length=1)
     # 추천 기준. OTHER 면 target_profile 이 함께 온다.
     basis: Target = Target.SELF
     target_profile: dict | None = None
     # 조건 수정이면 직전 job. 그 job 의 스냅샷에서 조건과 후보를 복원한다.
     parent_job_id: str | None = None
+
+    @model_validator(mode="after")
+    def _질의나_기준_상품이_있다(self) -> "AgentRunV2Request":
+        if self.raw_query is None and self.base_product_id is None:
+            raise ValueError("rawQuery 와 baseProductId 중 하나는 있어야 한다")
+        return self
 
 
 # ── POST /internal/agent/clarify ──────────────────────────────

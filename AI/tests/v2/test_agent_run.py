@@ -107,6 +107,14 @@ async def test_질의를_그대로_넘긴다(기록, 실행대역):
 
 
 @pytest.mark.asyncio
+async def test_기준_상품을_넘기고_빠진_질의는_빈_문자열로_둔다(기록, 실행대역):
+    받은 = 실행대역({"result": {}})
+    await agent._실행(AgentRunV2Request(job_id="j1", user_id="u1", base_product_id="p1"))
+    assert 받은["base_product_id"] == "p1"
+    assert 받은["raw_query"] == ""
+
+
+@pytest.mark.asyncio
 async def test_되물어야_하면_멈춘_상태로_남긴다(기록, 실행대역):
     """되묻는 중은 실패가 아니다. 이 상태의 job 을 정리하면 답을 받아도
     이어 돌릴 수 없다."""
