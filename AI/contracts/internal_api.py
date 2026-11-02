@@ -9,7 +9,7 @@ BE 는 이 모양에 맞춰 호출부를 먼저 만들고, AI 는 내용을 나�
 """
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from contracts.query_spec import Target
@@ -80,10 +80,21 @@ class AgentClarifyRequest(WireModel):
 
 # ── POST /internal/products/recognize-photos ──────────────────
 class RecognizePhotosRequest(WireModel):
-    """사진 두 장. 제품명 면은 필수, 기한 면은 선택이다."""
+    """제품명 면과 기한 면 사진. 둘 중 하나는 있어야 한다.
 
-    name_image: str = Field(min_length=1)  # 업로드된 이미지 URL
-    date_image: str | None = None
+    기한 면만 나중에 찍으면 제품명 면을 보내지 않는다. 함께 보내면 이미 읽은
+    제품명을 한 번 더 읽게 된다.
+    """
+
+    # 업로드된 이미지 URL
+    name_image: str | None = Field(default=None, min_length=1)
+    date_image: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _사진이_하나는_있다(self) -> "RecognizePhotosRequest":
+        if self.name_image is None and self.date_image is None:
+            raise ValueError("nameImage 와 dateImage 중 하나는 있어야 한다")
+        return self
 
 
 class ProductCandidate(WireModel):

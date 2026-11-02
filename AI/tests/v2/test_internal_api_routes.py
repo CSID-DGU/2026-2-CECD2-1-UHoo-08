@@ -76,6 +76,17 @@ def test_인식_응답이_계약과_같다():
     assert 결과.candidates == [] and 결과.expiry_date is None
 
 
+def test_기한_사진만_보내도_인식_경로가_응답한다():
+    응답 = client.post("/internal/products/recognize-photos",
+                       json={"nameImage": None, "dateImage": "https://x/d.jpg"})
+    assert 응답.status_code == 200
+    assert RecognizePhotosResponse.model_validate(응답.json()).candidates == []
+
+
+def test_사진이_하나도_없으면_인식_경로가_거부한다():
+    assert client.post("/internal/products/recognize-photos", json={}).status_code == 422
+
+
 _추천_경로 = [
     ("/internal/agent/run/v2", {"jobId": "j1", "userId": "u1", "rawQuery": "여름 쿠션"}, "_실행"),
     ("/internal/agent/clarify", {"jobId": "j1", "answer": "3만원"}, "_이어_돌리기"),

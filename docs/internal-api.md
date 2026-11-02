@@ -14,7 +14,7 @@ BE 가 AI 서버를 부르는 경로 목록이다. 값의 정확한 모양은 �
 | --- | --- | --- | --- | --- |
 | `POST /internal/agent/run/v2` | 비동기 202 | `jobId` `userId` `rawQuery` `basis` `targetProfile?` `parentJobId?` | `Accepted` | 검색, 조건 수정 |
 | `POST /internal/agent/clarify` | 비동기 202 | `jobId` `answer` | `Accepted` | 되묻기 답변 |
-| `POST /internal/products/recognize-photos` | 동기 | `nameImage` `dateImage?` | `candidates[]` `expiryDate?` `paoMonths?` `mfgDate?` `raw` | 사진 등록 |
+| `POST /internal/products/recognize-photos` | 동기 | `nameImage?` `dateImage?` (둘 중 하나 필수) | `candidates[]` `expiryDate?` `paoMonths?` `mfgDate?` `raw` | 사진 등록 |
 | `POST /internal/home/run` | 비동기 202 | `userId` `kind` | `Accepted` | 홈 카드 일일 배치 |
 | `POST /internal/bundle/swap` | 동기 | `jobId` `bundleIndex` `slot` `productId` | `bundle` | 예산 세트 교체 |
 | `GET /internal/trends` | 동기 | `limit` | `items[]` | 홈 '요즘 뜨는 제품' |
