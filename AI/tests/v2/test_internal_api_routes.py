@@ -65,7 +65,18 @@ def test_아직_stub임을_알린다(경로, 본문, _):
 def test_잘못된_요청은_422다():
     """BE 가 옛 필드 이름으로 보내면 조용히 무시되지 않는다."""
     응답 = client.post("/internal/agent/run/v2",
+                       json={"jobId": "j1", "userId": "u1", "productCode": "p1"})
+    assert 응답.status_code == 422
+
+
+def test_기준_상품만_보내도_추천_실행_경로가_받는다():
+    응답 = client.post("/internal/agent/run/v2",
                        json={"jobId": "j1", "userId": "u1", "baseProductId": "p1"})
+    assert 응답.status_code == 202
+
+
+def test_질의도_기준_상품도_없으면_422다():
+    응답 = client.post("/internal/agent/run/v2", json={"jobId": "j1", "userId": "u1"})
     assert 응답.status_code == 422
 
 

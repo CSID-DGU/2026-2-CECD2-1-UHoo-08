@@ -23,6 +23,9 @@ class GraphState(TypedDict, total=False):
     # 조건 수정(S7)일 때 직전 job. 그 job의 스냅샷에서 후보와 조건을 복원한다.
     parent_job_id: str | None
     raw_query: str
+    # 상품 상세에서 온 요청의 기준 상품. 있으면 빌더가 Normalize 와 Router 를
+    # 건너뛰고 query_spec 의 base_product_ref 로 옮겨 평가 경로를 돈다.
+    base_product_id: str | None
     # Normalize 출력. contracts.query_spec.QuerySpec 을 dump 한 dict.
     query_spec: dict
     # Router 출력. graph.registry.SCENARIOS 의 키.

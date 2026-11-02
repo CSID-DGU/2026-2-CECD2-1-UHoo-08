@@ -160,6 +160,70 @@ async def test_진행률이_관문에서_경로로_이어진다(monkeypatch):
     assert 기록[-1] == 100
 
 
+@pytest.mark.asyncio
+async def test_기준_상품이_있으면_관문_없이_평가_경로를_돈다(monkeypatch):
+    """해석할 문장이 없으므로 LLM 도, 되묻기도 없어야 한다."""
+    불린: list[str] = []
+
+    def 찾기(이름):
+        불린.append(이름)
+        return None
+
+    monkeypatch.setattr(builder, "_load", 찾기)
+
+    결과 = await builder.run_query({"base_product_id": "p1", "raw_query": ""})
+
+    assert 결과["scenario"] == "S1_EVALUATE"
+    assert "normalize" not in 불린 and "router" not in 불린
+    assert 결과["trace"][0] == "discovery(stub)"
+    assert not 결과.get("clarify_question")
+
+
+@pytest.mark.asyncio
+async def test_기준_상품과_추천_기준을_해석_결과_자리에_채운다(monkeypatch):
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+
+    결과 = await builder.run_query({"base_product_id": "p1", "basis": "POPULAR"})
+
+    assert 결과["query_spec"]["request_type"] == "EVALUATE"
+    assert 결과["query_spec"]["base_product_ref"] == "p1"
+    assert 결과["query_spec"]["target"] == "POPULAR"
+
+
+@pytest.mark.asyncio
+async def test_기준_상품_평가의_단계_목록에_관문이_없다(monkeypatch):
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+    기록: list[list[dict]] = []
+    비율들: list[int] = []
+
+    async def hook(문구, 비율, 단계들):
+        기록.append(단계들)
+        비율들.append(비율)
+
+    await builder.run_query({"base_product_id": "p1"}, on_progress=hook)
+
+    assert 기록[0][0] == {"key": "discovery", "label": builder.NODE_LABELS["discovery"], "state": "NOW"}
+    assert {단계["key"] for 단계 in 기록[0]}.isdisjoint({"normalize", "router"})
+    assert {단계["state"] for 단계 in 기록[-1]} == {"DONE"}
+    assert 비율들 == sorted(비율들) and 비율들[-1] == 100
+
+
+@pytest.mark.asyncio
+async def test_기준_상품_평가가_실패하면_실패를_알리고_올린다(monkeypatch):
+    async def 터짐(state):
+        raise RuntimeError("없는 상품")
+
+    monkeypatch.setattr(builder, "_load", lambda name: 터짐 if name == "discovery" else None)
+    받은: list[Exception] = []
+
+    async def 실패(e):
+        받은.append(e)
+
+    with pytest.raises(RuntimeError):
+        await builder.run_query({"base_product_id": "p1"}, on_fail=실패)
+    assert len(받은) == 1
+
+
 def _상태들(단계들):
     return [(단계["key"], 단계["state"]) for 단계 in 단계들]
 

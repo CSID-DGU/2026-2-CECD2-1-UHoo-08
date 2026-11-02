@@ -22,7 +22,9 @@ from contracts.internal_api import (
 def test_BE로_나갈_때_camelCase가_된다():
     요청 = AgentRunV2Request(job_id="j1", user_id="u1", raw_query="여름 쿠션")
     나감 = 요청.model_dump(mode="json", by_alias=True)
-    assert set(나감) == {"jobId", "userId", "rawQuery", "basis", "targetProfile", "parentJobId"}
+    assert set(나감) == {
+        "jobId", "userId", "rawQuery", "baseProductId", "basis", "targetProfile", "parentJobId",
+    }
 
 
 def test_job_상태값이_컬럼_길이에_들어간다():
@@ -78,7 +80,29 @@ def test_사진이_하나도_없으면_거부한다(본문):
 def test_모르는_필드를_거부한다():
     """BE 가 옛 이름으로 보내면 조용히 무시되는 대신 400 이 난다."""
     with pytest.raises(ValidationError):
-        AgentRunV2Request(job_id="j1", user_id="u1", raw_query="q", baseProductId="p1")
+        AgentRunV2Request(job_id="j1", user_id="u1", raw_query="q", productCode="p1")
+
+
+@pytest.mark.parametrize("값", [
+    {"rawQuery": "여름 쿠션"},
+    {"baseProductId": "p1"},
+    {"rawQuery": None, "baseProductId": "p1"},
+    {"rawQuery": "이 제품 어때", "baseProductId": "p1"},
+])
+def test_질의나_기준_상품_중_하나면_받는다(값):
+    AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
+
+
+@pytest.mark.parametrize("값", [
+    {},
+    {"rawQuery": None, "baseProductId": None},
+    {"rawQuery": ""},
+    {"baseProductId": ""},
+    {"rawQuery": "여름 쿠션", "baseProductId": ""},
+])
+def test_질의와_기준_상품이_모두_없거나_빈_값이면_거부한다(값):
+    with pytest.raises(ValidationError):
+        AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
 
 
 def test_홈은_두_종류만_받는다():

@@ -22,7 +22,8 @@ from typing import Awaitable, Callable
 
 from langgraph.graph import END, START, StateGraph
 
-from graph.registry import NODE_LABELS, SEARCH_ENTRY, full_path
+from contracts.query_spec import QuerySpec, RequestType, Target
+from graph.registry import NODE_LABELS, ROUTE, SEARCH_ENTRY, full_path
 from graph.state import GraphState
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,15 @@ async def run_scenario(
     return 결과
 
 
+def _기준_상품_스펙(상태: dict) -> dict:
+    """Normalize 를 거치지 않아도 뒤 단계가 같은 자리에서 값을 읽게 한다."""
+    return QuerySpec(
+        request_type=RequestType.EVALUATE,
+        base_product_ref=상태["base_product_id"],
+        target=상태.get("basis") or Target.SELF,
+    ).model_dump(mode="json")
+
+
 # 관문이 차지하는 진행률. 질의 해석은 전체에서 짧은 부분이라 앞쪽 10%만 쓴다.
 관문_구간 = 10
 
@@ -214,9 +224,17 @@ async def run_query(
 
     되물어야 하는 질의면 경로를 돌지 않고 돌아온다. 부른 쪽이 job 을
     멈춘 상태로 남기고 사용자의 답을 기다린다.
+
+    기준 상품이 있으면 해석할 것이 없으므로 관문 없이 평가 경로를 돈다.
     """
     상태: dict = dict(initial or {})
     상태.setdefault("trace", [])
+
+    if 상태.get("base_product_id"):
+        상태["query_spec"] = _기준_상품_스펙(상태)
+        return await run_scenario(
+            ROUTE[RequestType.EVALUATE], 상태, on_progress=on_progress, on_fail=on_fail,
+        )
 
     try:
         for 순번, 이름 in enumerate(SEARCH_ENTRY):
@@ -250,7 +268,4 @@ async def run_query(
 
 def 기본_시나리오() -> str:
     """라우터가 아직 없을 때 갈 곳. 조건 탐색은 빈손으로도 돌아간다."""
-    from contracts.query_spec import RequestType
-    from graph.registry import ROUTE
-
     return ROUTE[RequestType.SEARCH]

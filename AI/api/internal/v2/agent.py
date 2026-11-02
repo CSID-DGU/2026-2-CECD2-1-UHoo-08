@@ -115,7 +115,8 @@ async def _실행(req: AgentRunV2Request) -> None:
     await _돌리기({
         "job_id": req.job_id,
         "user_id": req.user_id,
-        "raw_query": req.raw_query,
+        "raw_query": req.raw_query or "",
+        "base_product_id": req.base_product_id,
         "basis": req.basis.value,
         "target_profile": req.target_profile,
         "parent_job_id": req.parent_job_id,
