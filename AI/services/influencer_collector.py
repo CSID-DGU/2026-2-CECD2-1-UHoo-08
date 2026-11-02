@@ -148,13 +148,66 @@ def _graph_getter(client: httpx.Client) -> Callable[[str], dict]:
     return get
 
 
-def collect(lookback_days: int = DEFAULT_LOOKBACK_DAYS, accounts_path: Path = ACCOUNTS_PATH) -> dict:
-    """목록의 모든 계정을 수집한다. 계정 하나가 실패해도 나머지는 계속한다.
+def _save_account(sb, account_id: int, profile: dict, media: list[dict], now: str) -> None:
+    sb.table("influencer_accounts").update({
+        "display_name": profile.get("name"),
+        "follower_count": profile.get("followers_count"),
+        "updated_at": now,
+    }).eq("id", account_id).execute()
+
+    if media:
+        sb.table("influencer_posts").upsert(
+            [to_post_row(account_id, m) for m in media],
+            on_conflict="account_id,platform_post_id",
+        ).execute()
+
+
+def collect_accounts(
+    accounts: list[dict],
+    account_ids: dict[str, int],
+    since: datetime,
+    now: str,
+    get: Callable[[str], dict],
+    sb,
+) -> dict:
+    """계정마다 조회하고 저장한다. 계정 하나가 실패해도 나머지는 계속한다.
 
     비공개 전환·아이디 변경·개인 계정 전환은 계정마다 따로 일어나므로,
-    한 계정 때문에 그날 수집 전체를 잃지 않는다. 실패한 계정은 반환값의
-    failed 에 남긴다. 호출 한도에 걸리면 남은 계정은 건너뛴다.
+    한 계정 때문에 그날 수집 전체를 잃지 않는다. DB 저장 실패도 같다.
+    이 데이터는 소급해서 모을 수 없어서, 남은 계정을 버리면 그날 것이 사라진다.
+    실패한 계정은 반환값의 failed 에 남긴다. 호출 한도에 걸리면 남은 계정은
+    건너뛴다.
     """
+    summary: dict[str, Any] = {"accounts": len(accounts), "posts": 0, "failed": {}}
+    for i, account in enumerate(accounts):
+        username = account["username"]
+        try:
+            profile, media = fetch_recent_media(username, since, get)
+        except InstagramApiError as e:
+            logger.error("인스타 수집 실패 %s: %s", username, e)
+            summary["failed"][username] = str(e)
+            if e.rate_limited:
+                for rest in accounts[i + 1:]:
+                    summary["failed"][rest["username"]] = "호출 한도 초과로 건너뜀"
+                break
+            continue
+        except httpx.HTTPError as e:
+            logger.error("인스타 수집 실패 %s: %s", username, e)
+            summary["failed"][username] = str(e)
+            continue
+
+        try:
+            _save_account(sb, account_ids[username], profile, media, now)
+        except Exception as e:
+            logger.exception("인스타 수집 저장 실패 %s", username)
+            summary["failed"][username] = f"저장 실패: {e}"
+            continue
+        summary["posts"] += len(media)
+    return summary
+
+
+def collect(lookback_days: int = DEFAULT_LOOKBACK_DAYS, accounts_path: Path = ACCOUNTS_PATH) -> dict:
+    """목록의 모든 계정을 수집한다. 계정별 처리는 collect_accounts 가 한다."""
     from db.supabase_client import get_supabase
 
     sb = get_supabase()
@@ -173,39 +226,8 @@ def collect(lookback_days: int = DEFAULT_LOOKBACK_DAYS, accounts_path: Path = AC
         .eq("platform", "instagram").eq("active", True) \
         .not_.in_("username", listed).execute()
 
-    summary: dict[str, Any] = {"accounts": len(accounts), "posts": 0, "failed": {}}
     with httpx.Client(timeout=30) as client:
-        get = _graph_getter(client)
-        for i, account in enumerate(accounts):
-            username = account["username"]
-            try:
-                profile, media = fetch_recent_media(username, since, get)
-            except InstagramApiError as e:
-                logger.error("인스타 수집 실패 %s: %s", username, e)
-                summary["failed"][username] = str(e)
-                if e.rate_limited:
-                    for rest in accounts[i + 1:]:
-                        summary["failed"][rest["username"]] = "호출 한도 초과로 건너뜀"
-                    break
-                continue
-            except httpx.HTTPError as e:
-                logger.error("인스타 수집 실패 %s: %s", username, e)
-                summary["failed"][username] = str(e)
-                continue
-
-            account_id = account_ids[username]
-            sb.table("influencer_accounts").update({
-                "display_name": profile.get("name"),
-                "follower_count": profile.get("followers_count"),
-                "updated_at": now,
-            }).eq("id", account_id).execute()
-
-            if media:
-                sb.table("influencer_posts").upsert(
-                    [to_post_row(account_id, m) for m in media],
-                    on_conflict="account_id,platform_post_id",
-                ).execute()
-            summary["posts"] += len(media)
+        summary = collect_accounts(accounts, account_ids, since, now, _graph_getter(client), sb)
 
     logger.info("인스타 수집 완료: %s", summary)
     return summary

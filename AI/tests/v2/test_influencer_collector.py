@@ -9,6 +9,7 @@ from services.influencer_collector import (
     AGE_GROUPS,
     KST,
     _next_run,
+    collect_accounts,
     fetch_recent_media,
     load_accounts,
     to_post_row,
@@ -93,3 +94,54 @@ def test_좋아요를_숨긴_게시물은_0이_아니라_None():
 ])
 def test_다음_수집_시각(now_kst, expected):
     assert _next_run(now_kst, [18, 6]) == expected
+
+
+class _FakeTable:
+    def __init__(self, db, name):
+        self.db, self.name, self.row = db, name, None
+
+    def update(self, row):
+        self.row = row
+        return self
+
+    def upsert(self, rows, on_conflict):
+        self.row = rows
+        return self
+
+    def eq(self, column, value):
+        return self
+
+    def execute(self):
+        if self.name in self.db.fail_tables and self.db.fail_on(self.row):
+            raise RuntimeError("DB 일시 오류")
+        self.db.writes.append((self.name, self.row))
+        return self
+
+
+class _FakeDB:
+    """특정 계정의 게시물 저장만 실패하는 가짜 Supabase."""
+
+    def __init__(self, fail_account_id=None):
+        self.writes = []
+        self.fail_tables = {"influencer_posts"}
+        self.fail_on = lambda rows: any(r["account_id"] == fail_account_id for r in rows)
+
+    def table(self, name):
+        return _FakeTable(self, name)
+
+
+def _all_accounts_getter(fields: str) -> dict:
+    return {"business_discovery": {"username": "u", "media": {"data": [_media("p", 1)]}}}
+
+
+def test_한_계정의_DB_저장이_실패해도_다음_계정을_수집한다():
+    accounts = [{"username": "a"}, {"username": "b"}, {"username": "c"}]
+    db = _FakeDB(fail_account_id=2)
+    summary = collect_accounts(accounts, {"a": 1, "b": 2, "c": 3}, NOW - timedelta(days=14),
+                               NOW.isoformat(), _all_accounts_getter, db)
+
+    assert summary["posts"] == 2
+    assert list(summary["failed"]) == ["b"]
+    assert summary["failed"]["b"].startswith("저장 실패")
+    saved = [rows[0]["account_id"] for name, rows in db.writes if name == "influencer_posts"]
+    assert saved == [1, 3]
