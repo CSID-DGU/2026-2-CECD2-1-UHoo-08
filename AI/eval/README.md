@@ -122,6 +122,19 @@ python -m eval.purge_synthetic           # 넣은 것을 전부 지운다
 
 적재한 사용자는 `users.is_synthetic = true` 로 표시된다. 삭제는 이 표시를 기준으로 하므로 실제 사용자는 건드리지 않는다.
 
+## 광고 판별 정기 표본 검수
+
+운영 중에 판정된 게시물을 2주에 한 번 20~30건씩 뽑아, 판정을 숨긴 채 라벨을 붙이고 맞춰 본다. 골든셋 한 번으로는 표본이 작고, 새 계정의 처음 보는 표기를 놓친다.
+
+```bash
+python -m eval.run_ad_audit sample --out ~/ad_audit.jsonl    # 1차 확정 15 + 2차 15건, 판정은 숨겨 저장
+python -m eval.run_ad_audit label ~/ad_audit.jsonl           # 터미널에서 1/0 으로 라벨링. 끊어도 이어서 한다
+python -m eval.run_ad_audit finalize ~/ad_audit.jsonl        # eval/golden/trend/ad_audit_<날짜>.jsonl 로 옮긴다
+python -m eval.run_ad_audit score --out eval/reports/ad_audit_<날짜>.md
+```
+
+라벨링 파일은 저장소 밖에 둔다. 다 붙인 뒤 `finalize` 로 골든셋에 옮긴다. 검수 회차의 split 은 `test` 다. 그 회차를 보고 규칙이나 프롬프트를 고쳤으면 split 을 `dev` 로 바꾸고, 수치는 다음 회차로 낸다.
+
 ## 2차 멘토링 전 최소 개수
 
 | 대상 | 최소 |
