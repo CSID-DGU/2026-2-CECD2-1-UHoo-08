@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from contracts.query_spec import Target
+from contracts.result import CompatibilityLevel
 
 
 class WireModel(BaseModel):
@@ -169,6 +170,34 @@ class TrendItem(WireModel):
 
 class TrendsResponse(WireModel):
     items: list[TrendItem] = Field(default_factory=list)
+    stub: bool = False
+
+
+# ── POST /internal/compatibility/check ────────────────────────
+class CompatibilityCheckRequest(WireModel):
+    user_id: str = Field(min_length=1)
+    product_id: str = Field(min_length=1)
+
+
+class CompatibilityPairDetail(WireModel):
+    """보유 제품 하나와 이 제품 사이에서 걸린 성분 조합."""
+
+    user_product_id: str = Field(min_length=1)
+    ingredient_a: str = Field(min_length=1)
+    ingredient_b: str = Field(min_length=1)
+    level: CompatibilityLevel
+    advice: str | None = None
+    schedule: str | None = None  # 시간대 안내 문구
+
+
+class CompatibilityCheckResponse(WireModel):
+    """쌍 중 가장 강한 단계가 level 이다.
+
+    stub 이면 level 의 OK 는 판정 결과가 아니다. 괜찮다는 뜻으로 읽으면 안 된다.
+    """
+
+    level: CompatibilityLevel
+    pairs: list[CompatibilityPairDetail] = Field(default_factory=list)
     stub: bool = False
 
 

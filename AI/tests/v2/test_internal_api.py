@@ -10,6 +10,8 @@ from contracts.internal_api import (
     AgentClarifyRequest,
     AgentRunV2Request,
     BundleSwapRequest,
+    CompatibilityCheckRequest,
+    CompatibilityCheckResponse,
     FeedbackApplyRequest,
     HomeKind,
     HomeRunRequest,
@@ -49,6 +51,8 @@ def test_되묻기는_실패가_아니다():
         lambda: RecognizePhotosRequest(date_image=""),
         lambda: RecognizePhotosRequest(name_image="", date_image="https://x/d.jpg"),
         lambda: FeedbackApplyRequest(user_id=""),
+        lambda: CompatibilityCheckRequest(user_id="", product_id="p1"),
+        lambda: CompatibilityCheckRequest(user_id="u1", product_id=""),
     ],
 )
 def test_빈_문자열을_거부한다(만들기):
@@ -103,6 +107,47 @@ def test_질의나_기준_상품_중_하나면_받는다(값):
 def test_질의와_기준_상품이_모두_없거나_빈_값이면_거부한다(값):
     with pytest.raises(ValidationError):
         AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
+
+
+def test_궁합_요청은_camelCase로_받는다():
+    요청 = CompatibilityCheckRequest.model_validate({"userId": "u1", "productId": "p1"})
+    assert 요청.model_dump(by_alias=True) == {"userId": "u1", "productId": "p1"}
+
+
+def test_궁합_응답을_왕복한다():
+    본문 = {
+        "level": "SEPARATE",
+        "pairs": [{
+            "userProductId": "up1",
+            "ingredientA": "레티놀",
+            "ingredientB": "AHA",
+            "level": "SEPARATE",
+            "advice": "시간을 나눠 쓰세요",
+            "schedule": "레티놀은 저녁에 쓰세요",
+        }],
+        "stub": False,
+    }
+    결과 = CompatibilityCheckResponse.model_validate(본문)
+    assert 결과.model_dump(mode="json", by_alias=True) == 본문
+
+
+def test_궁합_안내는_비어_있어도_된다():
+    쌍 = {"userProductId": "up1", "ingredientA": "레티놀", "ingredientB": "AHA", "level": "AVOID"}
+    결과 = CompatibilityCheckResponse.model_validate({"level": "AVOID", "pairs": [쌍]})
+    assert 결과.pairs[0].advice is None and 결과.pairs[0].schedule is None
+
+
+@pytest.mark.parametrize("본문", [
+    {},
+    {"level": "GOOD"},
+    {"level": "OK", "pairs": [{"userProductId": "up1", "ingredientA": "레티놀",
+                               "ingredientB": "AHA", "level": "GOOD"}]},
+    {"level": "AVOID", "pairs": [{"userProductId": "up1", "ingredientA": "",
+                                  "ingredientB": "AHA", "level": "AVOID"}]},
+])
+def test_잘못된_궁합_응답을_거부한다(본문):
+    with pytest.raises(ValidationError):
+        CompatibilityCheckResponse.model_validate(본문)
 
 
 def test_홈은_두_종류만_받는다():
