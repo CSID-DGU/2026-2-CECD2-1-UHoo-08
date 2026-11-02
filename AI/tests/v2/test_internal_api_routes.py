@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.internal.v2 import agent, feedback, router
-from contracts.internal_api import RecognizePhotosResponse, TrendsResponse
+from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse, TrendsResponse
 
 app = FastAPI()
 app.include_router(router, prefix="/internal")
@@ -42,6 +42,7 @@ POST_경로 = [
     ("/internal/bundle/swap",
      {"jobId": "j1", "bundleIndex": 0, "slot": 1, "productId": "p1"}, 200),
     ("/internal/feedback/apply", {"userId": "u1"}, 202),
+    ("/internal/compatibility/check", {"userId": "u1", "productId": "p1"}, 200),
 ]
 
 
@@ -88,6 +89,18 @@ def test_기준_상품만_보내도_추천_실행_경로가_받는다():
 
 def test_질의도_기준_상품도_없으면_422다():
     응답 = client.post("/internal/agent/run/v2", json={"jobId": "j1", "userId": "u1"})
+    assert 응답.status_code == 422
+
+
+def test_궁합_응답이_계약과_같다():
+    """stub 표시가 없으면 판정하지 않은 OK 가 괜찮다는 결과로 읽힌다."""
+    응답 = client.post("/internal/compatibility/check", json={"userId": "u1", "productId": "p1"})
+    assert 응답.json() == {"level": "OK", "pairs": [], "stub": True}
+    CompatibilityCheckResponse.model_validate(응답.json())
+
+
+def test_궁합_요청에_상품이_없으면_422다():
+    응답 = client.post("/internal/compatibility/check", json={"userId": "u1"})
     assert 응답.status_code == 422
 
 

@@ -19,6 +19,7 @@ BE 가 AI 서버를 부르는 경로 목록이다. 값의 정확한 모양은 �
 | `POST /internal/bundle/swap` | 동기 | `jobId` `bundleIndex` `slot` `productId` | `bundle` | 예산 세트 교체 |
 | `GET /internal/trends` | 동기 | `limit` | `items[]` | 홈 '요즘 뜨는 제품' |
 | `POST /internal/feedback/apply` | 비동기 202 | `userId` | `Accepted` | 피드백 저장 뒤 |
+| `POST /internal/compatibility/check` | 동기 | `userId` `productId` | `level` `pairs[]` `userProductId` `ingredientA` `ingredientB` `level` `advice?` `schedule?` | 상품 상세, 보유 제품 등록의 궁합 확인 |
 
 `baseProductId` 가 있으면 문장을 해석하지 않고 평가 경로(S1)로 바로 간다. 되묻지도 않는다.
 `rawQuery` 가 함께 와도 조건으로 읽지 않는다.
@@ -58,9 +59,10 @@ PENDING → IN_PROGRESS → COMPLETED
 
 ## 아직 stub 인 경로
 
-피드백 반영을 뺀 여섯 경로가 stub 이다. 응답에 `stub: true` 가 붙는다.
+피드백 반영을 뺀 일곱 경로가 stub 이다. 응답에 `stub: true` 가 붙는다.
 
 - **동기** 호출은 빈 결과가 온다. 표시를 보지 않으면 "결과 없음"으로 읽고 넘어가게 된다.
+  궁합 확인(`compatibility/check`)의 `level=OK` 도 판정 결과가 아니다. 판정하는 코드와 규칙이 아직 없다.
 - **비동기** 호출은 job 이 움직이지 않는다. BE 는 `stub` 을 보면 경고 로그를 남긴다.
   추천 실행(`run/v2`)과 되묻기 답변(`clarify`)도 결과를 조립하는 단계가 없으면 실행을 걸지 않는다.
   job 은 `PENDING` 으로 남고, 멈춘 job 정리 배치가 15분 뒤 `FAILED`(`timeout`)로 바꾼다.
