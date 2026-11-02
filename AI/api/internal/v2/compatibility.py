@@ -14,5 +14,5 @@ router = APIRouter()
 async def compatibility_check(req: CompatibilityCheckRequest) -> CompatibilityCheckResponse:
     # TODO: 보유 제품과 이 제품의 성분을 표준명으로 맞추고
     #       ingredient_conflict_rules 와 대조해 쌍별 판정을 채운다.
-    logger.warning("stub: /compatibility/check user=%s product=%s", req.user_id, req.product_id)
+    logger.warning("stub: /compatibility/check")
     return CompatibilityCheckResponse(level=CompatibilityLevel.OK, stub=True)
