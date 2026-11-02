@@ -126,6 +126,68 @@ class QuerySummary(CamelModel):
     value_seeking: bool = False
 
 
+class EnvCondition(CamelModel):
+    """홈 환경 카드의 조건 하나. 요즘 환경에 필요한 기능과 그것을 채운 제품."""
+
+    key: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    basis: str | None = None  # 왜 필요한지. 예: "미세먼지 나쁨 14일"
+    covered: bool = False
+    covered_by: str | None = None  # 채운 보유 제품 이름
+
+
+class CompatibilityLevel(str, Enum):
+    OK = "OK"              # 같이 써도 된다
+    SEPARATE = "SEPARATE"  # 시간대를 나눠 쓴다
+    AVOID = "AVOID"        # 같이 쓰지 않는다
+
+
+class RoutineCounts(CamelModel):
+    ok: int = Field(ge=0)
+    separate: int = Field(ge=0)
+    avoid: int = Field(ge=0)
+
+
+class UserProductRef(CamelModel):
+    """사용자의 보유 제품 하나를 가리킨다. 상품이 아니라 user_products 의 행이다."""
+
+    user_product_id: str = Field(min_length=1)
+    name: str
+
+
+class CompatibilityPair(CamelModel):
+    a: UserProductRef
+    b: UserProductRef
+    level: CompatibilityLevel
+    title: str | None = None
+    reason: str | None = None
+
+
+class ReplacementItem(CamelModel):
+    """바꿀 제품 대신 권하는 후보."""
+
+    product_id: str = Field(min_length=1)
+    name: str
+    brand: str
+    price: int | None = None
+    total_score: int | None = Field(default=None, ge=0, le=100)
+    badge: str | None = None
+
+
+class Replacement(CamelModel):
+    replace_target: UserProductRef
+    message: str | None = None
+    items: list[ReplacementItem] = Field(default_factory=list)
+
+
+class RoutineSchedule(CamelModel):
+    """아침, 저녁에 쓸 순서. 제품 이름을 순서대로 담는다."""
+
+    morning: list[str] = Field(default_factory=list)
+    evening: list[str] = Field(default_factory=list)
+    tip: str | None = None
+
+
 class RecommendationResult(CamelModel):
     """job 하나의 최종 결과."""
 
@@ -140,3 +202,14 @@ class RecommendationResult(CamelModel):
     excluded: list[ExcludedItem] = Field(default_factory=list)
 
     clarify: Clarify | None = None
+
+    # 홈 카드에서만 채운다. None 은 아직 분석 전이고, 빈 목록은 분석했지만 해당
+    # 항목이 없다는 뜻이다. 둘을 합치면 분석 전 카드가 문제없는 카드로 보인다.
+    conditions: list[EnvCondition] | None = None  # HOME_ENV
+
+    # 이 아래는 HOME_ROUTINE. replacement 는 분석한 뒤에도 바꿀 제품이 없으면 None 이다.
+    counts: RoutineCounts | None = None
+    pairs: list[CompatibilityPair] | None = None
+    replacement: Replacement | None = None
+    schedule: RoutineSchedule | None = None
+    uncompared_count: int | None = Field(default=None, ge=0)

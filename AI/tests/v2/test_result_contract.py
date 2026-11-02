@@ -3,6 +3,9 @@
 이 모양이 AI·BE·FE 세 곳에서 같아야 한다. 한 곳만 고쳐지면 화면이 빈칸을
 그리거나 저장된 결과를 다시 읽지 못한다.
 """
+import json
+import pathlib
+
 import pytest
 from pydantic import ValidationError
 
@@ -93,3 +96,71 @@ def test_되묻는_결과는_질문을_담는다():
     나감 = 결과.model_dump(by_alias=True)["clarify"]
     assert 나감["question"]
     assert 나감["missingFields"] == []
+
+
+홈_블록 = ("conditions", "counts", "pairs", "replacement", "schedule", "uncomparedCount")
+BE_샘플 = pathlib.Path(__file__).resolve().parents[3] / "BE" / "src" / "test" / "resources" / "ai-results"
+_제품쌍 = {
+    "a": {"userProductId": "up1", "name": "토너"},
+    "b": {"userProductId": "up2", "name": "크림"},
+    "level": "SEPARATE",
+}
+
+
+def test_홈_블록은_채우지_않으면_null이다():
+    """null 은 분석 전이다. 빈 목록이 기본값이면 분석 전 카드가 문제없는 카드로 보인다."""
+    나감 = RecommendationResult(job_id="j1", scenario="S2_SEARCH").model_dump(mode="json", by_alias=True)
+    assert all(나감[키] is None for 키 in 홈_블록)
+
+
+def test_빈_목록은_null과_구분해서_남는다():
+    결과 = RecommendationResult(job_id="j1", scenario="HOME_ENV", conditions=[], pairs=[])
+    나감 = 결과.model_dump(mode="json", by_alias=True)
+    assert 나감["conditions"] == [] and 나감["pairs"] == []
+
+
+def test_환경_블록을_왕복한다():
+    조건 = {"key": "UV_PROTECT", "label": "자외선 차단", "basis": "6 이상 22일",
+            "covered": True, "coveredBy": "선크림"}
+    결과 = RecommendationResult.model_validate(
+        {"jobId": "j1", "scenario": "HOME_ENV", "conditions": [조건]}
+    )
+    assert 결과.model_dump(mode="json", by_alias=True)["conditions"] == [조건]
+
+
+def test_루틴_블록을_왕복한다():
+    블록 = {
+        "counts": {"ok": 1, "separate": 2, "avoid": 0},
+        "pairs": [{**_제품쌍, "title": "나눠 쓰세요", "reason": "자극이 커져요"}],
+        "replacement": {
+            "replaceTarget": _제품쌍["a"],
+            "message": "바꾸는 걸 권해요",
+            "items": [{"productId": "p1", "name": "세럼", "brand": "브랜드",
+                       "price": 19800, "totalScore": 84, "badge": "괜찮아요"}],
+        },
+        "schedule": {"morning": ["토너"], "evening": ["크림"], "tip": "저녁에 쓰세요"},
+        "uncomparedCount": 1,
+    }
+    결과 = RecommendationResult.model_validate({"jobId": "j1", "scenario": "HOME_ROUTINE", **블록})
+    나감 = 결과.model_dump(mode="json", by_alias=True)
+    assert {키: 나감[키] for 키 in 블록} == 블록
+
+
+@pytest.mark.parametrize("덮어쓰기", [
+    {"pairs": [{**_제품쌍, "level": "GOOD"}]},
+    {"pairs": [{**_제품쌍, "a": {"name": "토너"}}]},
+    {"counts": {"ok": 1, "separate": 2}},
+    {"counts": {"ok": -1, "separate": 0, "avoid": 0}},
+    {"uncomparedCount": -1},
+    {"conditions": [{"label": "자외선 차단"}]},
+    {"replacement": {"message": "바꾸세요"}},
+])
+def test_잘못된_홈_블록을_거부한다(덮어쓰기):
+    with pytest.raises(ValidationError):
+        RecommendationResult.model_validate({"jobId": "j1", "scenario": "HOME_ROUTINE", **덮어쓰기})
+
+
+@pytest.mark.parametrize("파일", ["HOME_ROUTINE.json", "HOME_ENV.json"])
+def test_BE가_읽는_홈_샘플이_계약을_통과한다(파일):
+    """BE 는 이 샘플로 홈 API 를 테스트한다. 어긋나면 AI 가 채운 값을 BE 가 못 읽는다."""
+    RecommendationResult.model_validate(json.loads((BE_샘플 / 파일).read_text(encoding="utf-8")))

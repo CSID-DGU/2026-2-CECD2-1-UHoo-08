@@ -84,6 +84,21 @@ PENDING → IN_PROGRESS → COMPLETED
 - 최근 30일 조건 수정에서 같은 선택지를 3번 이상 고르면 패턴으로 반영한다. 반영 중이거나 30일 안에 되돌린 패턴은 다시 만들지 않는다.
 - 실패하면 로그만 남긴다. 반영 시각은 변경을 저장한 뒤에 채우므로, 실패한 피드백은 다음 호출이 다시 처리한다. 이때 앞서 들어간 변경은 합산에서 뺀다.
 
+## 홈 카드 결과
+
+홈 카드는 추천 결과(`AI/contracts/result.py`)에 아래 블록을 더 담는다.
+
+| 카드 | 필드 | 뜻 |
+| --- | --- | --- |
+| `HOME_ENV` | `conditions[]` `key` `label` `basis?` `covered` `coveredBy?` | 요즘 환경에 필요한 기능과 그것을 채운 보유 제품 |
+| `HOME_ROUTINE` | `counts` `ok` `separate` `avoid` | 궁합 단계별 쌍의 수 |
+| `HOME_ROUTINE` | `pairs[]` `a` `b` `level` `title?` `reason?` | 보유 제품 쌍의 궁합. `level` 은 `OK`, `SEPARATE`, `AVOID` |
+| `HOME_ROUTINE` | `replacement?` `replaceTarget` `message?` `items[]` | 바꿀 제품과 대체 후보 |
+| `HOME_ROUTINE` | `schedule` `morning[]` `evening[]` `tip?` | 아침, 저녁 사용 순서 |
+| `HOME_ROUTINE` | `uncomparedCount` | 비교하지 못한 제품 수 |
+
+`null` 은 아직 분석 전이고, 빈 목록은 분석했지만 해당 항목이 없다는 뜻이다. BE 는 `conditions`, `counts`, `pairs` 가 `null` 이면 카드를 분석 전으로 내려보낸다. `replacement` 만은 바꿀 제품이 없을 때도 `null` 이다.
+
 ## 값 이름
 
 BE·FE 와 주고받는 값은 camelCase 다(`jobId`, `rawQuery`). 그래프 안쪽에서만
