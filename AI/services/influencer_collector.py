@@ -103,9 +103,12 @@ def fetch_recent_media(
     posts: list[dict] = []
     after = None
     for _ in range(MAX_PAGES):
-        discovery = get(_discovery_fields(username, after))["business_discovery"]
+        discovery = get(_discovery_fields(username, after)).get("business_discovery")
+        if not isinstance(discovery, dict):
+            # 계정별 실패로 남기고 다음 계정으로 넘어가게 API 오류로 올린다
+            raise InstagramApiError(None, "응답에 business_discovery 가 없다")
         profile = {k: v for k, v in discovery.items() if k != "media"}
-        media = discovery.get("media", {})
+        media = discovery.get("media") or {}
         page = media.get("data", [])
         posts += [m for m in page if _parse_timestamp(m["timestamp"]) >= since]
 
@@ -133,12 +136,26 @@ def _graph_getter(client: httpx.Client) -> Callable[[str], dict]:
     from config import settings
 
     url = f"https://graph.facebook.com/{settings.META_GRAPH_API_VERSION}/{settings.META_IG_USER_ID}"
+    return make_getter(client, url, settings.META_PAGE_ACCESS_TOKEN)
+
+
+def make_getter(client: httpx.Client, url: str, token: str) -> Callable[[str], dict]:
+    """fields 를 받아 Graph API 응답 JSON 을 돌려주는 get 을 만든다.
+
+    응답이 이상하면 InstagramApiError 로 올린다. collect_accounts 가 그 계정만
+    실패로 남기고 다음 계정으로 넘어간다.
+    """
     # 토큰을 쿼리 문자열에 넣으면 요청 URL 과 함께 로그에 남는다 (httpx 는 요청마다 URL 을 찍는다)
-    headers = {"Authorization": f"Bearer {settings.META_PAGE_ACCESS_TOKEN}"}
+    headers = {"Authorization": f"Bearer {token}"}
 
     def get(fields: str) -> dict:
         resp = client.get(url, params={"fields": fields}, headers=headers)
-        body = resp.json()
+        try:
+            body = resp.json()
+        except ValueError:
+            raise InstagramApiError(None, f"응답이 JSON 이 아니다 (HTTP {resp.status_code})")
+        if not isinstance(body, dict):
+            raise InstagramApiError(None, f"응답이 JSON 객체가 아니다 (HTTP {resp.status_code})")
         if "error" in body:
             err = body["error"]
             raise InstagramApiError(err.get("code"), err.get("message", ""))

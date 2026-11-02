@@ -2,16 +2,19 @@
 import json
 from datetime import datetime, timedelta, timezone
 
+import httpx
 import pytest
 
 from services.influencer_collector import (
     ACCOUNTS_PATH,
     AGE_GROUPS,
     KST,
+    InstagramApiError,
     _next_run,
     collect_accounts,
     fetch_recent_media,
     load_accounts,
+    make_getter,
     parse_collect_hours,
     to_post_row,
 )
@@ -157,3 +160,45 @@ def test_수집_시각을_정렬하고_중복을_뺀다():
 def test_잘못된_수집_시각은_시작할_때_막는다(value):
     with pytest.raises(ValueError, match="0~23"):
         parse_collect_hours(value)
+
+
+def _getter_over(handler):
+    """가짜 서버 응답으로 실제 get 을 만든다."""
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    return make_getter(client, "https://graph.test/v1/1", "TOKEN")
+
+
+def test_토큰은_URL_이_아니라_헤더로_보낸다():
+    seen = {}
+
+    def handler(request):
+        seen["url"], seen["auth"] = str(request.url), request.headers.get("authorization")
+        return httpx.Response(200, json={"business_discovery": {}})
+
+    _getter_over(handler)("username")
+    assert "TOKEN" not in seen["url"]
+    assert seen["auth"] == "Bearer TOKEN"
+
+
+def test_JSON_이_아닌_응답은_API_오류로_올린다():
+    get = _getter_over(lambda request: httpx.Response(502, text="<html>Bad Gateway</html>"))
+    with pytest.raises(InstagramApiError, match="JSON"):
+        get("username")
+
+
+@pytest.mark.parametrize("body", [{}, {"business_discovery": None}])
+def test_business_discovery_가_없으면_API_오류로_올린다(body):
+    with pytest.raises(InstagramApiError, match="business_discovery"):
+        fetch_recent_media("u", NOW - timedelta(days=14), lambda fields: body)
+
+
+def test_응답_형식이_이상한_계정만_실패로_남기고_다음_계정을_수집한다():
+    def get(fields: str) -> dict:
+        return {} if "username(b)" in fields else _all_accounts_getter(fields)
+
+    accounts = [{"username": "a"}, {"username": "b"}, {"username": "c"}]
+    summary = collect_accounts(accounts, {"a": 1, "b": 2, "c": 3}, NOW - timedelta(days=14),
+                               NOW.isoformat(), get, _FakeDB())
+
+    assert summary["posts"] == 2
+    assert list(summary["failed"]) == ["b"]
