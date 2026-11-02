@@ -44,12 +44,35 @@ def test_되묻기는_실패가_아니다():
         lambda: AgentRunV2Request(job_id="j1", user_id="u1", raw_query=""),
         lambda: AgentClarifyRequest(job_id="j1", answer=""),
         lambda: RecognizePhotosRequest(name_image=""),
+        lambda: RecognizePhotosRequest(date_image=""),
+        lambda: RecognizePhotosRequest(name_image="", date_image="https://x/d.jpg"),
         lambda: FeedbackApplyRequest(user_id=""),
     ],
 )
 def test_빈_문자열을_거부한다(만들기):
     with pytest.raises(ValidationError):
         만들기()
+
+
+@pytest.mark.parametrize(
+    "본문",
+    [
+        {"nameImage": "https://x/n.jpg"},
+        {"dateImage": "https://x/d.jpg"},
+        {"nameImage": "https://x/n.jpg", "dateImage": "https://x/d.jpg"},
+        # BE 는 비어 있는 값도 null 로 함께 보낸다
+        {"nameImage": None, "dateImage": "https://x/d.jpg"},
+        {"nameImage": "https://x/n.jpg", "dateImage": None},
+    ],
+)
+def test_사진은_한_면만_있어도_받는다(본문):
+    RecognizePhotosRequest.model_validate(본문)
+
+
+@pytest.mark.parametrize("본문", [{}, {"nameImage": None, "dateImage": None}])
+def test_사진이_하나도_없으면_거부한다(본문):
+    with pytest.raises(ValidationError):
+        RecognizePhotosRequest.model_validate(본문)
 
 
 def test_모르는_필드를_거부한다():
