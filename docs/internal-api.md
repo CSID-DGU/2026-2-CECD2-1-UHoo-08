@@ -101,6 +101,17 @@ PENDING → IN_PROGRESS → COMPLETED
 
 `null` 은 아직 분석 전이고, 빈 목록은 분석했지만 해당 항목이 없다는 뜻이다. BE 는 `conditions`, `counts`, `pairs` 가 `null` 이면 카드를 분석 전으로 내려보낸다. `replacement` 만은 바꿀 제품이 없을 때도 `null` 이다.
 
+## 예산 세트 칸
+
+조합의 제품(`bundles[].items[]`)은 `slotKey?`, `slotLabel?` 로 어느 칸을 채우는지 알린다. 칸 정보가 없는 기존 결과는 BE 가 칸 순서로 처리한다.
+
+세트 교체에 쓸 칸별 후보는 결과가 아니라 job 의 `state_snapshot.bundle_slots` 에 둔다. 조합이 달라도 후보가 같아 job 에 한 벌만 남긴다.
+
+| 필드 | 뜻 |
+| --- | --- |
+| `slotKey` `label` | 칸 키와 칸 이름 |
+| `candidates[]` `productId` `name` `price` `score` | 고를 수 있는 제품. 합계를 다시 계산하므로 `price` 는 필수다 |
+
 ## 값 이름
 
 BE·FE 와 주고받는 값은 camelCase 다(`jobId`, `rawQuery`). 그래프 안쪽에서만

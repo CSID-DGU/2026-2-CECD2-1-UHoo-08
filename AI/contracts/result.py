@@ -89,12 +89,42 @@ class ExcludedItem(CamelModel):
     detail: str | None = None
 
 
+class BundleItem(ResultItem):
+    """세트 조합의 제품 하나. 어느 칸을 채우는지 함께 담는다.
+
+    칸 정보가 없는 결과가 이미 저장되어 있어 선택값으로 둔다.
+    """
+
+    slot_key: str | None = Field(default=None, min_length=1)  # 예: "toner"
+    slot_label: str | None = Field(default=None, min_length=1)  # 예: "토너"
+
+
+class BundleSlotCandidate(CamelModel):
+    """칸을 바꿀 때 고를 수 있는 제품.
+
+    교체하면 합계를 다시 계산하므로 가격을 모르는 제품은 후보에 넣지 않는다.
+    """
+
+    product_id: str = Field(min_length=1)
+    name: str
+    price: int = Field(ge=0)
+    score: int = Field(ge=0, le=100)
+
+
+class BundleSlot(CamelModel):
+    """칸 하나와 후보. state_snapshot 의 bundle_slots 에 by_alias 로 저장한다."""
+
+    slot_key: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    candidates: list[BundleSlotCandidate] = Field(default_factory=list)
+
+
 class BundleOption(CamelModel):
     """예산 세트 조합 하나."""
 
     label: str = Field(min_length=1)  # "균형형", "알뜰형" 같은 성격 이름
     total_price: int = Field(ge=0)
-    items: list[ResultItem] = Field(min_length=1)
+    items: list[BundleItem] = Field(min_length=1)
     # 예산을 넘겼다면 왜 넘겼는지. 넘기지 않았으면 None.
     over_budget_reason: str | None = None
 

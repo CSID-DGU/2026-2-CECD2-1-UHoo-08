@@ -55,6 +55,9 @@ class GraphState(TypedDict, total=False):
     alternatives: list[dict]
     collaborative: list[dict]
     bundles: list[dict]
+    # Bundle 이 채운다. contracts.result.BundleSlot 을 by_alias 로 dump 한 dict.
+    # 조합이 달라도 칸별 후보는 같아 job 에 한 벌만 둔다. BE 가 스냅샷에서 읽는다.
+    bundle_slots: list[dict]
 
     # ── 출력 ──────────────────────────────────────────────
     # Compose 출력. contracts.result 의 공통 응답 스키마를 따른다.

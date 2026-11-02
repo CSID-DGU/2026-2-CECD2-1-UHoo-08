@@ -26,7 +26,9 @@
         ],
         "reason": "예산 안에서 점수가 가장 높아요",
         "change": null,
-        "rankDelta": null
+        "rankDelta": null,
+        "slotKey": "toner",
+        "slotLabel": "토너"
       }
     ],
     "overBudgetReason": null
