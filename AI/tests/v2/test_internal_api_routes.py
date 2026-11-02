@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.internal.v2 import agent, router
+from api.internal.v2 import agent, feedback, router
 from contracts.internal_api import RecognizePhotosResponse, TrendsResponse
 
 app = FastAPI()
@@ -31,6 +31,7 @@ def _실행하지_않는다(monkeypatch):
 
     monkeypatch.setattr(agent, "_실행", 아무것도)
     monkeypatch.setattr(agent, "_이어_돌리기", 아무것도)
+    monkeypatch.setattr(feedback, "_반영", 아무것도)
 
 # docs/internal-api.md 와 같은 목록이다.
 POST_경로 = [
@@ -56,7 +57,17 @@ def test_트렌드는_GET이다():
     TrendsResponse.model_validate(응답.json())
 
 
-@pytest.mark.parametrize("경로, 본문, _", POST_경로, ids=lambda v: v if isinstance(v, str) else "")
+def test_피드백_반영은_stub이_아니다():
+    응답 = client.post("/internal/feedback/apply", json={"userId": "u1"})
+    assert 응답.status_code == 202
+    assert not 응답.json().get("stub")
+
+
+@pytest.mark.parametrize(
+    "경로, 본문, _",
+    [경로 for 경로 in POST_경로 if 경로[0] != "/internal/feedback/apply"],
+    ids=lambda v: v if isinstance(v, str) else "",
+)
 def test_아직_stub임을_알린다(경로, 본문, _):
     """표시가 없으면 빈 결과를 정상으로 읽고 다음 작업으로 넘어간다."""
     assert client.post(경로, json=본문).json()["stub"] is True

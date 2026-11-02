@@ -162,7 +162,7 @@ public class RecommendationController {
     @Operation(
             summary = "추천 피드백 등록",
             description = "결과 카드의 좋아요(UP)/별로예요(DOWN)와 이유를 저장한다. 같은 job 의 같은 제품에 다시 보내면 덮어쓴다. " +
-                    "reasonTags 는 DOWN 일 때만 저장한다(TOO_EXPENSIVE, NOT_MY_SKIN, BAD_REVIEWS, ALREADY_HAVE_SIMILAR). " +
+                    "reasonTags 는 DOWN 일 때만 저장한다(TOO_EXPENSIVE, NOT_MY_SKIN, BAD_REVIEWS). " +
                     "message 는 토스트 문구이고, 가중치는 AI 가 비동기로 반영해 changeId 는 항상 null. " +
                     "vote 나 reasonTags 값이 목록에 없거나 결과 추천 목록(items)에 없는 제품이면 422 VALIDATION_ERROR."
     )
