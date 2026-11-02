@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "type": "BALANCED",
+    "total": 48000
+  },
+  "stub": false
+}
