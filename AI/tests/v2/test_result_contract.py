@@ -12,7 +12,9 @@ from pydantic import ValidationError
 from contracts.score import ScoreItem
 from contracts.result import (
     Badge,
+    BundleItem,
     BundleOption,
+    BundleSlot,
     Clarify,
     ExcludedItem,
     RecommendationResult,
@@ -77,8 +79,64 @@ def test_배지_문구는_비어_있을_수_없다():
 def test_세트_조합은_제품이_하나_이상이다():
     with pytest.raises(ValidationError):
         BundleOption(label="균형형", total_price=50000, items=[])
-    조합 = BundleOption(label="균형형", total_price=50000, items=[_항목()])
+    조합 = BundleOption(label="균형형", total_price=50000, items=[_세트_제품()])
     assert 조합.over_budget_reason is None
+
+
+def _세트_제품(**덮어쓰기) -> dict:
+    return {"productId": "p1", "name": "토너", "brand": "브랜드", "totalScore": 80, **덮어쓰기}
+
+
+def test_세트_제품의_칸_정보를_왕복한다():
+    조합 = BundleOption.model_validate({
+        "label": "균형형", "totalPrice": 22000,
+        "items": [_세트_제품(slotKey="toner", slotLabel="토너")],
+    })
+    나감 = 조합.model_dump(mode="json", by_alias=True)["items"][0]
+    assert (나감["slotKey"], 나감["slotLabel"]) == ("toner", "토너")
+
+
+def test_칸_정보_없이_저장된_조합도_읽는다():
+    조합 = BundleOption.model_validate({"label": "균형형", "totalPrice": 22000, "items": [_세트_제품()]})
+    assert 조합.items[0].slot_key is None and 조합.items[0].slot_label is None
+
+
+@pytest.mark.parametrize("값", [{"slotKey": ""}, {"slotLabel": ""}])
+def test_칸_정보는_빈_문자열일_수_없다(값):
+    with pytest.raises(ValidationError):
+        BundleItem.model_validate(_세트_제품(**값))
+
+
+def test_일반_카드에는_칸_정보를_넣을_수_없다():
+    with pytest.raises(ValidationError):
+        ResultItem.model_validate(_세트_제품(slotKey="toner"))
+
+
+_칸 = {"slotKey": "toner", "label": "토너", "candidates": [
+    {"productId": "p1", "name": "토너", "price": 20500, "score": 88},
+]}
+
+
+def test_칸별_후보를_왕복한다():
+    assert BundleSlot.model_validate(_칸).model_dump(mode="json", by_alias=True) == _칸
+
+
+@pytest.mark.parametrize("후보", [
+    {"productId": "p1", "name": "토너", "score": 88},
+    {"productId": "p1", "name": "토너", "price": None, "score": 88},
+    {"productId": "p1", "name": "토너", "price": -1, "score": 88},
+    {"productId": "p1", "name": "토너", "price": 20500, "score": 101},
+    {"productId": "", "name": "토너", "price": 20500, "score": 88},
+])
+def test_합계를_계산할_수_없는_후보를_거부한다(후보):
+    with pytest.raises(ValidationError):
+        BundleSlot.model_validate({**_칸, "candidates": [후보]})
+
+
+@pytest.mark.parametrize("값", [{"slotKey": ""}, {"label": ""}])
+def test_칸은_키와_이름이_있어야_한다(값):
+    with pytest.raises(ValidationError):
+        BundleSlot.model_validate({**_칸, **값})
 
 
 def test_되물을_것이_없으면_clarify는_None이다():
@@ -160,7 +218,7 @@ def test_잘못된_홈_블록을_거부한다(덮어쓰기):
         RecommendationResult.model_validate({"jobId": "j1", "scenario": "HOME_ROUTINE", **덮어쓰기})
 
 
-@pytest.mark.parametrize("파일", ["HOME_ROUTINE.json", "HOME_ENV.json"])
-def test_BE가_읽는_홈_샘플이_계약을_통과한다(파일):
-    """BE 는 이 샘플로 홈 API 를 테스트한다. 어긋나면 AI 가 채운 값을 BE 가 못 읽는다."""
+@pytest.mark.parametrize("파일", ["HOME_ROUTINE.json", "HOME_ENV.json", "S6_BUNDLE.json"])
+def test_BE가_읽는_샘플이_계약을_통과한다(파일):
+    """BE 는 이 샘플로 API 를 테스트한다. 어긋나면 AI 가 채운 값을 BE 가 못 읽는다."""
     RecommendationResult.model_validate(json.loads((BE_샘플 / 파일).read_text(encoding="utf-8")))
