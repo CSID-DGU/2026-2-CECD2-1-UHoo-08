@@ -12,6 +12,7 @@ from services.influencer_collector import (
     collect_accounts,
     fetch_recent_media,
     load_accounts,
+    parse_collect_hours,
     to_post_row,
 )
 
@@ -145,3 +146,14 @@ def test_한_계정의_DB_저장이_실패해도_다음_계정을_수집한다()
     assert summary["failed"]["b"].startswith("저장 실패")
     saved = [rows[0]["account_id"] for name, rows in db.writes if name == "influencer_posts"]
     assert saved == [1, 3]
+
+
+def test_수집_시각을_정렬하고_중복을_뺀다():
+    assert parse_collect_hours("18, 6,,6") == [6, 18]
+    assert parse_collect_hours("") == []
+
+
+@pytest.mark.parametrize("value", ["24,18", "6,-1", "6,오후", "6.5"])
+def test_잘못된_수집_시각은_시작할_때_막는다(value):
+    with pytest.raises(ValueError, match="0~23"):
+        parse_collect_hours(value)

@@ -233,6 +233,23 @@ def collect(lookback_days: int = DEFAULT_LOOKBACK_DAYS, accounts_path: Path = AC
     return summary
 
 
+def parse_collect_hours(value: str) -> list[int]:
+    """INFLUENCER_COLLECT_HOURS ("6,18") 를 시각 목록으로 바꾼다.
+
+    잘못된 값은 여기서 막는다. 그대로 두면 다음 시각을 계산하다 예약 작업이
+    죽고, 이후 수집이 조용히 멈춘다.
+    """
+    hours = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if not part.isdigit() or not 0 <= int(part) <= 23:
+            raise ValueError(f"수집 시각은 0~23 정수여야 한다: {part!r} (INFLUENCER_COLLECT_HOURS={value!r})")
+        hours.append(int(part))
+    return sorted(set(hours))
+
+
 def _next_run(now: datetime, hours: list[int]) -> datetime:
     """now 이후 가장 가까운 수집 시각 (KST 정각)."""
     local = now.astimezone(KST)
@@ -249,7 +266,11 @@ async def run_schedule() -> None:
     """INFLUENCER_COLLECT_HOURS 의 KST 시각마다 수집한다. 앱 시작 시 띄운다."""
     from config import settings
 
-    hours = [int(h) for h in settings.INFLUENCER_COLLECT_HOURS.split(",") if h.strip()]
+    try:
+        hours = parse_collect_hours(settings.INFLUENCER_COLLECT_HOURS)
+    except ValueError as e:
+        logger.error("인스타 수집 스케줄을 켜지 못함: %s", e)
+        return
     if not hours or not settings.META_PAGE_ACCESS_TOKEN or not settings.META_IG_USER_ID:
         logger.info("인스타 수집 스케줄 꺼짐 (시각 또는 토큰 없음)")
         return
