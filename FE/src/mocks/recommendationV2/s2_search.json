@@ -179,5 +179,11 @@
       "detail": "이미 사용 중인 제품이에요."
     }
   ],
-  "clarify": null
+  "clarify": null,
+  "conditions": null,
+  "counts": null,
+  "pairs": null,
+  "replacement": null,
+  "schedule": null,
+  "uncomparedCount": null
 }

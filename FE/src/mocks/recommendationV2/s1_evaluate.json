@@ -135,5 +135,11 @@
   ],
   "bundles": [],
   "excluded": [],
-  "clarify": null
+  "clarify": null,
+  "conditions": null,
+  "counts": null,
+  "pairs": null,
+  "replacement": null,
+  "schedule": null,
+  "uncomparedCount": null
 }

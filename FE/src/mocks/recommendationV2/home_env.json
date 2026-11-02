@@ -93,5 +93,26 @@
   "similarUserProducts": [],
   "bundles": [],
   "excluded": [],
-  "clarify": null
+  "clarify": null,
+  "conditions": [
+    {
+      "key": "UV_PROTECT",
+      "label": "자외선 차단",
+      "basis": "자외선 지수 6 이상 22일",
+      "covered": true,
+      "coveredBy": "데일리 선크림"
+    },
+    {
+      "key": "BARRIER",
+      "label": "보습막 형성",
+      "basis": "습도 40% 미만 12일",
+      "covered": false,
+      "coveredBy": null
+    }
+  ],
+  "counts": null,
+  "pairs": null,
+  "replacement": null,
+  "schedule": null,
+  "uncomparedCount": null
 }
