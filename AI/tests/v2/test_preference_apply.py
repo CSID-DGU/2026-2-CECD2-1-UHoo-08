@@ -27,41 +27,45 @@ def _피드백(id=1, vote="DOWN", reason_tags=(), job_id="j1", product_id="p1"):
 
 
 class 가짜저장소:
-    def __init__(self, 피드백=(), 결과=None, 조건수정=(), 패턴변경=(), 먼저_가져감=()):
-        self.피드백 = {행["id"]: 행 for 행 in 피드백}
+    def __init__(self, 피드백=(), 결과=None, 조건수정=(), 패턴변경=()):
+        self.피드백 = {행["id"]: dict(행) for 행 in 피드백}
         self.결과 = 결과
         self.조건수정 = list(조건수정)
         self.패턴변경 = list(패턴변경)
-        self.먼저_가져감 = set(먼저_가져감)
         self.변경: list[dict] = []
-        self.뺀_피드백: list[int] = []
+        self.반영됨: set[int] = set()
         self.저장: dict | None = None
-        self.되돌린_피드백: list[int] = []
-        self.실패할_피드백: set[str] = set()
-        self.되돌리기_실패 = False
+        self.실패: set[tuple[str, int]] = set()  # (동작, 피드백 id)
+        self.저장_중_다시_누름: dict | None = None
 
-    async def load_unapplied_feedback_ids(self, user_id):
-        return list(self.피드백)
+    def _실패_확인(self, 동작, 피드백_id):
+        if (동작, 피드백_id) in self.실패:
+            raise RuntimeError("DB 끊김")
 
-    async def claim_feedback(self, feedback_id, now):
-        return None if feedback_id in self.먼저_가져감 else self.피드백[feedback_id]
+    async def load_unapplied_feedback(self, user_id):
+        return [dict(행) for id, 행 in self.피드백.items() if id not in self.반영됨]
+
+    async def mark_feedback_applied(self, feedback, now):
+        self._실패_확인("mark", feedback["id"])
+        지금_값 = self.피드백[feedback["id"]]
+        if (지금_값["vote"], 지금_값["reason_tags"]) == (feedback["vote"], feedback["reason_tags"]):
+            self.반영됨.add(feedback["id"])
 
     async def retire_feedback_changes(self, user_id, feedback_id, now):
-        self.뺀_피드백.append(feedback_id)
-
-    async def release_feedback(self, feedback_id):
-        if self.되돌리기_실패:
-            raise RuntimeError("DB 끊김")
-        self.되돌린_피드백.append(feedback_id)
+        self._실패_확인("retire", feedback_id)
+        self.변경 = [변경 for 변경 in self.변경 if 변경["source_ref"] != str(feedback_id)]
 
     async def load_job_result(self, job_id):
         return self.결과
 
     async def insert_change(self, user_id, source, source_ref, deltas, text):
-        if source_ref in self.실패할_피드백:
-            raise RuntimeError("DB 끊김")
+        if source == "FEEDBACK":
+            self._실패_확인("insert", int(source_ref))
         self.변경.append({"source": source, "source_ref": source_ref,
                          "deltas": deltas, "text": text})
+        if self.저장_중_다시_누름:
+            self.피드백[int(source_ref)].update(self.저장_중_다시_누름)
+            self.저장_중_다시_누름 = None
 
     async def load_refine_presets_since(self, user_id, since):
         self.기준일 = since
@@ -163,56 +167,59 @@ async def test_움직일_항목이_없으면_변경을_만들지_않는다(저�
 
 
 @pytest.mark.asyncio
-async def test_다른_호출이_먼저_가져간_피드백은_건너뛴다(저장소):
-    가짜 = 저장소(피드백=[_피드백(reason_tags=["BAD_REVIEWS"])], 먼저_가져감=[1])
-    await preference_apply.apply_feedback("u1", 지금)
-    assert 가짜.변경 == [] and 가짜.뺀_피드백 == []
-
-
-@pytest.mark.asyncio
-async def test_다시_누른_피드백은_이전_변경을_뺀_뒤_만든다(저장소):
+async def test_반영한_피드백은_다음_호출에서_다시_처리하지_않는다(저장소):
     가짜 = 저장소(피드백=[_피드백(reason_tags=["BAD_REVIEWS"])])
     await preference_apply.apply_feedback("u1", 지금)
-    assert 가짜.뺀_피드백 == [1]
+    await preference_apply.apply_feedback("u1", 지금)
+    assert 가짜.반영됨 == {1}
     assert len(가짜.변경) == 1
 
 
 @pytest.mark.asyncio
-async def test_반영에_실패한_피드백은_되돌리고_나머지를_처리한다(저장소):
-    """되돌리지 않으면 반영 시각만 남아 다음 호출이 이 피드백을 읽지 못한다."""
+async def test_움직일_항목이_없어도_반영한_것으로_남긴다(저장소):
+    """남겨 두면 호출마다 같은 피드백을 다시 읽는다."""
+    가짜 = 저장소(피드백=[_피드백(vote="UP")], 결과=None)
+    await preference_apply.apply_feedback("u1", 지금)
+    assert 가짜.반영됨 == {1}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("동작", ["retire", "insert", "mark"])
+async def test_어느_단계에서_실패해도_다음_호출이_한_건만_남기고_마친다(저장소, 동작):
+    """반영 시각을 마지막에 채우므로 실패한 피드백은 다시 읽힌다."""
     가짜 = 저장소(피드백=[
         _피드백(id=1, reason_tags=["BAD_REVIEWS"]),
         _피드백(id=2, reason_tags=["NOT_MY_SKIN"]),
     ])
-    가짜.실패할_피드백 = {"1"}
+    가짜.실패 = {(동작, 1)}
 
     await preference_apply.apply_feedback("u1", 지금)
-
-    assert 가짜.되돌린_피드백 == [1]
-    assert [변경["source_ref"] for 변경 in 가짜.변경] == ["2"]
-    assert 가짜.저장["source_counts"]["feedback"] == 1
-
-
-@pytest.mark.asyncio
-async def test_성공한_피드백은_되돌리지_않는다(저장소):
-    가짜 = 저장소(피드백=[_피드백(reason_tags=["BAD_REVIEWS"])])
-    await preference_apply.apply_feedback("u1", 지금)
-    assert 가짜.되돌린_피드백 == []
-
-
-@pytest.mark.asyncio
-async def test_되돌리기까지_실패해도_나머지를_처리한다(저장소):
-    가짜 = 저장소(피드백=[
-        _피드백(id=1, reason_tags=["BAD_REVIEWS"]),
-        _피드백(id=2, reason_tags=["NOT_MY_SKIN"]),
-    ])
-    가짜.실패할_피드백 = {"1"}
-    가짜.되돌리기_실패 = True
-
-    await preference_apply.apply_feedback("u1", 지금)
-
-    assert [변경["source_ref"] for 변경 in 가짜.변경] == ["2"]
+    assert 가짜.반영됨 == {2}
     assert 가짜.저장 is not None
+
+    가짜.실패 = set()
+    await preference_apply.apply_feedback("u1", 지금)
+
+    assert 가짜.반영됨 == {1, 2}
+    assert sorted(변경["source_ref"] for 변경 in 가짜.변경) == ["1", "2"]
+    assert 가짜.저장["weights"]["review"] == 0.3
+    assert 가짜.저장["source_counts"]["feedback"] == 2
+
+
+@pytest.mark.asyncio
+async def test_처리_중_다시_누른_피드백은_다음_호출이_새_값으로_반영한다(저장소):
+    가짜 = 저장소(
+        피드백=[_피드백(reason_tags=["BAD_REVIEWS"])],
+    )
+    가짜.저장_중_다시_누름 = {"reason_tags": ["NOT_MY_SKIN"]}
+
+    await preference_apply.apply_feedback("u1", 지금)
+    assert 가짜.반영됨 == set()
+
+    await preference_apply.apply_feedback("u1", 지금)
+
+    assert 가짜.반영됨 == {1}
+    assert [변경["deltas"] for 변경 in 가짜.변경] == [{"personalization": 0.05}]
 
 
 @pytest.mark.asyncio

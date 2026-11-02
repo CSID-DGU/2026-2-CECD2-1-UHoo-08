@@ -50,33 +50,24 @@ def DB(monkeypatch):
 @pytest.mark.asyncio
 async def test_반영_전_피드백은_그_사용자의_것만_읽는다(DB):
     기록 = DB([{"id": 1}, {"id": 2}])
-    assert await preference_store.load_unapplied_feedback_ids("u1") == [1, 2]
+    assert await preference_store.load_unapplied_feedback("u1") == [{"id": 1}, {"id": 2}]
     assert ("user_id", "u1") in 기록["eq"]
     assert ("applied_at", "null") in 기록["is_"]
 
 
 @pytest.mark.asyncio
-async def test_반영_시각은_아직_반영_전일_때만_채운다(DB):
-    기록 = DB([{"id": 1, "vote": "UP"}])
-    assert await preference_store.claim_feedback(1, 지금) == {"id": 1, "vote": "UP"}
-    assert 기록["update"] == [({"applied_at": 지금.isoformat()},)]
-    assert 기록["eq"] == [("id", 1)]
-    assert ("applied_at", "null") in 기록["is_"]
-
-
-@pytest.mark.asyncio
-async def test_이미_가져간_피드백이면_None이다(DB):
-    DB([])
-    assert await preference_store.claim_feedback(1, 지금) is None
-
-
-@pytest.mark.asyncio
-async def test_반영_시각을_되돌릴_때는_그_피드백만_건드린다(DB):
+@pytest.mark.parametrize("이유, 배열", [
+    (["TOO_EXPENSIVE", "BAD_REVIEWS"], "{TOO_EXPENSIVE,BAD_REVIEWS}"),
+    ([], "{}"),
+])
+async def test_반영_시각은_읽었을_때와_같은_내용일_때만_채운다(DB, 이유, 배열):
     기록 = DB([])
-    await preference_store.release_feedback(1)
-    assert 기록["table"] == "recommendation_feedback"
-    assert 기록["update"] == [({"applied_at": None},)]
-    assert 기록["eq"] == [("id", 1)]
+    await preference_store.mark_feedback_applied(
+        {"id": 1, "vote": "DOWN", "reason_tags": 이유}, 지금,
+    )
+    assert 기록["update"] == [({"applied_at": 지금.isoformat()},)]
+    assert 기록["eq"] == [("id", 1), ("vote", "DOWN"), ("reason_tags", 배열)]
+    assert ("applied_at", "null") in 기록["is_"]
 
 
 @pytest.mark.asyncio

@@ -99,39 +99,37 @@ def _반응_변경(좋아요: bool, 강점: list[str]) -> tuple[dict[str, float]
 
 
 async def _피드백_한_건(user_id: str, 피드백: dict[str, Any], now: datetime) -> None:
+    """변경을 저장한 뒤에 반영 시각을 채운다.
+
+    어느 단계에서 끊겨도 반영 시각이 비어 있어 다음 호출이 다시 처리한다. 앞서 들어간
+    변경은 시작할 때 합산에서 빼므로 두 번 더해지지 않는다.
+    """
     피드백_id = 피드백["id"]
-    # 먼저 빼 두어야, 실패 뒤 다시 돌 때 앞서 들어간 변경과 겹치지 않는다.
     await preference_store.retire_feedback_changes(user_id, 피드백_id, now)
 
     이유들 = [이유 for 이유 in 피드백.get("reason_tags") or [] if 이유 in _이유]
     좋아요 = 피드백["vote"] == "UP"
+    변경: tuple[dict[str, float], str] | None = None
     if 이유들 and not 좋아요:
-        변화량, 문장 = _이유_변경(이유들)
+        변경 = _이유_변경(이유들)
     else:
         결과 = await preference_store.load_job_result(피드백["job_id"])
         강점 = _강점_항목(결과, 피드백["product_id"])
-        if not 강점:
-            return
-        변화량, 문장 = _반응_변경(좋아요, 강점)
+        if 강점:
+            변경 = _반응_변경(좋아요, 강점)
 
-    await preference_store.insert_change(user_id, "FEEDBACK", str(피드백_id), 변화량, 문장)
+    if 변경 is not None:
+        await preference_store.insert_change(user_id, "FEEDBACK", str(피드백_id), *변경)
+    await preference_store.mark_feedback_applied(피드백, now)
 
 
 async def _피드백_반영(user_id: str, now: datetime) -> None:
-    for 피드백_id in await preference_store.load_unapplied_feedback_ids(user_id):
-        피드백 = await preference_store.claim_feedback(피드백_id, now)
-        if 피드백 is None:
-            continue
-
+    for 피드백 in await preference_store.load_unapplied_feedback(user_id):
         try:
             await _피드백_한_건(user_id, 피드백, now)
         except Exception:
             # 한 건 때문에 나머지 피드백과 합계까지 멈추지 않게 다음으로 넘어간다.
-            logger.exception("피드백 %s 반영 실패. 다음 호출에서 다시 처리한다.", 피드백_id)
-            try:
-                await preference_store.release_feedback(피드백_id)
-            except Exception:
-                logger.exception("피드백 %s 의 반영 시각을 되돌리지 못했다.", 피드백_id)
+            logger.exception("피드백 %s 반영 실패. 다음 호출에서 다시 처리한다.", 피드백["id"])
 
 
 def _다시_만들_수_있나(행들: list[dict[str, Any]], now: datetime) -> bool:

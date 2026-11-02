@@ -25,43 +25,37 @@ def _db():
     return get_supabase()
 
 
-async def load_unapplied_feedback_ids(user_id: str) -> list[int]:
+async def load_unapplied_feedback(user_id: str) -> list[dict[str, Any]]:
     def _읽기() -> list[dict]:
         return (
             _db().table(_피드백)
-            .select("id")
+            .select("id, job_id, product_id, vote, reason_tags")
             .eq("user_id", user_id)
             .is_("applied_at", "null")
             .order("id")
             .execute()
         ).data or []
 
-    return [행["id"] for 행 in await asyncio.to_thread(_읽기)]
+    return await asyncio.to_thread(_읽기)
 
 
-async def claim_feedback(feedback_id: int, now: datetime) -> dict[str, Any] | None:
-    """아직 반영 전일 때만 반영 시각을 채우고 그 행을 돌려준다.
+async def mark_feedback_applied(feedback: dict[str, Any], now: datetime) -> None:
+    """읽었을 때와 내용이 같을 때만 반영 시각을 채운다.
 
-    먼저 읽고 나중에 채우면, 그 사이 사용자가 다시 누른 값을 잃거나 겹친 호출이
-    같은 피드백을 두 번 반영한다. 다른 호출이 먼저 가져갔으면 None 이다.
+    그 사이 사용자가 다시 눌렀으면 비어 있는 채로 두어, 다음 호출이 새 값을 반영한다.
     """
-    def _쓰기() -> list[dict]:
-        return (
+    배열 = "{" + ",".join(feedback.get("reason_tags") or []) + "}"
+
+    def _쓰기() -> None:
+        (
             _db().table(_피드백)
             .update({"applied_at": now.isoformat()})
-            .eq("id", feedback_id)
+            .eq("id", feedback["id"])
+            .eq("vote", feedback["vote"])
+            .eq("reason_tags", 배열)
             .is_("applied_at", "null")
             .execute()
-        ).data or []
-
-    행 = await asyncio.to_thread(_쓰기)
-    return 행[0] if 행 else None
-
-
-async def release_feedback(feedback_id: int) -> None:
-    """반영하지 못한 피드백을 다음 호출이 다시 읽게 한다."""
-    def _쓰기() -> None:
-        _db().table(_피드백).update({"applied_at": None}).eq("id", feedback_id).execute()
+        )
 
     await asyncio.to_thread(_쓰기)
 
