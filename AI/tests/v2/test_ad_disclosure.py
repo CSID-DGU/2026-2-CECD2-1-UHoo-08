@@ -14,6 +14,8 @@ def rules_of(result: dict) -> set[str]:
     "몽글몽글한 블러셔 광고*",
     "(광고) #댓글이벤트 누디 메이크업",
     "[광고] 로션 찾는 사람?",
+    "광고)🚨성수에 수분 특보가 발령됐습니다",
+    "팝업 다녀왔어요\n광고] 브랜드 팝업 후기",
     "#유료광고 무화과 메이크업",
     "앰플 2주 써봤어요\n\n광고  brand_official\n\n#앰플",
     "저장하세요 할인 소식을 담은 #광고 를 포함하고 있으나 직접 고른 제품만",
@@ -40,6 +42,27 @@ def test_광고_아님이라고_밝히면_광고가_아니다():
     assert result["verdict"] == ORGANIC
     assert "negation.not_ad" in rules_of(result)
     assert not any(r.startswith("disclosure.") for r in rules_of(result))
+
+
+@pytest.mark.parametrize("caption", [
+    "오늘의 데일리룩\n\n#광고문의 DM 주세요",
+    "가을 메이크업\n광고 문의는 DM",
+    "가을 메이크업\n#광고/협찬 문의 dm",
+    "#협찬문의 이메일로 부탁드려요",
+    "#광고 협찬 제안은 프로필 메일로",
+])
+def test_광고_문의_안내는_광고_표기가_아니다(caption):
+    result = classify(caption)
+    assert result["verdict"] == ORGANIC
+    assert not any(r.startswith("disclosure.") for r in rules_of(result))
+
+
+def test_광고_문의_안내가_있어도_광고_표기가_따로_있으면_광고다():
+    assert classify("#광고 신상 쿠션 리뷰\n\n광고 문의는 DM")["verdict"] == AD
+
+
+def test_광고_아닌데라고_밝히면_광고가_아니다():
+    assert classify("광고 아닌데 진짜 좋아서 올림. 할인 중이에요")["verdict"] == ORGANIC
 
 
 def test_내돈내산은_광고가_아니다():

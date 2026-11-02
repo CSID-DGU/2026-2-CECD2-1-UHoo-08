@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 
-RULE_VERSION = "ad-rule-v1"
+RULE_VERSION = "ad-rule-v2"
 
 AD = "ad"
 ORGANIC = "organic"
@@ -35,13 +35,18 @@ _LEGEND_LINE = re.compile(r"^[ \t]*([^\w\s#@(\[]{1,3})[ \t]*(.+)$", re.MULTILINE
 _LEGEND_PURCHASE = re.compile(r"직접\s*구매|내돈내산")
 _LEGEND_SPONSORED = re.compile(r"무상\s*제공|제품\s*제공|무료\s*제공|선물|협찬|유료\s*광고|원고료")
 
+# "#광고문의", "광고 문의는 DM", "#협찬문의" 는 이 글이 광고라는 표시가 아니라
+# 광고 연락을 받는다는 안내다. 프로필 문구처럼 일상 글 끝에도 붙는다
+_INQUIRY = r"(?!\s*(?:·|/|,)?\s*(?:협찬|광고)?\s*(?:문의|제안|요청|제휴|협업|dm|디엠))"
+
 # 판정 근거 이름 → 패턴. 이름은 hits 에 그대로 남는다
 _DISCLOSURE = {
-    "hashtag": r"#\s*(?:유료\s*)?광고(?!\s*(?:아님|아니|x\b))",
-    "bracket": r"[(\[]\s*광고\s*[)\]]",
+    "hashtag": r"#\s*(?:유료\s*)?광고(?!\s*(?:아님|아니|x\b))" + _INQUIRY,
+    # 줄 맨 앞의 "광고)" 처럼 여는 괄호를 빼고 쓰기도 한다
+    "bracket": r"[(\[]\s*광고\s*[)\]]|^[ \t]*광고\s*[)\]]",
     "asterisk": r"\*\s*광고|광고\s*\*",
-    "line": r"^[ \t]*광고[ \t]*(?:[@\w.]+)?[ \t]*$",
-    "sponsored": r"#\s*협찬|[(\[]\s*협찬\s*[)\]]|협찬\s*(?:받|제품|후)",
+    "line": r"^[ \t]*광고" + _INQUIRY + r"[ \t]*(?:[@\w.]+)?[ \t]*$",
+    "sponsored": r"#\s*협찬" + _INQUIRY + r"|[(\[]\s*협찬\s*[)\]]|협찬\s*(?:받|제품|후)",
     "paid": r"유료\s*광고|원고료",
 }
 _GIFTED = {
@@ -63,7 +68,7 @@ _PROFILE_BUY = re.compile(r"구매(?!했)|할인|특가|만나보|주문")
 _PROFILE_WINDOW = 40
 
 _NEGATION = {
-    "not_ad": r"광고\s*(?:아님|아니에요|아닙니다|아니고|x\b)",
+    "not_ad": r"광고\s*(?:아님|아니에요|아닙니다|아니고|아닌데|x\b)",
     "own_purchase": r"내돈내산|직접\s*구매",
 }
 # 이것만 있으면 광고라고 단정하지 않는다. 2차에서 본다
