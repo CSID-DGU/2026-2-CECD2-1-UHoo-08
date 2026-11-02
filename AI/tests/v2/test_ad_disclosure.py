@@ -61,6 +61,29 @@ def test_광고_문의_안내가_있어도_광고_표기가_따로_있으면_광
     assert classify("#광고 신상 쿠션 리뷰\n\n광고 문의는 DM")["verdict"] == AD
 
 
+@pytest.mark.parametrize("caption, expected", [
+    ("광고 아님", ORGANIC),
+    ("광고가 아닙니다", ORGANIC),
+    ("유료광고 아닙니다", ORGANIC),
+    ("유료광고가 아닙니다", ORGANIC),
+    ("#광고가 아닙니다 직접 산 거예요", ORGANIC),
+    ("#유료광고아님", ORGANIC),
+    ("광고 skin1004_korea", AD),
+    ("광고 @brand.official", AD),
+    ("#유료광고", AD),
+    ("원고료를 받아 작성했어요", AD),
+])
+def test_광고라는_말에_부정이_붙으면_광고_표기가_아니다(caption, expected):
+    assert classify(caption)["verdict"] == expected
+
+
+def test_다음_줄의_아니는_부정이_아니다():
+    caption = "방법을 찾아버렸지 뭐야\n#광고\n아니 그 비싼 디바이스 사놓고 왜 안 해?"
+    result = classify(caption)
+    assert result["verdict"] == AD
+    assert "negation.not_ad" not in rules_of(result)
+
+
 def test_광고_아닌데라고_밝히면_광고가_아니다():
     assert classify("광고 아닌데 진짜 좋아서 올림. 할인 중이에요")["verdict"] == ORGANIC
 

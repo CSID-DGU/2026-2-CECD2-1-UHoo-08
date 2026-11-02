@@ -17,6 +17,10 @@
 먼저 적고 제품마다 아이콘을 붙이는 형식이라, 범례 줄의 "유료광고" 만 보고
 광고로 보면 전부 직접 산 제품인 글도 광고가 된다. 범례 줄은 빼고, 본문에
 제공·광고 아이콘이 쓰였는지를 본다.
+
+규칙으로 확실히 갈리는 것은 여기서 정한다. 2차보다 정확하고 호출 비용도 없다.
+새 오판을 찾으면 먼저 표기만으로 갈리는지 본다. 갈리면 규칙에 넣고, 문맥을
+읽어야 갈리면 상업 신호(_COMMERCIAL)로 두어 2차에 넘긴다.
 """
 from __future__ import annotations
 
@@ -35,19 +39,67 @@ _LEGEND_LINE = re.compile(r"^[ \t]*([^\w\s#@(\[]{1,3})[ \t]*(.+)$", re.MULTILINE
 _LEGEND_PURCHASE = re.compile(r"직접\s*구매|내돈내산")
 _LEGEND_SPONSORED = re.compile(r"무상\s*제공|제품\s*제공|무료\s*제공|선물|협찬|유료\s*광고|원고료")
 
-# "#광고문의", "광고 문의는 DM", "#협찬문의" 는 이 글이 광고라는 표시가 아니라
-# 광고 연락을 받는다는 안내다. 프로필 문구처럼 일상 글 끝에도 붙는다
-_INQUIRY = r"(?!\s*(?:·|/|,)?\s*(?:협찬|광고)?\s*(?:문의|제안|요청|제휴|협업|dm|디엠))"
+# ── "광고"·"협찬" 이라는 단어 ─────────────────────────────────────────
+#
+# 같은 단어가 표기("#광고", "(광고)")일 때도, 부정("광고 아님")일 때도,
+# 연락 안내("#광고문의")일 때도, 그냥 단어("광고회사")일 때도 있다. 단어가
+# 나온 자리마다 앞뒤를 한 번에 보고 가른다. 예외를 표기 패턴마다 따로 달면
+# 한쪽에만 빠진다 (부정 예외가 "#광고" 에는 있고 "유료광고" 에는 없었다).
+
+# 같은 줄에서 뒤에 붙으면 표기가 아니다. "아닙니다" 의 둘째 글자는 '니' 가 아니라 '닙' 이다.
+# 줄을 넘어가면 보지 않는다. "#광고⏎아니 그 비싼 디바이스…" 의 "아니" 는 다음 문장의 감탄사다
+_AFTER_NEGATION = re.compile(r"[ \t]*(?:가[ \t]*)?(?:아[님니닙닌]|x\b)", re.IGNORECASE)
+# 광고 연락을 받는다는 안내. 프로필 문구처럼 일상 글 끝에도 붙는다
+_AFTER_INQUIRY = re.compile(r"[ \t]*(?:·|/|,)?[ \t]*(?:협찬|광고)?[ \t]*(?:문의|제안|요청|제휴|협업|dm|디엠)", re.IGNORECASE)
+
+_OPEN = re.compile(r"[(\[]\s*$")
+_CLOSE = re.compile(r"\s*[)\]]")
+# 한 줄에 "광고" 와 브랜드 계정만 있는 줄. 계정명은 영문이라 한글을 받지 않는다
+_HANDLE_REST = re.compile(r"[ \t]*(?:@?[A-Za-z0-9_.]+)?[ \t]*")
+
+# 단어 → [(근거 이름, 판정 함수)]. 함수는 (줄에서 단어 앞, 줄에서 단어 뒤) 를 받는다.
+# 위에서부터 처음 맞는 하나만 남긴다
+_WORD_FORMS = {
+    "광고": [
+        ("hashtag", lambda before, _: re.search(r"#\s*(?:유료\s*)?$", before)),
+        ("paid", lambda before, _: re.search(r"유료\s*$", before)),
+        # 줄 맨 앞의 "광고)" 처럼 여는 괄호를 빼고 쓰기도 한다
+        ("bracket", lambda before, after: _CLOSE.match(after) and (_OPEN.search(before) or not before.strip())),
+        ("asterisk", lambda before, after: re.search(r"\*\s*$", before) or re.match(r"\s*\*", after)),
+        ("line", lambda before, after: not before.strip() and _HANDLE_REST.fullmatch(after)),
+    ],
+    "협찬": [
+        ("sponsored", lambda before, after: re.search(r"#\s*$", before)
+         or (_OPEN.search(before) and _CLOSE.match(after)) or re.match(r"\s*(?:받|제품|후)", after)),
+    ],
+}
+
+
+def _word_hits(text: str) -> list[dict]:
+    """"광고"·"협찬" 이 나온 자리마다 표기 / 부정 / 연락 안내 / 그냥 단어를 가른다."""
+    hits = []
+    for word, forms in _WORD_FORMS.items():
+        for m in re.finditer(word, text):
+            after_all = text[m.end():]
+            if neg := _AFTER_NEGATION.match(after_all):
+                if word == "광고":
+                    hits.append({"rule": "negation.not_ad", "text": word + neg.group(0)})
+                continue
+            if _AFTER_INQUIRY.match(after_all):
+                continue
+            line_start = text.rfind("\n", 0, m.start()) + 1
+            before = text[line_start:m.start()]
+            after = after_all.split("\n", 1)[0]
+            for name, matches in forms:
+                if matches(before, after):
+                    hits.append({"rule": f"disclosure.{name}", "text": text[line_start:m.end()].strip()[-20:]})
+                    break
+    return hits
+
 
 # 판정 근거 이름 → 패턴. 이름은 hits 에 그대로 남는다
 _DISCLOSURE = {
-    "hashtag": r"#\s*(?:유료\s*)?광고(?!\s*(?:아님|아니|x\b))" + _INQUIRY,
-    # 줄 맨 앞의 "광고)" 처럼 여는 괄호를 빼고 쓰기도 한다
-    "bracket": r"[(\[]\s*광고\s*[)\]]|^[ \t]*광고\s*[)\]]",
-    "asterisk": r"\*\s*광고|광고\s*\*",
-    "line": r"^[ \t]*광고" + _INQUIRY + r"[ \t]*(?:[@\w.]+)?[ \t]*$",
-    "sponsored": r"#\s*협찬" + _INQUIRY + r"|[(\[]\s*협찬\s*[)\]]|협찬\s*(?:받|제품|후)",
-    "paid": r"유료\s*광고|원고료",
+    "paid": r"원고료",
 }
 _GIFTED = {
     "hashtag": r"#\s*제품\s*제공",
@@ -67,8 +119,8 @@ _PROFILE_LINK = re.compile(r"프로필\s*링크")
 _PROFILE_BUY = re.compile(r"구매(?!했)|할인|특가|만나보|주문")
 _PROFILE_WINDOW = 40
 
+# "광고 아님" 은 _word_hits 가 negation.not_ad 로 남긴다
 _NEGATION = {
-    "not_ad": r"광고\s*(?:아님|아니에요|아닙니다|아니고|아닌데|x\b)",
     "own_purchase": r"내돈내산|직접\s*구매",
 }
 # 이것만 있으면 광고라고 단정하지 않는다. 2차에서 본다
@@ -169,6 +221,7 @@ def classify(caption: str | None, owned_brands: list[str] | None = None) -> dict
         else:
             hits.append({"rule": "legend.purchase_only", "text": "".join(legend)})
 
+    hits += _word_hits(body)
     hits += _find("disclosure", body)
     hits += _find("gifted", body)
     hits += _owned_brand(body, owned_brands or [])
