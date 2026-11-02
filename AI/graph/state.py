@@ -61,6 +61,8 @@ class GraphState(TypedDict, total=False):
     result: dict
     # Clarify 가 채우면 job 이 NEEDS_CLARIFICATION 으로 멈춘다.
     clarify_question: str | None
+    # 무엇이 비어서 묻는지. Router 가 쓰고, 되묻는 결과를 만들 때 읽는다.
+    clarify_missing_fields: list[str]
     # 되묻기는 1회까지. 답변이 와도 부족하면 그대로 진행한다.
     clarify_count: int
     # 되물은 질문에 대한 사용자의 답. Normalize 가 원래 질의와 함께 읽는다.

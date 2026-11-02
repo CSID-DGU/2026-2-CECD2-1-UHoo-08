@@ -46,12 +46,24 @@ async def test_필수_값이_비면_그_값을_묻는다():
     나옴 = await router({"query_spec": _스펙(request_type=RequestType.EVALUATE)})
     assert 나옴["scenario"] == "S1_EVALUATE"
     assert "어떤 제품" in 나옴["clarify_question"]
+    assert 나옴["clarify_missing_fields"] == ["base_product_ref"]
 
 
 @pytest.mark.asyncio
 async def test_예산_세트는_예산부터_묻는다():
     나옴 = await router({"query_spec": _스펙(request_type=RequestType.BUNDLE)})
     assert "예산" in 나옴["clarify_question"]
+    assert 나옴["clarify_missing_fields"] == ["budget.total", "bundle_steps"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("채움, 기대", [
+    ({"budget": Budget(total=100_000)}, ["bundle_steps"]),
+    ({"bundle_steps": [BundleStep(label="토너")]}, ["budget.total"]),
+])
+async def test_예산_세트에서_빠진_것만_알린다(채움, 기대):
+    나옴 = await router({"query_spec": _스펙(request_type=RequestType.BUNDLE, **채움)})
+    assert 나옴["clarify_missing_fields"] == 기대
 
 
 @pytest.mark.asyncio
@@ -60,13 +72,16 @@ async def test_막연한_질의는_조건을_더_묻는다():
     나옴 = await router({"query_spec": _스펙(confidence=0.2)})
     assert 나옴["scenario"] == "S2_SEARCH"
     assert "조금 더" in 나옴["clarify_question"]
+    assert 나옴["clarify_missing_fields"] == []
 
 
 @pytest.mark.asyncio
 async def test_이미_한_번_물었으면_그냥_진행한다():
     """계속 물으면 사용자는 결과를 영영 보지 못한다."""
     나옴 = await router({"query_spec": _스펙(confidence=0.1), "clarify_count": 1})
-    assert 나옴 == {"scenario": "S2_SEARCH", "clarify_question": None}
+    assert 나옴 == {
+        "scenario": "S2_SEARCH", "clarify_question": None, "clarify_missing_fields": [],
+    }
 
 
 @pytest.mark.asyncio
@@ -83,6 +98,7 @@ async def test_스펙이_깨져_있으면_되묻는다():
     나옴 = await router({"query_spec": {"request_type": "NOPE"}})
     assert 나옴["scenario"] == "S2_SEARCH"
     assert 나옴["clarify_question"]
+    assert 나옴["clarify_missing_fields"] == []
 
 
 @pytest.mark.asyncio
@@ -98,5 +114,19 @@ async def test_물을_것이_없으면_이전_질문을_지운다():
     나옴 = await router({
         "query_spec": _스펙(category="skincare"),
         "clarify_question": "전체 예산이 얼마인가요?",
+        "clarify_missing_fields": ["budget.total"],
     })
     assert 나옴["clarify_question"] is None
+    assert 나옴["clarify_missing_fields"] == []
+
+
+@pytest.mark.asyncio
+async def test_한_번_물은_뒤에는_빠진_항목을_남기지_않는다():
+    """답을 받고도 값이 비어 있으면 있는 값으로 진행한다. 더 묻지 않는다."""
+    나옴 = await router({
+        "query_spec": _스펙(request_type=RequestType.BUNDLE),
+        "clarify_count": 1,
+        "clarify_missing_fields": ["budget.total", "bundle_steps"],
+    })
+    assert 나옴["clarify_question"] is None
+    assert 나옴["clarify_missing_fields"] == []

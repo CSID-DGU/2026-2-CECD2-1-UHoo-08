@@ -131,6 +131,21 @@ async def test_되물어야_하면_멈춘_상태로_남긴다(기록, 실행대�
     # 화면이 결과를 읽는 경로 하나만 알면 되도록 결과 스키마에 담는다
     assert 마지막["result"]["scenario"] == "S6_BUNDLE"
     assert 마지막["result"]["query"]["raw"] == "여름 쿠션"
+    assert 마지막["result"]["clarify"]["missingFields"] == []
+
+
+@pytest.mark.asyncio
+async def test_되묻는_결과에_빠진_항목을_담는다(기록, 실행대역):
+    실행대역({
+        "clarify_question": "전체 예산이 얼마인가요?",
+        "clarify_missing_fields": ["budget.total", "bundle_steps"],
+        "scenario": "S6_BUNDLE",
+    })
+    await agent._실행(_요청)
+
+    assert 기록.마지막["result"]["clarify"]["missingFields"] == ["budget.total", "bundle_steps"]
+    # 답을 받으면 라우터가 다시 검사하므로 남겨 둘 필요가 없다
+    assert "clarify_missing_fields" not in 기록.스냅샷
 
 
 @pytest.mark.asyncio
