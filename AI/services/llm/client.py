@@ -37,6 +37,7 @@ class LLMRole(str, Enum):
     WEIGHT = "weight"        # 점수 가중치 보정
     COMPOSE = "compose"      # 추천 이유 문장
     VLM = "vlm"              # 사진 인식
+    AD = "ad"                # 인스타 캡션 광고 판별 (1차 규칙이 못 정한 것)
 
 
 # 환경 변수를 비워 뒀을 때 쓰는 값. 지금 쓰고 있는 모델 그대로다.
@@ -45,6 +46,7 @@ _기본_모델 = {
     LLMRole.WEIGHT: lambda: settings.QWEN_TEXT_MODEL,
     LLMRole.COMPOSE: lambda: settings.QWEN_TEXT_MODEL,
     LLMRole.VLM: lambda: settings.QWEN_VL_MODEL,
+    LLMRole.AD: lambda: settings.QWEN_TEXT_MODEL,
 }
 
 _기본_주소 = {
