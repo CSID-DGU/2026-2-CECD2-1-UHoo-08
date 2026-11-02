@@ -10,7 +10,6 @@ const REASONS = [
   "너무 비싸요",
   "내 피부에 안 맞을 것 같아요",
   "후기가 별로예요",
-  "이미 비슷한 걸 써요",
 ];
 
 export function RecommendationFeedbackSheet({
