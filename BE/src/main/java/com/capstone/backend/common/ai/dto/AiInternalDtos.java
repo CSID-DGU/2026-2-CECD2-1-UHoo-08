@@ -8,7 +8,8 @@ import java.util.Map;
  *
  * AI 쪽 {@code AI/contracts/internal_api.py} 와 같은 모양이다. 한쪽만 고치면
  * 필드가 조용히 빠지고, 빠진 자리는 기본값으로 채워져 정상처럼 보인다.
- * 필드를 바꿀 때는 두 파일과 {@code docs/internal-api.md} 를 같이 고친다.
+ * 필드를 바꿀 때는 두 파일과 {@code docs/internal-api.md}, {@code docs/internal-api-fixtures} 를 같이 고친다.
+ * 예시 JSON 과 어긋나면 AiContractTest 가 깨진다.
  *
  * 한 파일에 모아 둔 이유는 이 값들이 따로 쓰이지 않고 항상 이 계약 하나로
  * 함께 움직이기 때문이다. 파일이 열두 개로 흩어지면 계약이 바뀔 때 무엇을
