@@ -68,6 +68,13 @@ PENDING → IN_PROGRESS → COMPLETED
 내용을 채우는 쪽은 `AI/api/internal/v2/` 의 해당 파일을 고친다. 파일이 경로별로
 나뉘어 있어 여러 사람이 같이 작업해도 충돌하지 않는다.
 
+## 되묻기 결과
+
+되물어야 하면 job 결과의 `clarify` 에 질문과 함께 `missingFields` 를 담는다.
+
+- 값은 `budget.total`, `bundle_steps`, `base_product_ref` 다. 무엇이 비었는지를 뜻하고, 경로가 정해진 뒤 필수 값을 검사한 결과다.
+- 필수 값은 다 있는데 요청이 막연해서 묻는 경우에는 빈 목록이다. 이때 무엇을 물을지는 BE 가 정한다.
+
 ## 값 이름
 
 BE·FE 와 주고받는 값은 camelCase 다(`jobId`, `rawQuery`). 그래프 안쪽에서만

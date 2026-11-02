@@ -90,4 +90,6 @@ def test_되묻는_결과는_질문을_담는다():
         scenario="S6_BUNDLE",
         clarify=Clarify(question="예산을 알려주세요", options=["5만원", "10만원"]),
     )
-    assert 결과.model_dump(by_alias=True)["clarify"]["question"]
+    나감 = 결과.model_dump(by_alias=True)["clarify"]
+    assert 나감["question"]
+    assert 나감["missingFields"] == []

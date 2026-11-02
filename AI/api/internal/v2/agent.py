@@ -62,7 +62,10 @@ def _되묻는_결과(상태: dict, 질문: str) -> dict:
             conditions=spec.get("conditions") or [],
             target=상태.get("basis") or Target.SELF,
         ),
-        clarify=Clarify(question=질문),
+        clarify=Clarify(
+            question=질문,
+            missing_fields=상태.get("clarify_missing_fields") or [],
+        ),
     ).model_dump(mode="json", by_alias=True)
 
 

@@ -104,6 +104,9 @@ class Clarify(CamelModel):
 
     question: str = Field(min_length=1)
     options: list[str] = Field(default_factory=list)  # 고르기 쉽게 주는 보기
+    # 비어서 묻는 필드. QuerySpec.missing_required() 의 이름 그대로다.
+    # 필수 값은 다 있는데 요청이 막연해서 묻는 경우에는 비어 있다.
+    missing_fields: list[str] = Field(default_factory=list)
 
 
 class QuerySummary(CamelModel):
