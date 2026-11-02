@@ -50,13 +50,14 @@ KST = timezone(timedelta(hours=9))
 
 
 class InstagramApiError(Exception):
-    def __init__(self, code: int | None, message: str):
+    def __init__(self, code: int | None, message: str, http_status: int | None = None):
         super().__init__(f"[{code}] {message}")
         self.code = code
+        self.http_status = http_status
 
     @property
     def rate_limited(self) -> bool:
-        return self.code in RATE_LIMIT_CODES
+        return self.code in RATE_LIMIT_CODES or self.http_status == 429
 
 
 def load_accounts(path: Path = ACCOUNTS_PATH) -> list[dict]:
@@ -150,6 +151,10 @@ def make_getter(client: httpx.Client, url: str, token: str) -> Callable[[str], d
 
     def get(fields: str) -> dict:
         resp = client.get(url, params={"fields": fields}, headers=headers)
+        # 429 는 본문 모양과 상관없이 호출 한도다. 본문부터 읽으면 형식에 따라
+        # 남은 계정을 계속 호출하거나 형식 오류로 잘못 분류된다
+        if resp.status_code == 429:
+            raise InstagramApiError(None, "호출 한도 초과 (HTTP 429)", http_status=429)
         try:
             body = resp.json()
         except ValueError:

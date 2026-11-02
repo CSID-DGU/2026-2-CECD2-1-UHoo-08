@@ -202,3 +202,31 @@ def test_응답_형식이_이상한_계정만_실패로_남기고_다음_계정�
 
     assert summary["posts"] == 2
     assert list(summary["failed"]) == ["b"]
+
+
+@pytest.mark.parametrize("response", [
+    httpx.Response(429, text="Too Many Requests"),
+    httpx.Response(429, json={"message": "slow down"}),
+])
+def test_HTTP_429_는_본문과_상관없이_호출_한도다(response):
+    get = _getter_over(lambda request: response)
+    with pytest.raises(InstagramApiError) as e:
+        get("username")
+    assert e.value.rate_limited
+
+
+def test_호출_한도에_걸리면_남은_계정은_호출하지_않는다():
+    calls = []
+
+    def get(fields: str) -> dict:
+        calls.append(fields)
+        if "username(b)" in fields:
+            raise InstagramApiError(None, "호출 한도 초과 (HTTP 429)", http_status=429)
+        return _all_accounts_getter(fields)
+
+    accounts = [{"username": "a"}, {"username": "b"}, {"username": "c"}]
+    summary = collect_accounts(accounts, {"a": 1, "b": 2, "c": 3}, NOW - timedelta(days=14),
+                               NOW.isoformat(), get, _FakeDB())
+
+    assert len(calls) == 2
+    assert summary["failed"]["c"] == "호출 한도 초과로 건너뜀"
