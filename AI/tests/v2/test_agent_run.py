@@ -81,6 +81,24 @@ async def test_끝나면_결과와_함께_완료로_남긴다(기록, 실행대�
 
 
 @pytest.mark.asyncio
+async def test_진행과_함께_단계_목록을_남긴다(기록, monkeypatch):
+    단계들 = [{"key": "normalize", "label": "요청 이해", "state": "NOW"}]
+
+    async def 가짜(initial=None, **kwargs):
+        await kwargs["on_progress"]("요청 이해", 0, 단계들)
+        return {**(initial or {}), "result": {}}
+
+    monkeypatch.setattr(agent.builder, "run_query", 가짜)
+    await agent._실행(_요청)
+
+    진행 = 기록.호출[0]
+    assert 진행["step"] == "요청 이해"
+    assert 진행["progress"] == 0
+    assert 진행["status"] == "IN_PROGRESS"
+    assert 진행["steps"] == 단계들
+
+
+@pytest.mark.asyncio
 async def test_질의를_그대로_넘긴다(기록, 실행대역):
     받은 = 실행대역({"result": {}})
     await agent._실행(_요청)

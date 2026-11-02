@@ -72,9 +72,9 @@ async def _돌리기(상태: dict) -> None:
 
     job_id = 상태["job_id"]
 
-    async def 진행(문구: str, 비율: int) -> None:
+    async def 진행(문구: str, 비율: int, 단계들: list[dict]) -> None:
         await job_updater.update(
-            job_id, step=문구, progress=비율, status=JobStatus.IN_PROGRESS.value
+            job_id, step=문구, progress=비율, status=JobStatus.IN_PROGRESS.value, steps=단계들
         )
 
     async def 실패(e: Exception) -> None:
