@@ -133,9 +133,11 @@ def _graph_getter(client: httpx.Client) -> Callable[[str], dict]:
     from config import settings
 
     url = f"https://graph.facebook.com/{settings.META_GRAPH_API_VERSION}/{settings.META_IG_USER_ID}"
+    # 토큰을 쿼리 문자열에 넣으면 요청 URL 과 함께 로그에 남는다 (httpx 는 요청마다 URL 을 찍는다)
+    headers = {"Authorization": f"Bearer {settings.META_PAGE_ACCESS_TOKEN}"}
 
     def get(fields: str) -> dict:
-        resp = client.get(url, params={"fields": fields, "access_token": settings.META_PAGE_ACCESS_TOKEN})
+        resp = client.get(url, params={"fields": fields}, headers=headers)
         body = resp.json()
         if "error" in body:
             err = body["error"]
