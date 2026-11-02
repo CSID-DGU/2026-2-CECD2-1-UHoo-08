@@ -36,6 +36,9 @@ class 가짜저장소:
         self.변경: list[dict] = []
         self.뺀_피드백: list[int] = []
         self.저장: dict | None = None
+        self.되돌린_피드백: list[int] = []
+        self.실패할_피드백: set[str] = set()
+        self.되돌리기_실패 = False
 
     async def load_unapplied_feedback_ids(self, user_id):
         return list(self.피드백)
@@ -46,10 +49,17 @@ class 가짜저장소:
     async def retire_feedback_changes(self, user_id, feedback_id, now):
         self.뺀_피드백.append(feedback_id)
 
+    async def release_feedback(self, feedback_id):
+        if self.되돌리기_실패:
+            raise RuntimeError("DB 끊김")
+        self.되돌린_피드백.append(feedback_id)
+
     async def load_job_result(self, job_id):
         return self.결과
 
     async def insert_change(self, user_id, source, source_ref, deltas, text):
+        if source_ref in self.실패할_피드백:
+            raise RuntimeError("DB 끊김")
         self.변경.append({"source": source, "source_ref": source_ref,
                          "deltas": deltas, "text": text})
 
@@ -165,6 +175,44 @@ async def test_다시_누른_피드백은_이전_변경을_뺀_뒤_만든다(저
     await preference_apply.apply_feedback("u1", 지금)
     assert 가짜.뺀_피드백 == [1]
     assert len(가짜.변경) == 1
+
+
+@pytest.mark.asyncio
+async def test_반영에_실패한_피드백은_되돌리고_나머지를_처리한다(저장소):
+    """되돌리지 않으면 반영 시각만 남아 다음 호출이 이 피드백을 읽지 못한다."""
+    가짜 = 저장소(피드백=[
+        _피드백(id=1, reason_tags=["BAD_REVIEWS"]),
+        _피드백(id=2, reason_tags=["NOT_MY_SKIN"]),
+    ])
+    가짜.실패할_피드백 = {"1"}
+
+    await preference_apply.apply_feedback("u1", 지금)
+
+    assert 가짜.되돌린_피드백 == [1]
+    assert [변경["source_ref"] for 변경 in 가짜.변경] == ["2"]
+    assert 가짜.저장["source_counts"]["feedback"] == 1
+
+
+@pytest.mark.asyncio
+async def test_성공한_피드백은_되돌리지_않는다(저장소):
+    가짜 = 저장소(피드백=[_피드백(reason_tags=["BAD_REVIEWS"])])
+    await preference_apply.apply_feedback("u1", 지금)
+    assert 가짜.되돌린_피드백 == []
+
+
+@pytest.mark.asyncio
+async def test_되돌리기까지_실패해도_나머지를_처리한다(저장소):
+    가짜 = 저장소(피드백=[
+        _피드백(id=1, reason_tags=["BAD_REVIEWS"]),
+        _피드백(id=2, reason_tags=["NOT_MY_SKIN"]),
+    ])
+    가짜.실패할_피드백 = {"1"}
+    가짜.되돌리기_실패 = True
+
+    await preference_apply.apply_feedback("u1", 지금)
+
+    assert [변경["source_ref"] for 변경 in 가짜.변경] == ["2"]
+    assert 가짜.저장 is not None
 
 
 @pytest.mark.asyncio

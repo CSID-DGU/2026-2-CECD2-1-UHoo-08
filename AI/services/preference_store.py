@@ -58,6 +58,14 @@ async def claim_feedback(feedback_id: int, now: datetime) -> dict[str, Any] | No
     return 행[0] if 행 else None
 
 
+async def release_feedback(feedback_id: int) -> None:
+    """반영하지 못한 피드백을 다음 호출이 다시 읽게 한다."""
+    def _쓰기() -> None:
+        _db().table(_피드백).update({"applied_at": None}).eq("id", feedback_id).execute()
+
+    await asyncio.to_thread(_쓰기)
+
+
 async def retire_feedback_changes(user_id: str, feedback_id: int, now: datetime) -> None:
     """다시 눌린 피드백의 이전 변경을 합산에서 뺀다."""
     def _쓰기() -> None:

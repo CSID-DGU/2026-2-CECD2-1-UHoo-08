@@ -71,6 +71,15 @@ async def test_이미_가져간_피드백이면_None이다(DB):
 
 
 @pytest.mark.asyncio
+async def test_반영_시각을_되돌릴_때는_그_피드백만_건드린다(DB):
+    기록 = DB([])
+    await preference_store.release_feedback(1)
+    assert 기록["table"] == "recommendation_feedback"
+    assert 기록["update"] == [({"applied_at": None},)]
+    assert 기록["eq"] == [("id", 1)]
+
+
+@pytest.mark.asyncio
 async def test_이전_변경은_그_피드백의_것만_뺀다(DB):
     기록 = DB([])
     await preference_store.retire_feedback_changes("u1", 7, 지금)

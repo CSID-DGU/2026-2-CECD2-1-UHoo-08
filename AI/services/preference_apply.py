@@ -98,26 +98,40 @@ def _반응_변경(좋아요: bool, 강점: list[str]) -> tuple[dict[str, float]
     return 변화량, f"'{표현}' 피드백으로 {대상} 비중 {'↑' if 좋아요 else '↓'}"
 
 
+async def _피드백_한_건(user_id: str, 피드백: dict[str, Any], now: datetime) -> None:
+    피드백_id = 피드백["id"]
+    # 먼저 빼 두어야, 실패 뒤 다시 돌 때 앞서 들어간 변경과 겹치지 않는다.
+    await preference_store.retire_feedback_changes(user_id, 피드백_id, now)
+
+    이유들 = [이유 for 이유 in 피드백.get("reason_tags") or [] if 이유 in _이유]
+    좋아요 = 피드백["vote"] == "UP"
+    if 이유들 and not 좋아요:
+        변화량, 문장 = _이유_변경(이유들)
+    else:
+        결과 = await preference_store.load_job_result(피드백["job_id"])
+        강점 = _강점_항목(결과, 피드백["product_id"])
+        if not 강점:
+            return
+        변화량, 문장 = _반응_변경(좋아요, 강점)
+
+    await preference_store.insert_change(user_id, "FEEDBACK", str(피드백_id), 변화량, 문장)
+
+
 async def _피드백_반영(user_id: str, now: datetime) -> None:
     for 피드백_id in await preference_store.load_unapplied_feedback_ids(user_id):
         피드백 = await preference_store.claim_feedback(피드백_id, now)
         if 피드백 is None:
             continue
 
-        await preference_store.retire_feedback_changes(user_id, 피드백_id, now)
-
-        이유들 = [이유 for 이유 in 피드백.get("reason_tags") or [] if 이유 in _이유]
-        좋아요 = 피드백["vote"] == "UP"
-        if 이유들 and not 좋아요:
-            변화량, 문장 = _이유_변경(이유들)
-        else:
-            결과 = await preference_store.load_job_result(피드백["job_id"])
-            강점 = _강점_항목(결과, 피드백["product_id"])
-            if not 강점:
-                continue
-            변화량, 문장 = _반응_변경(좋아요, 강점)
-
-        await preference_store.insert_change(user_id, "FEEDBACK", str(피드백_id), 변화량, 문장)
+        try:
+            await _피드백_한_건(user_id, 피드백, now)
+        except Exception:
+            # 한 건 때문에 나머지 피드백과 합계까지 멈추지 않게 다음으로 넘어간다.
+            logger.exception("피드백 %s 반영 실패. 다음 호출에서 다시 처리한다.", 피드백_id)
+            try:
+                await preference_store.release_feedback(피드백_id)
+            except Exception:
+                logger.exception("피드백 %s 의 반영 시각을 되돌리지 못했다.", 피드백_id)
 
 
 def _다시_만들_수_있나(행들: list[dict[str, Any]], now: datetime) -> bool:
