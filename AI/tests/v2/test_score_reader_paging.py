@@ -13,7 +13,7 @@ import pytest
 
 class 가짜쿼리:
     def __init__(self, 요청들, 행들, 상한):
-        self.요청 = {"eq": [], "neq": [], "in": [], "order": [], "range": None}
+        self.요청 = {"eq": [], "neq": [], "in": [], "gt": [], "order": [], "limit": None}
         요청들.append(self.요청)
         self.행들 = 행들
         self.상한 = 상한
@@ -31,6 +31,11 @@ class 가짜쿼리:
         self.행들 = [행 for 행 in self.행들 if 행.get(열) != 값]
         return self
 
+    def gt(self, 열, 값):
+        self.요청["gt"].append((열, 값))
+        self.행들 = [행 for 행 in self.행들 if 행[열] > 값]
+        return self
+
     def in_(self, 열, 값들):
         self.요청["in"].append((열, list(값들)))
         self.행들 = [행 for 행 in self.행들 if 행.get(열) in set(값들)]
@@ -41,14 +46,12 @@ class 가짜쿼리:
         self.행들 = sorted(self.행들, key=lambda 행: 행[열])
         return self
 
-    def range(self, 시작, 끝):
-        self.요청["range"] = (시작, 끝)
+    def limit(self, 수):
+        self.요청["limit"] = 수
         return self
 
     def execute(self):
-        시작, 끝 = self.요청["range"] or (0, self.상한 - 1)
-        끝 = min(끝, 시작 + self.상한 - 1)
-        return types.SimpleNamespace(data=self.행들[시작 : 끝 + 1])
+        return types.SimpleNamespace(data=self.행들[: min(self.요청["limit"], self.상한)])
 
 
 @pytest.fixture
@@ -62,11 +65,16 @@ def 읽기(monkeypatch):
     sys.modules.pop("db.score_reader", None)
     score_reader = importlib.import_module("db.score_reader")
 
-    def 세우기(상한=한번에_돌려주는_행, **테이블들):
+    def 세우기(상한=한번에_돌려주는_행, 요청_전에=None, **테이블들):
         요청들: list = []
 
+        def 테이블(이름):
+            if 요청_전에:
+                요청_전에(요청들)
+            return 가짜쿼리(요청들, 테이블들.get(이름, []), 상한)
+
         def get_supabase():
-            return types.SimpleNamespace(table=lambda 이름: 가짜쿼리(요청들, 테이블들.get(이름, []), 상한))
+            return types.SimpleNamespace(table=테이블)
 
         monkeypatch.setattr(score_reader, "get_supabase", get_supabase)
         return score_reader, 요청들
@@ -108,13 +116,27 @@ def test_비슷한_사용자를_끝까지_읽는다(읽기, 수, 요청_수):
     assert len(요청들) == 요청_수
 
 
-def test_페이지마다_정렬과_다음_구간을_요청한다(읽기):
+def test_페이지마다_정렬하고_마지막_id_다음부터_요청한다(읽기):
     score_reader, 요청들 = 읽기(users=사용자(1500, skin_type="DRY"))
 
     score_reader.get_similar_user_ids("DRY", None, "본인")
 
-    assert [요청["range"] for 요청 in 요청들] == [(0, 999), (1000, 1999), (1500, 2499)]
-    assert all(요청["order"] == ["id"] for 요청 in 요청들)
+    assert [요청["gt"] for 요청 in 요청들] == [[], [("id", "u00999")], [("id", "u01499")]]
+    assert all(요청["order"] == ["id"] and 요청["limit"] == 1000 for 요청 in 요청들)
+
+
+def test_읽는_사이에_앞쪽_사용자가_지워져도_뒤의_사용자를_건너뛰지_않는다(읽기):
+    행들 = 사용자(1500, skin_type="DRY")
+
+    def 탈퇴(요청들):
+        if len(요청들) == 1:
+            del 행들[:10]
+
+    score_reader, _ = 읽기(요청_전에=탈퇴, users=행들)
+
+    결과 = score_reader.get_similar_user_ids("DRY", None, "본인")
+
+    assert 결과 == [f"u{번호:05d}" for 번호 in range(1500)]
 
 
 def test_서버_상한이_더_낮아도_건너뛰지_않고_끝까지_읽는다(읽기):
@@ -123,7 +145,7 @@ def test_서버_상한이_더_낮아도_건너뛰지_않고_끝까지_읽는다(
     결과 = score_reader.get_similar_user_ids("DRY", None, "본인")
 
     assert 결과 == [f"u{번호:05d}" for 번호 in range(700)]
-    assert [요청["range"][0] for 요청 in 요청들] == [0, 300, 600, 700]
+    assert len(요청들) == 4
 
 
 def test_본인_제외와_필터가_모든_페이지에_유지된다(읽기):
@@ -201,7 +223,7 @@ def test_사용자_목록을_나눠_모두_한_번씩_조회한다(읽기, 사�
 
     결과 = score_reader.get_user_products_by_users(아이디들)
 
-    조각들 = [요청["in"][0][1] for 요청 in 요청들 if 요청["range"][0] == 0]
+    조각들 = [요청["in"][0][1] for 요청 in 요청들 if not 요청["gt"]]
     assert len(조각들) == 조각_수
     assert all(len(조각) <= 200 for 조각 in 조각들)
     assert [아이디 for 조각 in 조각들 for 아이디 in 조각] == 아이디들
@@ -217,14 +239,7 @@ def test_나눈_조각_안에서_1000행을_넘어도_끝까지_읽는다(읽기
 
     assert len(결과) == 3000
     assert len({행["id"] for 행 in 결과}) == 3000
-    assert [요청["range"] for 요청 in 요청들] == [
-        (0, 999),
-        (1000, 1999),
-        (2000, 2999),
-        (2400, 3399),
-        (0, 999),
-        (600, 1599),
-    ]
+    assert len(요청들) == 6
 
 
 def test_나눠_읽어도_결과는_id_순서다(읽기):

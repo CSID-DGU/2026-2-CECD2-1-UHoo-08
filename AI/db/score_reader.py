@@ -19,20 +19,22 @@ _USER_CHUNK_SIZE = 200
 
 
 def _read_all_pages(build_query: Callable[[], Any]) -> List[Dict[str, Any]]:
-    """다 읽을 때까지 나눠 읽는다. build_query 는 정렬까지 건 새 쿼리를 매번 만들어 돌려준다.
+    """다 읽을 때까지 id 순서로 나눠 읽는다. build_query 는 조건까지 건 새 쿼리를 매번 만들어 돌려준다.
 
-    정렬이 없으면 페이지마다 순서가 달라져 행이 빠지거나 겹칠 수 있다.
-    서버 상한이 _PAGE_SIZE 보다 낮으면 페이지가 덜 차서 돌아오므로, 빈 페이지가 나올 때까지 받은 행 수만큼 옮겨 읽는다.
+    마지막으로 읽은 id 다음부터 읽으므로, 읽는 사이에 앞쪽 행이 지워져도 뒤의 행을 건너뛰지 않는다.
+    서버 상한이 _PAGE_SIZE 보다 낮으면 페이지가 덜 차서 돌아오므로, 빈 페이지가 나올 때까지 읽는다.
     """
     rows: List[Dict[str, Any]] = []
-    start = 0
+    last_id = None
     while True:
-        res = build_query().range(start, start + _PAGE_SIZE - 1).execute()
-        page = res.data or []
+        query = build_query()
+        if last_id is not None:
+            query = query.gt("id", last_id)
+        page = query.order("id").limit(_PAGE_SIZE).execute().data or []
         if not page:
             return rows
         rows.extend(page)
-        start += len(page)
+        last_id = page[-1]["id"]
 
 
 class InsightRow(TypedDict):
@@ -109,7 +111,7 @@ def get_similar_user_ids(
             query = query.eq("skin_type", skin_type)
         if personal_color:
             query = query.eq("personal_color", personal_color)
-        return query.neq("id", exclude_user_id).order("id")
+        return query.neq("id", exclude_user_id)
 
     return [row["id"] for row in _read_all_pages(build_query)]
 
@@ -131,7 +133,6 @@ def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
                 lambda: sb.table("user_products")
                 .select("id, user_id, product_id, usage_type, rating, created_at")
                 .in_("user_id", chunk)
-                .order("id")
             )
         )
     rows.sort(key=lambda row: row["id"])
@@ -172,7 +173,7 @@ def get_popular_products_by_skin_type(
 
     sb = get_supabase()
     users = _read_all_pages(
-        lambda: sb.table("users").select("id").eq("skin_type", skin_type).order("id")
+        lambda: sb.table("users").select("id").eq("skin_type", skin_type)
     )
     user_ids = [r["id"] for r in users]
     if not user_ids:

@@ -53,8 +53,10 @@ class TestGetUserProductsByUsers:
 
     def _mock_pages(self, mock_sb, pages):
         sb = MagicMock()
-        query = sb.table.return_value.select.return_value.in_.return_value.order.return_value
-        query.range.return_value.execute.side_effect = [MagicMock(data=p) for p in pages]
+        query = sb.table.return_value
+        for name in ("select", "in_", "gt", "order", "limit"):
+            getattr(query, name).return_value = query
+        query.execute.side_effect = [MagicMock(data=p) for p in pages]
         mock_sb.return_value = sb
         return sb, query
 
@@ -68,9 +70,9 @@ class TestGetUserProductsByUsers:
 
         assert len(rows) == 1001
         assert rows[-1]["id"] == "r01000"
-        # 페이지마다 같은 순서를 보장하도록 id 로 정렬한다
-        sb.table.return_value.select.return_value.in_.return_value.order.assert_called_with("id")
-        assert [c.args for c in query.range.call_args_list] == [(0, 999), (1000, 1999), (1001, 2000)]
+        # id 순서로 읽고, 마지막으로 읽은 id 다음부터 이어 읽는다
+        query.order.assert_called_with("id")
+        assert [c.args for c in query.gt.call_args_list] == [("id", "r00999"), ("id", "r01000")]
 
     @patch("db.score_reader.get_supabase")
     def test_딱_1000행이면_빈_페이지를_보고_멈춘다(self, mock_sb):
@@ -79,7 +81,7 @@ class TestGetUserProductsByUsers:
         _, query = self._mock_pages(mock_sb, [self._rows(1000), []])
 
         assert len(get_user_products_by_users(["u2"])) == 1000
-        assert query.range.call_count == 2
+        assert query.execute.call_count == 2
 
     @patch("db.score_reader.get_supabase")
     def test_1000행보다_적어도_빈_페이지를_보고_멈춘다(self, mock_sb):
@@ -88,7 +90,7 @@ class TestGetUserProductsByUsers:
         _, query = self._mock_pages(mock_sb, [self._rows(3), []])
 
         assert len(get_user_products_by_users(["u2"])) == 3
-        assert query.range.call_count == 2
+        assert query.execute.call_count == 2
 
     @patch("db.score_reader.get_supabase")
     def test_사용자가_없으면_조회하지_않는다(self, mock_sb):
