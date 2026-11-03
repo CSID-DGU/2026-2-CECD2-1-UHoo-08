@@ -11,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.Duration;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * application.yml 의 {@code hwadam.*} 설정 묶음.
@@ -20,6 +22,7 @@ import java.time.ZoneId;
  *   zone: 서비스가 "오늘"을 정하는 시간대. 배치 cron 시간대와 따로 둔다
  *   batch: 배치 공통(시간대). cron 은 멈춘 job 정리, 사진 인식 정리, 홈 배치에서 추가
  *   env: 환경 판정 기준값. 환경 요약, 일별 추이에서 쓴다
+ *   admin: 관리자. 저장소에 역할 개념이 없어 설정의 사용자 ID 로 정한다
  */
 @Getter
 @Setter
@@ -39,6 +42,18 @@ public class HwadamProperties {
 
     @Valid
     private EnvThresholds env = new EnvThresholds();
+
+    @Valid
+    private Admin admin = new Admin();
+
+    @Getter
+    @Setter
+    public static class Admin {
+
+        /** 관리자 경로를 부를 수 있는 사용자. 비어 있으면 아무도 부를 수 없다 */
+        @NotNull
+        private List<UUID> userIds = List.of();
+    }
 
     @Getter
     @Setter
