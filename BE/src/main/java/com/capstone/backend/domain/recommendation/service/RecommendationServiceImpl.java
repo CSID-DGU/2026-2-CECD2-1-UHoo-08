@@ -62,6 +62,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Override
     @Transactional
     public RecommendationJobResponse requestRecommendation(UUID userId, RecommendationRequest request) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations 호출: baseProductId={}", request.getBaseProductId());
+
         Product product = productRepository.findById(request.getBaseProductId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 

@@ -69,7 +69,12 @@ public class RecommendationController {
                 recommendationService.searchProducts(userId, request.getQuery())));
     }
 
-    @Operation(summary = "제품 추천 요청", description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인.")
+    /** 상품 기준 추천은 POST /recommendations/queries 의 baseProductId 로 옮겨 간다. FE 호출을 옮기면 지운다 */
+    @Deprecated
+    @Operation(summary = "제품 추천 요청 (사용 중단)",
+            description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인. " +
+                    "사용 중단. POST /recommendations/queries 에 baseProductId 를 보내는 것으로 대체한다.",
+            deprecated = true)
     @PostMapping
     public ResponseEntity<ApiResponse<RecommendationJobResponse>> requestRecommendation(
             @AuthenticationPrincipal UUID userId,
