@@ -28,7 +28,8 @@ public class HomeAdminController {
     @Operation(
             summary = "홈 카드 수동 생성",
             description = "시연과 디버깅용. 일일 배치의 대상 조건을 보지 않고 이 사용자의 홈 카드 생성을 AI 에 바로 요청하고 202 를 돌려준다. " +
-                    "kind: ROUTINE, ENV. 관리자가 아니면 403 FORBIDDEN, 없는 사용자면 404 NOT_FOUND."
+                    "kind: ROUTINE, ENV. 관리자가 아니면 403 FORBIDDEN, 없는 사용자면 404 NOT_FOUND. " +
+                    "본문 검증이 권한 검사보다 먼저라, 본문이 잘못되면 관리자가 아니어도 422 VALIDATION_ERROR 다."
     )
     @PostMapping("/run")
     public ResponseEntity<ApiResponse<Void>> run(
