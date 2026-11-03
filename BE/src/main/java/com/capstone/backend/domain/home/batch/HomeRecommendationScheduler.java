@@ -38,7 +38,7 @@ public class HomeRecommendationScheduler {
     @Scheduled(cron = "${hwadam.batch.home-cron}", zone = "${hwadam.batch.zone}")
     public void requestCards() {
         List<Target> targets = targets();
-        int failed = 0;
+        int notSent = 0;
         for (int i = 0; i < targets.size(); i++) {
             if (i > 0 && !waitForNextCall()) {
                 log.warn("[HomeRecommendation] 기다리는 중 중단되어 {}건 중 {}건만 요청함", targets.size(), i);
@@ -48,12 +48,13 @@ public class HomeRecommendationScheduler {
             try {
                 aiInternalClient.runHome(new HomeRunRequest(target.userId().toString(), target.kind().name()));
             } catch (RuntimeException e) {
-                failed++;
+                notSent++;
                 log.warn("[HomeRecommendation] AI 호출 실패: userId={}, kind={}, error={}",
                         target.userId(), target.kind(), e.getMessage());
             }
         }
-        log.info("[HomeRecommendation] 홈 카드 생성 요청 {}건, 실패 {}건", targets.size(), failed);
+        // 호출은 보내고 바로 돌아오므로, 보낸 뒤의 실패는 여기서 셀 수 없고 AiInternalClient 가 건마다 오류 로그로 남긴다
+        log.info("[HomeRecommendation] 홈 카드 생성 요청 {}건 중 보내지 못한 요청 {}건", targets.size(), notSent);
     }
 
     private List<Target> targets() {
