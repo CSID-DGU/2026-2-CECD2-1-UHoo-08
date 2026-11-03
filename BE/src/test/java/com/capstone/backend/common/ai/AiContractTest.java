@@ -72,6 +72,17 @@ class AiContractTest {
     }
 
     @Test
+    void 사진_인식_요청은_없는_면을_보내지_않는다() {
+        JsonNode dateOnly = MAPPER.valueToTree(new RecognizePhotosRequest(null, "https://x/date.jpg"));
+        JsonNode nameOnly = MAPPER.valueToTree(new RecognizePhotosRequest("https://x/name.jpg", null));
+
+        assertThat(dateOnly.has("nameImage")).isFalse();
+        assertThat(dateOnly.get("dateImage").asText()).isEqualTo("https://x/date.jpg");
+        assertThat(nameOnly.has("dateImage")).isFalse();
+        assertThat(nameOnly.get("nameImage").asText()).isEqualTo("https://x/name.jpg");
+    }
+
+    @Test
     void 예시_JSON은_모두_DTO와_짝이_있다() throws IOException {
         try (Stream<Path> files = Files.list(FIXTURES)) {
             assertThat(files.map(path -> path.getFileName().toString().replaceFirst("\\.json$", ""))
