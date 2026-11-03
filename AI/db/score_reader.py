@@ -14,6 +14,9 @@ from db.supabase_client import get_supabase
 # Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
 _PAGE_SIZE = 1000
 
+# 사용자 목록은 조회 조건으로 주소에 실린다. UUID 200개면 7KB 남짓이라 주소 길이 제한 안에 든다.
+_USER_CHUNK_SIZE = 200
+
 
 def _read_all_pages(build_query: Callable[[], Any]) -> List[Dict[str, Any]]:
     """다 읽을 때까지 나눠 읽는다. build_query 는 정렬까지 건 새 쿼리를 매번 만들어 돌려준다.
@@ -114,16 +117,23 @@ def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
     """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다.
 
     첫 응답만 쓰면 1,000행을 넘는 부분이 빠져, 최근 평점이 누락될 수 있다.
+    사용자 목록을 나눠 조회해도 결과는 전체를 한 번에 읽을 때처럼 id 순서로 돌려준다.
     """
     if not user_ids:
         return []
     sb = get_supabase()
-    rows = _read_all_pages(
-        lambda: sb.table("user_products")
-        .select("id, user_id, product_id, usage_type, rating, created_at")
-        .in_("user_id", user_ids)
-        .order("id")
-    )
+    rows: List[Dict[str, Any]] = []
+    for start in range(0, len(user_ids), _USER_CHUNK_SIZE):
+        chunk = user_ids[start : start + _USER_CHUNK_SIZE]
+        rows.extend(
+            _read_all_pages(
+                lambda: sb.table("user_products")
+                .select("id, user_id, product_id, usage_type, rating, created_at")
+                .in_("user_id", chunk)
+                .order("id")
+            )
+        )
+    rows.sort(key=lambda row: row["id"])
     return [
         UserProductRow(
             id=row["id"],

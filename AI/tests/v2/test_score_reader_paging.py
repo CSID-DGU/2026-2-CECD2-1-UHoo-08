@@ -80,11 +80,11 @@ def 사용자(수, **열):
     return [{"id": f"u{번호:05d}", **열} for 번호 in range(수)]
 
 
-def 사용_기록(수):
+def 사용_기록(수, 사용자_수=1):
     return [
         {
             "id": f"up{번호:05d}",
-            "user_id": "u00000",
+            "user_id": f"u{번호 % 사용자_수:05d}",
             "product_id": f"p{번호}",
             "usage_type": "USING",
             "rating": 5,
@@ -179,3 +179,44 @@ def test_사용자가_없으면_사용_기록을_조회하지_않는다(읽기):
 
     assert score_reader.get_user_products_by_users([]) == []
     assert 요청들 == []
+
+
+@pytest.mark.parametrize(
+    "사용자_수, 요청_수",
+    [(1, 1), (200, 1), (201, 2), (450, 3)],
+)
+def test_사용자_목록을_나눠_모두_한_번씩_조회한다(읽기, 사용자_수, 요청_수):
+    score_reader, 요청들 = 읽기(user_products=사용_기록(사용자_수, 사용자_수))
+    아이디들 = [f"u{번호:05d}" for 번호 in range(사용자_수)]
+
+    결과 = score_reader.get_user_products_by_users(아이디들)
+
+    assert len(요청들) == 요청_수
+    assert all(len(요청["in"][0][1]) <= 200 for 요청 in 요청들)
+    assert [아이디 for 요청 in 요청들 for 아이디 in 요청["in"][0][1]] == 아이디들
+    assert len(결과) == 사용자_수
+
+
+def test_나눈_조각_안에서_1000행을_넘어도_끝까지_읽는다(읽기):
+    # 첫 조각의 사용자 200명이 2,400행, 다음 조각의 50명이 600행을 가진다
+    score_reader, 요청들 = 읽기(user_products=사용_기록(3000, 250))
+    아이디들 = [f"u{번호:05d}" for 번호 in range(250)]
+
+    결과 = score_reader.get_user_products_by_users(아이디들)
+
+    assert len(결과) == 3000
+    assert len({행["id"] for 행 in 결과}) == 3000
+    assert [요청["range"] for 요청 in 요청들] == [(0, 999), (1000, 1999), (2000, 2999), (0, 999)]
+
+
+def test_나눠_읽어도_결과는_id_순서다(읽기):
+    # 앞 조각의 사용자가 뒤쪽 id 를 가진다. 조각 순서대로 이어 붙이면 순서가 뒤집힌다
+    기록 = 사용_기록(2)
+    기록[0]["user_id"] = "u00300"
+    기록[1]["user_id"] = "u00000"
+    score_reader, _ = 읽기(user_products=기록)
+    아이디들 = [f"u{번호:05d}" for 번호 in range(301)]
+
+    결과 = score_reader.get_user_products_by_users(아이디들)
+
+    assert [행["id"] for 행 in 결과] == ["up00000", "up00001"]
