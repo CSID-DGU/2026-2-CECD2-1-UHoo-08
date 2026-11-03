@@ -22,16 +22,17 @@ def _read_all_pages(build_query: Callable[[], Any]) -> List[Dict[str, Any]]:
     """다 읽을 때까지 나눠 읽는다. build_query 는 정렬까지 건 새 쿼리를 매번 만들어 돌려준다.
 
     정렬이 없으면 페이지마다 순서가 달라져 행이 빠지거나 겹칠 수 있다.
+    서버 상한이 _PAGE_SIZE 보다 낮으면 페이지가 덜 차서 돌아오므로, 빈 페이지가 나올 때까지 받은 행 수만큼 옮겨 읽는다.
     """
     rows: List[Dict[str, Any]] = []
     start = 0
     while True:
         res = build_query().range(start, start + _PAGE_SIZE - 1).execute()
         page = res.data or []
-        rows.extend(page)
-        if len(page) < _PAGE_SIZE:
+        if not page:
             return rows
-        start += _PAGE_SIZE
+        rows.extend(page)
+        start += len(page)
 
 
 class InsightRow(TypedDict):
