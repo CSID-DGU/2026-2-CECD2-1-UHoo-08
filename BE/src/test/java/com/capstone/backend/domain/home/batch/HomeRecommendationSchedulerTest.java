@@ -153,6 +153,15 @@ class HomeRecommendationSchedulerTest {
     }
 
     @Test
+    void 호출_간격은_설정한_속도를_넘지_않도록_올림한다() {
+        assertThat(HomeRecommendationScheduler.callGapMillis(2)).isEqualTo(500);
+        assertThat(HomeRecommendationScheduler.callGapMillis(3)).isEqualTo(334);
+        assertThat(HomeRecommendationScheduler.callGapMillis(600)).isEqualTo(2);
+        assertThat(HomeRecommendationScheduler.callGapMillis(1000)).isEqualTo(1);
+        assertThat(HomeRecommendationScheduler.callGapMillis(2000)).isEqualTo(1);
+    }
+
+    @Test
     void 중단_신호는_지우지_않고_남긴다() {
         properties.getBatch().setHomeCallsPerSecond(1);
         Thread.currentThread().interrupt();

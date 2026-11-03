@@ -69,10 +69,15 @@ public class HomeRecommendationScheduler {
         return true;
     }
 
+    /** 호출 간격. 버리면 설정한 속도를 넘으므로 올린다. 그래서 초당 1000회가 넘는 설정은 초당 1000회로 돈다 */
+    static long callGapMillis(int callsPerSecond) {
+        return (1000L + callsPerSecond - 1) / callsPerSecond;
+    }
+
     /** 초당 호출 수에 맞춰 기다린다. 중단되면 false */
     boolean waitForNextCall() {
         try {
-            Thread.sleep(1000L / hwadamProperties.getBatch().getHomeCallsPerSecond());
+            Thread.sleep(callGapMillis(hwadamProperties.getBatch().getHomeCallsPerSecond()));
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
