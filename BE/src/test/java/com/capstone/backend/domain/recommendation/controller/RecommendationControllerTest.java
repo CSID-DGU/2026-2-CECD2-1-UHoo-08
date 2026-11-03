@@ -127,7 +127,35 @@ class RecommendationControllerTest {
     }
 
     @Test
-    void 문장이_비었으면_422_VALIDATION_ERROR다() throws Exception {
+    void 기준_상품만_있어도_접수한다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        ArgumentCaptor<RecommendationQueryRequest> request = ArgumentCaptor.forClass(RecommendationQueryRequest.class);
+        given(recommendationJobService.requestQuery(eq(userId), request.capture())).willReturn(
+                new RecommendationQueryResponse(jobId, 8, "/recommendations/" + jobId + "/status"));
+
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"baseProductId\":\"" + productId + "\"}"))
+                .andExpect(status().isAccepted());
+
+        assertThat(request.getValue().getBaseProductId()).isEqualTo(productId);
+    }
+
+    @Test
+    void 기준_상품_ID가_UUID가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"baseProductId":"not-a-uuid"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 문장과_기준_상품이_모두_없으면_422_VALIDATION_ERROR다() throws Exception {
         mockMvc.perform(post("/recommendations/queries")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
