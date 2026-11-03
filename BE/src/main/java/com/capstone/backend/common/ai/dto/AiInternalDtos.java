@@ -35,7 +35,10 @@ public final class AiInternalDtos {
     public record AgentRunV2Request(
             String jobId,
             String userId,
+            /* 기준 상품만으로 요청했으면 null */
             String rawQuery,
+            /* 있으면 AI 가 문장을 해석하지 않고 평가 경로로 간다 */
+            String baseProductId,
             /* SELF | POPULAR | OTHER */
             String basis,
             /* basis 가 OTHER 일 때 화면에서 입력한 다른 사람의 조건 */

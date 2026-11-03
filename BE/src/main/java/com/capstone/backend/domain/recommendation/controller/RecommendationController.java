@@ -45,7 +45,9 @@ public class RecommendationController {
 
     @Operation(
             summary = "자연어 추천 요청",
-            description = "검색창 문장으로 추천 job 을 만들고 202 로 jobId 를 바로 돌려준다. 진행은 statusUrl 로 폴링한다. " +
+            description = "검색창 문장이나 기준 상품으로 추천 job 을 만들고 202 로 jobId 를 바로 돌려준다. 진행은 statusUrl 로 폴링한다. " +
+                    "query 와 baseProductId 중 하나는 있어야 한다. baseProductId 가 있으면 문장을 해석하지 않고 그 상품을 평가한다. " +
+                    "없는 상품이면 404 PRODUCT_NOT_FOUND. " +
                     "basis: SELF(기본, 내 피부), POPULAR(전체 인기), OTHER(다른 사람, targetProfile 함께). " +
                     "SELF 인데 피부 정보가 없으면 404 SKIN_PROFILE_NOT_FOUND. " +
                     "POST /recommendations/search(동기)를 대체한다."
@@ -67,7 +69,12 @@ public class RecommendationController {
                 recommendationService.searchProducts(userId, request.getQuery())));
     }
 
-    @Operation(summary = "제품 추천 요청", description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인.")
+    /** 상품 기준 추천은 POST /recommendations/queries 의 baseProductId 로 옮겨 간다. FE 호출을 옮기면 지운다 */
+    @Deprecated
+    @Operation(summary = "제품 추천 요청 (사용 중단)",
+            description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인. " +
+                    "사용 중단. POST /recommendations/queries 에 baseProductId 를 보내는 것으로 대체한다.",
+            deprecated = true)
     @PostMapping
     public ResponseEntity<ApiResponse<RecommendationJobResponse>> requestRecommendation(
             @AuthenticationPrincipal UUID userId,
