@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     LLM_VLM_BASE_URL: str = ""
     LLM_VLM_API_KEY: str = ""
 
+    LLM_AD_MODEL: str = ""
+    LLM_AD_BASE_URL: str = ""
+    LLM_AD_API_KEY: str = ""
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
