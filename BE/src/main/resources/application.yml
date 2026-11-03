@@ -44,12 +44,17 @@ hwadam:
     stuck-job-cleanup-cron: "0 */10 * * * *"         # 멈춘 추천 job 정리, 10분마다
     stuck-job-timeout: 15m                           # 대기·진행 중인 job 이 이만큼 갱신되지 않으면 실패
     clarification-timeout: 24h                       # 되묻는 중인 job 이 이만큼 답을 못 받으면 실패
+    home-cron: "0 30 6 * * *"                        # 홈 카드 생성 요청, 매일 06:30
+    home-calls-per-second: 2                         # 홈 카드 생성을 AI 에 요청하는 초당 횟수
+    home-include-synthetic: false                    # 합성 사용자의 홈 카드도 만들지
   env:
     uv-high: 6              # 최고 자외선 지수가 이 값 이상이면 자외선 높은 날
     pm10-bad: 80            # PM10 평균이 이 값을 넘으면 미세먼지 나쁜 날
     pm25-bad: 35            # PM2.5 평균이 이 값을 넘으면 미세먼지 나쁜 날
     humidity-low: 40        # 습도 평균이 이 값보다 낮으면 건조한 날
     humidity-change: 15     # 최근 7일과 3주 전 7일의 평균 습도가 이만큼(%p) 다르면 계절 전환
+  admin:
+    user-ids: ${HWADAM_ADMIN_USER_IDS:}   # 관리자 사용자 ID, 쉼표로 구분. 비어 있으면 아무도 부를 수 없다
 
 ai:
   server-url: ${AI_SERVER_URL}   # FastAPI 주소
