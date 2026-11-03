@@ -5,10 +5,36 @@ score·collaborative 에이전트가 사용하는 read-only DB 헬퍼.
 - user_products: 협업 필터링 집계 (collaborative_agent)
 - users: 유사 사용자 필터 (collaborative_agent) — skin_type, personal_color
 """
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, TypedDict
 import json
 
 from db.supabase_client import get_supabase
+
+
+# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
+_PAGE_SIZE = 1000
+
+# 사용자 목록은 조회 조건으로 주소에 실린다. UUID 200개면 7KB 남짓이라 주소 길이 제한 안에 든다.
+_USER_CHUNK_SIZE = 200
+
+
+def _read_all_pages(build_query: Callable[[], Any]) -> List[Dict[str, Any]]:
+    """다 읽을 때까지 id 순서로 나눠 읽는다. build_query 는 조건까지 건 새 쿼리를 매번 만들어 돌려준다.
+
+    마지막으로 읽은 id 다음부터 읽으므로, 읽는 사이에 앞쪽 행이 지워져도 뒤의 행을 건너뛰지 않는다.
+    서버 상한이 _PAGE_SIZE 보다 낮으면 페이지가 덜 차서 돌아오므로, 빈 페이지가 나올 때까지 읽는다.
+    """
+    rows: List[Dict[str, Any]] = []
+    last_id = None
+    while True:
+        query = build_query()
+        if last_id is not None:
+            query = query.gt("id", last_id)
+        page = query.order("id").limit(_PAGE_SIZE).execute().data or []
+        if not page:
+            return rows
+        rows.extend(page)
+        last_id = page[-1]["id"]
 
 
 class InsightRow(TypedDict):
@@ -78,55 +104,49 @@ def get_similar_user_ids(
 ) -> List[str]:
     """users에서 피부타입·퍼스널컬러 일치하는 사용자 ID 목록 (본인 제외)."""
     sb = get_supabase()
-    query = sb.table("users").select("id")
-    if skin_type:
-        query = query.eq("skin_type", skin_type)
-    if personal_color:
-        query = query.eq("personal_color", personal_color)
-    query = query.neq("id", exclude_user_id)
-    res = query.execute()
-    return [row["id"] for row in (res.data or [])]
 
+    def build_query():
+        query = sb.table("users").select("id")
+        if skin_type:
+            query = query.eq("skin_type", skin_type)
+        if personal_color:
+            query = query.eq("personal_color", personal_color)
+        return query.neq("id", exclude_user_id)
 
-# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
-_PAGE_SIZE = 1000
+    return [row["id"] for row in _read_all_pages(build_query)]
 
 
 def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
     """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다.
 
     첫 응답만 쓰면 1,000행을 넘는 부분이 빠져, 최근 평점이 누락될 수 있다.
-    id 로 정렬해 페이지마다 같은 순서를 보장하고, 다 읽을 때까지 나눠 읽는다.
+    사용자 목록을 나눠 조회해도 결과는 전체를 한 번에 읽을 때처럼 id 순서로 돌려준다.
     """
     if not user_ids:
         return []
     sb = get_supabase()
-    rows: List[UserProductRow] = []
-    start = 0
-    while True:
-        res = (
-            sb.table("user_products")
-            .select("id, user_id, product_id, usage_type, rating, created_at")
-            .in_("user_id", user_ids)
-            .order("id")
-            .range(start, start + _PAGE_SIZE - 1)
-            .execute()
-        )
-        page = res.data or []
+    rows: List[Dict[str, Any]] = []
+    for start in range(0, len(user_ids), _USER_CHUNK_SIZE):
+        chunk = user_ids[start : start + _USER_CHUNK_SIZE]
         rows.extend(
-            UserProductRow(
-                id=row["id"],
-                user_id=row["user_id"],
-                product_id=row["product_id"],
-                usage_type=row["usage_type"],
-                rating=row.get("rating"),
-                created_at=row.get("created_at"),
+            _read_all_pages(
+                lambda: sb.table("user_products")
+                .select("id, user_id, product_id, usage_type, rating, created_at")
+                .in_("user_id", chunk)
             )
-            for row in page
         )
-        if len(page) < _PAGE_SIZE:
-            return rows
-        start += _PAGE_SIZE
+    rows.sort(key=lambda row: row["id"])
+    return [
+        UserProductRow(
+            id=row["id"],
+            user_id=row["user_id"],
+            product_id=row["product_id"],
+            usage_type=row["usage_type"],
+            rating=row.get("rating"),
+            created_at=row.get("created_at"),
+        )
+        for row in rows
+    ]
 
 
 def get_popular_products_by_skin_type(
@@ -152,13 +172,10 @@ def get_popular_products_by_skin_type(
         return [row["product_id"] for row in (res.data or [])]
 
     sb = get_supabase()
-    res = (
-        sb.table("users")
-        .select("id")
-        .eq("skin_type", skin_type)
-        .execute()
+    users = _read_all_pages(
+        lambda: sb.table("users").select("id").eq("skin_type", skin_type)
     )
-    user_ids = [r["id"] for r in (res.data or [])]
+    user_ids = [r["id"] for r in users]
     if not user_ids:
         return []
 
