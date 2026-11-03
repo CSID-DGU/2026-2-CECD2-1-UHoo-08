@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,41 +31,42 @@ public class HomeRecommendationScheduler {
     private final AiInternalClient aiInternalClient;
     private final HwadamProperties hwadamProperties;
 
-    private record Target(UUID userId, HomeRecommendationKind kind) {
-    }
-
+    /** 종류별로 조회하고 요청한다. 한 종류의 조회가 실패해도 다른 종류의 요청은 나간다 */
     @Scheduled(cron = "${hwadam.batch.home-cron}", zone = "${hwadam.batch.zone}")
     public void requestCards() {
-        List<Target> targets = targets();
+        if (requestCards(HomeRecommendationKind.ROUTINE, ROUTINE_MIN_OWNED, false)) {
+            requestCards(HomeRecommendationKind.ENV, ENV_MIN_OWNED, true);
+        }
+    }
+
+    /** @return 기다리는 중 중단되면 false. 이때는 다음 종류도 요청하지 않는다 */
+    private boolean requestCards(HomeRecommendationKind kind, int minOwned, boolean regionRequired) {
+        List<UUID> targets;
+        try {
+            targets = homeRecommendationRepository.findCardTargets(kind, minOwned, regionRequired,
+                    hwadamProperties.getBatch().isHomeIncludeSynthetic());
+        } catch (RuntimeException e) {
+            log.error("[HomeRecommendation] 대상 조회 실패: kind={}, error={}", kind, e.getMessage());
+            return true;
+        }
+
         int notSent = 0;
         for (int i = 0; i < targets.size(); i++) {
-            if (i > 0 && !waitForNextCall()) {
-                log.warn("[HomeRecommendation] 기다리는 중 중단되어 {}건 중 {}건만 요청함", targets.size(), i);
-                return;
-            }
-            Target target = targets.get(i);
+            UUID userId = targets.get(i);
             try {
-                aiInternalClient.runHome(new HomeRunRequest(target.userId().toString(), target.kind().name()));
+                aiInternalClient.runHome(new HomeRunRequest(userId.toString(), kind.name()));
             } catch (RuntimeException e) {
                 notSent++;
-                log.warn("[HomeRecommendation] AI 호출 실패: userId={}, kind={}, error={}",
-                        target.userId(), target.kind(), e.getMessage());
+                log.warn("[HomeRecommendation] AI 호출 실패: userId={}, kind={}, error={}", userId, kind, e.getMessage());
+            }
+            if (!waitForNextCall()) {
+                log.warn("[HomeRecommendation] 기다리는 중 중단되어 {} 대상 {}건 중 {}건만 요청함", kind, targets.size(), i + 1);
+                return false;
             }
         }
         // 호출은 보내고 바로 돌아오므로, 보낸 뒤의 실패는 여기서 셀 수 없고 AiInternalClient 가 건마다 오류 로그로 남긴다
-        log.info("[HomeRecommendation] 홈 카드 생성 요청 {}건 중 보내지 못한 요청 {}건", targets.size(), notSent);
-    }
-
-    private List<Target> targets() {
-        boolean includeSynthetic = hwadamProperties.getBatch().isHomeIncludeSynthetic();
-        List<Target> targets = new ArrayList<>();
-        homeRecommendationRepository
-                .findCardTargets(HomeRecommendationKind.ROUTINE, ROUTINE_MIN_OWNED, false, includeSynthetic)
-                .forEach(userId -> targets.add(new Target(userId, HomeRecommendationKind.ROUTINE)));
-        homeRecommendationRepository
-                .findCardTargets(HomeRecommendationKind.ENV, ENV_MIN_OWNED, true, includeSynthetic)
-                .forEach(userId -> targets.add(new Target(userId, HomeRecommendationKind.ENV)));
-        return targets;
+        log.info("[HomeRecommendation] {} 카드 생성 요청 {}건 중 보내지 못한 요청 {}건", kind, targets.size(), notSent);
+        return true;
     }
 
     /** 초당 호출 수에 맞춰 기다린다. 중단되면 false */

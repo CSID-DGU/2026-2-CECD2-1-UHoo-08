@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
@@ -82,12 +85,12 @@ class HomeRecommendationSchedulerTest {
     }
 
     @Test
-    void 호출_사이마다_기다린다() {
+    void 호출마다_기다린다() {
         givenTargets(List.of(first, second), List.of(second));
 
         scheduler().requestCards();
 
-        assertThat(waits).hasValue(2);
+        assertThat(waits).hasValue(3);
     }
 
     @Test
@@ -111,8 +114,31 @@ class HomeRecommendationSchedulerTest {
     }
 
     @Test
-    void 기다리는_중_중단되면_남은_사용자를_요청하지_않는다() {
-        givenTargets(List.of(first, second), List.of());
+    void 환경_대상_조회가_실패해도_루틴은_요청한다() {
+        given(repository.findCardTargets(HomeRecommendationKind.ROUTINE, 2, false, false)).willReturn(List.of(first));
+        given(repository.findCardTargets(HomeRecommendationKind.ENV, 1, true, false))
+                .willThrow(new RuntimeException("db down"));
+
+        scheduler().requestCards();
+
+        verify(aiInternalClient).runHome(run(first, "ROUTINE"));
+    }
+
+    @Test
+    void 루틴_대상_조회가_실패해도_환경은_요청한다() {
+        given(repository.findCardTargets(HomeRecommendationKind.ROUTINE, 2, false, false))
+                .willThrow(new RuntimeException("db down"));
+        given(repository.findCardTargets(HomeRecommendationKind.ENV, 1, true, false)).willReturn(List.of(first));
+
+        scheduler().requestCards();
+
+        verify(aiInternalClient).runHome(run(first, "ENV"));
+    }
+
+    @Test
+    void 기다리는_중_중단되면_남은_사용자와_다음_종류를_요청하지_않는다() {
+        given(repository.findCardTargets(HomeRecommendationKind.ROUTINE, 2, false, false))
+                .willReturn(List.of(first, second));
         HomeRecommendationScheduler scheduler = new HomeRecommendationScheduler(repository, aiInternalClient, properties) {
             @Override
             boolean waitForNextCall() {
@@ -123,6 +149,7 @@ class HomeRecommendationSchedulerTest {
         scheduler.requestCards();
 
         verify(aiInternalClient, times(1)).runHome(any());
+        verify(repository, never()).findCardTargets(eq(HomeRecommendationKind.ENV), anyLong(), anyBoolean(), anyBoolean());
     }
 
     @Test
