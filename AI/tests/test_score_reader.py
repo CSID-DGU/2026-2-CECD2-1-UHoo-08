@@ -12,13 +12,16 @@ class TestScoreReader:
             {
                 "product_id": "p1",
                 "lowest_price": 25000,
-                "products": {"original_price": 30000},
+                "original_price": 30000,
             }
         ]
         mock_sb.return_value = sb
         out = get_insights(["p1"])
         assert out["p1"]["lowest_price"] == 25000
         assert out["p1"]["original_price"] == 30000
+        # 두 가격 모두 products 테이블에서 바로 읽는다
+        sb.table.assert_called_once_with("products")
+        sb.table.return_value.select.assert_called_once_with("product_id, lowest_price, original_price")
 
     @patch("db.score_reader.get_supabase")
     def test_get_features(self, mock_sb):
