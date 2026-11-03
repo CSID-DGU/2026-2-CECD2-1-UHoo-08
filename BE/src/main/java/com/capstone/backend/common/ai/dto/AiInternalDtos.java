@@ -1,5 +1,7 @@
 package com.capstone.backend.common.ai.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +49,8 @@ public final class AiInternalDtos {
     public record AgentClarifyRequest(String jobId, String answer) {
     }
 
-    /** 사진 두 장. 제품명 면은 필수, 기한 면은 선택이다. */
+    /** 제품명 면과 기한 면 사진. 둘 중 하나는 있어야 하고, 없는 면은 보내지 않는다. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record RecognizePhotosRequest(String nameImage, String dateImage) {
     }
 
