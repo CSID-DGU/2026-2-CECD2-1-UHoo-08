@@ -8,6 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.time.Duration;
 import java.time.ZoneId;
 
@@ -65,6 +66,17 @@ public class HwadamProperties {
         /** 되묻는 중인 job 이 이만큼 답을 받지 못하면 실패로 둔다. 사용자를 기다리는 정상 상태라 길게 둔다 */
         @NotNull
         private Duration clarificationTimeout = Duration.ofHours(24);
+
+        /** 홈 카드 생성 요청. 기본 매일 06:30 */
+        @NotBlank
+        private String homeCron = "0 30 6 * * *";
+
+        /** 홈 카드 생성을 AI 에 요청하는 초당 횟수 */
+        @Positive
+        private int homeCallsPerSecond = 2;
+
+        /** 합성 사용자의 홈 카드도 만들지. 실제 사용자가 아니라 AI 비용만 들어 기본은 만들지 않는다 */
+        private boolean homeIncludeSynthetic = false;
     }
 
     /** 하루 환경 집계를 "나쁜 날"로 볼 기준값 */
