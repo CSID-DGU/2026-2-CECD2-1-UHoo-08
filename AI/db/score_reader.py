@@ -5,10 +5,30 @@ score·collaborative 에이전트가 사용하는 read-only DB 헬퍼.
 - user_products: 협업 필터링 집계 (collaborative_agent)
 - users: 유사 사용자 필터 (collaborative_agent) — skin_type, personal_color
 """
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, TypedDict
 import json
 
 from db.supabase_client import get_supabase
+
+
+# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
+_PAGE_SIZE = 1000
+
+
+def _read_all_pages(build_query: Callable[[], Any]) -> List[Dict[str, Any]]:
+    """다 읽을 때까지 나눠 읽는다. build_query 는 정렬까지 건 새 쿼리를 매번 만들어 돌려준다.
+
+    정렬이 없으면 페이지마다 순서가 달라져 행이 빠지거나 겹칠 수 있다.
+    """
+    rows: List[Dict[str, Any]] = []
+    start = 0
+    while True:
+        res = build_query().range(start, start + _PAGE_SIZE - 1).execute()
+        page = res.data or []
+        rows.extend(page)
+        if len(page) < _PAGE_SIZE:
+            return rows
+        start += _PAGE_SIZE
 
 
 class InsightRow(TypedDict):
@@ -78,55 +98,43 @@ def get_similar_user_ids(
 ) -> List[str]:
     """users에서 피부타입·퍼스널컬러 일치하는 사용자 ID 목록 (본인 제외)."""
     sb = get_supabase()
-    query = sb.table("users").select("id")
-    if skin_type:
-        query = query.eq("skin_type", skin_type)
-    if personal_color:
-        query = query.eq("personal_color", personal_color)
-    query = query.neq("id", exclude_user_id)
-    res = query.execute()
-    return [row["id"] for row in (res.data or [])]
 
+    def build_query():
+        query = sb.table("users").select("id")
+        if skin_type:
+            query = query.eq("skin_type", skin_type)
+        if personal_color:
+            query = query.eq("personal_color", personal_color)
+        return query.neq("id", exclude_user_id).order("id")
 
-# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
-_PAGE_SIZE = 1000
+    return [row["id"] for row in _read_all_pages(build_query)]
 
 
 def get_user_products_by_users(user_ids: List[str]) -> List[UserProductRow]:
     """주어진 사용자들의 user_products 전체. 한 사람이 같은 제품을 여러 번 샀으면 여러 줄이다.
 
     첫 응답만 쓰면 1,000행을 넘는 부분이 빠져, 최근 평점이 누락될 수 있다.
-    id 로 정렬해 페이지마다 같은 순서를 보장하고, 다 읽을 때까지 나눠 읽는다.
     """
     if not user_ids:
         return []
     sb = get_supabase()
-    rows: List[UserProductRow] = []
-    start = 0
-    while True:
-        res = (
-            sb.table("user_products")
-            .select("id, user_id, product_id, usage_type, rating, created_at")
-            .in_("user_id", user_ids)
-            .order("id")
-            .range(start, start + _PAGE_SIZE - 1)
-            .execute()
+    rows = _read_all_pages(
+        lambda: sb.table("user_products")
+        .select("id, user_id, product_id, usage_type, rating, created_at")
+        .in_("user_id", user_ids)
+        .order("id")
+    )
+    return [
+        UserProductRow(
+            id=row["id"],
+            user_id=row["user_id"],
+            product_id=row["product_id"],
+            usage_type=row["usage_type"],
+            rating=row.get("rating"),
+            created_at=row.get("created_at"),
         )
-        page = res.data or []
-        rows.extend(
-            UserProductRow(
-                id=row["id"],
-                user_id=row["user_id"],
-                product_id=row["product_id"],
-                usage_type=row["usage_type"],
-                rating=row.get("rating"),
-                created_at=row.get("created_at"),
-            )
-            for row in page
-        )
-        if len(page) < _PAGE_SIZE:
-            return rows
-        start += _PAGE_SIZE
+        for row in rows
+    ]
 
 
 def get_popular_products_by_skin_type(
@@ -152,13 +160,10 @@ def get_popular_products_by_skin_type(
         return [row["product_id"] for row in (res.data or [])]
 
     sb = get_supabase()
-    res = (
-        sb.table("users")
-        .select("id")
-        .eq("skin_type", skin_type)
-        .execute()
+    users = _read_all_pages(
+        lambda: sb.table("users").select("id").eq("skin_type", skin_type).order("id")
     )
-    user_ids = [r["id"] for r in (res.data or [])]
+    user_ids = [r["id"] for r in users]
     if not user_ids:
         return []
 
