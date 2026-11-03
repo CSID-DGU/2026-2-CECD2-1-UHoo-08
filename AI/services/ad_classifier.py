@@ -8,6 +8,9 @@ LLM 응답이 JSON 이 아니거나 판정 코드가 목록에 없으면 is_ad �
 돌려준다. 판정하지 못한 것이다. 근거가 부족하다는 판정(INSUFFICIENT_EVIDENCE)
 과는 다르다. 그쪽은 LLM 이 읽고 비광고로 본 것이다.
 
+LLM 호출 자체가 실패하면(시간 초과·네트워크·SDK 오류) 예외를 그대로 올린다.
+판정 불가(None)로 덮으면 장애가 판정 결과에 섞여 보이지 않는다. 기록은 부른 쪽이 한다.
+
 config · LLM SDK 는 함수 안에서 import 한다. 키 없이 테스트할 수 있어야 한다.
 """
 from __future__ import annotations
@@ -21,6 +24,9 @@ from rules.ad_disclosure import RULE_VERSION, UNSURE, classify
 logger = logging.getLogger(__name__)
 
 LLM_VERSION = "ad-llm-v2"
+
+# 게시물 하나에 LLM 응답을 기다리는 최대 시간(초). SDK 기본값(10분)에 맡기지 않는다
+LLM_TIMEOUT_S = 30.0
 
 # 판정 코드 → 권장 결과. LLM 이 is_ad 를 빠뜨리면 이 값을 쓴다
 REASON_CODES: dict[str, bool] = {
@@ -56,11 +62,14 @@ def parse_judgement(result: Any) -> dict | None:
     if not isinstance(result, dict):
         return None
     code = result.get("reason_code")
-    if code not in REASON_CODES:
+    if not isinstance(code, str) or code not in REASON_CODES:
         return None
     is_ad = result.get("is_ad")
     if not isinstance(is_ad, bool):
         is_ad = REASON_CODES[code]
+    elif is_ad != REASON_CODES[code]:
+        # 프롬프트가 판정 코드마다 광고 여부를 정해 두었다. 어긋나면 어느 쪽도 믿을 수 없다
+        return None
     evidence = result.get("evidence")
     if not isinstance(evidence, list):
         evidence = []
@@ -79,13 +88,17 @@ async def judge_with_llm(
     rule_hits: list[dict],
     llm=None,
 ) -> dict | None:
-    """1차가 넘긴 게시물 하나를 LLM 에 묻는다. 쓸 수 없는 응답이면 None."""
+    """1차가 넘긴 게시물 하나를 LLM 에 묻는다. 쓸 수 없는 응답이면 None.
+
+    호출이 실패하거나 LLM_TIMEOUT_S 안에 답이 없으면 예외가 그대로 올라간다.
+    """
     if llm is None:
         from services.llm import LLMRole, get_llm
         llm = get_llm(LLMRole.AD)
     result = await llm.chat_json(
         system=AD_CLASSIFY_SYSTEM,
         user=build_user_message(caption, username, owned_brands, rule_hits),
+        timeout=LLM_TIMEOUT_S,
     )
     judgement = parse_judgement(result)
     if judgement is None:

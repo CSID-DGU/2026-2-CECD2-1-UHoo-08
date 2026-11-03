@@ -2,6 +2,7 @@
 import pytest
 
 from services.ad_classifier import (
+    LLM_TIMEOUT_S,
     LLM_VERSION,
     REASON_CODES,
     build_user_message,
@@ -18,9 +19,13 @@ class FakeLLM:
     def __init__(self, response):
         self.response = response
         self.calls = []
+        self.timeouts = []
 
-    async def chat_json(self, system: str, user: str):
+    async def chat_json(self, system: str, user: str, timeout: float | None = None):
         self.calls.append(user)
+        self.timeouts.append(timeout)
+        if isinstance(self.response, Exception):
+            raise self.response
         return self.response
 
 
@@ -60,13 +65,35 @@ async def test_근거가_부족하면_비광고다():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("response", [None, {"reason_code": "SPONSORED", "is_ad": True}, ["OWN_BRAND"]])
+@pytest.mark.parametrize("response", [
+    None,
+    {"reason_code": "SPONSORED", "is_ad": True},
+    ["OWN_BRAND"],
+    {"reason_code": [], "is_ad": True},
+    {"reason_code": {"code": "OWN_BRAND"}, "is_ad": True},
+    {"reason_code": "OWN_BRAND", "is_ad": False},
+    {"reason_code": "PERSONAL_REVIEW", "is_ad": True},
+])
 async def test_쓸_수_없는_응답이면_판정하지_않은_것으로_남긴다(response):
     result = await classify_post(UNSURE_CAPTION, "u", llm=FakeLLM(response))
 
     assert result["is_ad"] is None
     assert result["labeled_by"] == "LLM"
     assert result["reason_code"] is None
+
+
+@pytest.mark.asyncio
+async def test_LLM_호출에_시간_제한을_건다():
+    llm = FakeLLM({"reason_code": "OWN_BRAND", "is_ad": True})
+    await classify_post(UNSURE_CAPTION, "u", llm=llm)
+
+    assert llm.timeouts == [LLM_TIMEOUT_S]
+
+
+@pytest.mark.asyncio
+async def test_LLM_호출이_실패하면_판정_불가로_덮지_않고_예외를_올린다():
+    with pytest.raises(TimeoutError):
+        await classify_post(UNSURE_CAPTION, "u", llm=FakeLLM(TimeoutError("timed out")))
 
 
 def test_is_ad_를_빠뜨리면_판정_코드의_권장_결과를_쓴다():

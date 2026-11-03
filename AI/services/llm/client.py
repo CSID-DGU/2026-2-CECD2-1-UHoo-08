@@ -79,12 +79,14 @@ class LLMClient:
         user: str,
         response_json: bool = False,
         temperature: float = 0.0,
+        timeout: Optional[float] = None,
     ) -> str:
         """
         chat completion 호출.
 
         response_json=True면 response_format을 json_object로 강제하고
         파싱 가능한 JSON 문자열만 반환.
+        timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
         """
         def _do_call() -> str:
             kwargs: Dict[str, Any] = {
@@ -97,6 +99,8 @@ class LLMClient:
             }
             if response_json:
                 kwargs["response_format"] = {"type": "json_object"}
+            if timeout is not None:
+                kwargs["timeout"] = timeout
             resp = self._client.chat.completions.create(**kwargs)
             return resp.choices[0].message.content or ""
 
@@ -107,9 +111,10 @@ class LLMClient:
         system: str,
         user: str,
         temperature: float = 0.0,
+        timeout: Optional[float] = None,
     ) -> Optional[Dict[str, Any]]:
         """JSON 응답 호출 + 파싱. 파싱 실패 시 None."""
-        raw = await self.chat(system, user, response_json=True, temperature=temperature)
+        raw = await self.chat(system, user, response_json=True, temperature=temperature, timeout=timeout)
         if not raw:
             return None
         # 코드블록 펜스 방어
