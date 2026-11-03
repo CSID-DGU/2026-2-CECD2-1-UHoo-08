@@ -158,6 +158,58 @@ class RecommendationServiceImplTest {
                 .containsExactly("budget", "bundleSteps");
     }
 
+    private List<String> clarifyKeys(String scenario, String clarifyJson) {
+        givenJob(v2Job(JobStatus.NEEDS_CLARIFICATION).scenario(scenario)
+                .result("{\"clarify\":" + clarifyJson + "}").build());
+        given(searchLogRepository.findByJobId(jobId)).willReturn(List.of());
+        return statusV2().getClarify().getFields().stream().map(ClarifyFieldResponse::getKey).toList();
+    }
+
+    @Test
+    void AI가_알려_준_빠진_필드만_묻는다() {
+        assertThat(clarifyKeys("S6_BUNDLE", "{\"question\":\"q\",\"missingFields\":[\"bundle_steps\"]}"))
+                .containsExactly("bundleSteps");
+    }
+
+    @Test
+    void 세트에서_둘_다_빠지면_예산과_구성을_묻는다() {
+        assertThat(clarifyKeys(null, "{\"question\":\"q\",\"missingFields\":[\"budget.total\",\"bundle_steps\"]}"))
+                .containsExactly("budget", "bundleSteps");
+    }
+
+    @Test
+    void 기준_제품이_빠지면_기준_제품을_묻는다() {
+        assertThat(clarifyKeys(null, "{\"question\":\"q\",\"missingFields\":[\"base_product_ref\"]}"))
+                .containsExactly("baseProduct");
+    }
+
+    @Test
+    void 빠진_필드가_빈_목록이면_시나리오_규칙으로_묻는다() {
+        assertThat(clarifyKeys(null, "{\"question\":\"q\",\"missingFields\":[]}")).containsExactly("category");
+    }
+
+    @Test
+    void 빠진_필드가_없으면_시나리오_규칙으로_묻는다() {
+        assertThat(clarifyKeys("S6_BUNDLE", "{\"question\":\"q\"}")).containsExactly("budget", "bundleSteps");
+    }
+
+    @Test
+    void 모르는_필드는_건너뛰고_아는_필드만_묻는다() {
+        assertThat(clarifyKeys(null, "{\"missingFields\":[\"skin_tone\",\"budget.total\"]}")).containsExactly("budget");
+    }
+
+    @Test
+    void 아는_필드가_없으면_문장_하나로_묻는다() {
+        assertThat(clarifyKeys("S6_BUNDLE", "{\"missingFields\":[\"skin_tone\"]}")).containsExactly("category");
+    }
+
+    @Test
+    void 빠진_필드_모양이_잘못돼도_조회는_실패하지_않는다() {
+        assertThat(clarifyKeys("S6_BUNDLE", "{\"missingFields\":\"budget.total\"}"))
+                .containsExactly("budget", "bundleSteps");
+        assertThat(clarifyKeys(null, "{\"missingFields\":[1,null,\"bundle_steps\"]}")).containsExactly("bundleSteps");
+    }
+
     @Test
     void 되묻는_중인데_질문이_없으면_기본_문구를_쓴다() {
         givenJob(v2Job(JobStatus.NEEDS_CLARIFICATION).scenario("S2_SEARCH").build());
