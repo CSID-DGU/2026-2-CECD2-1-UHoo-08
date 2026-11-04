@@ -12,6 +12,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationRes
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
+import com.capstone.backend.domain.recommendation.service.BundleSnapshotReader.BundleSlot;
 import com.capstone.backend.domain.recommendation.service.BundleSnapshotReader.Candidate;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
  * 예산 세트의 칸 교체 후보. 가격과 점수를 다시 더하는 계산이라 AI 를 거치지 않고 job 에 저장된 값으로 계산한다.
  *
  * 조합과 칸은 추천 결과 조회와 같은 변환으로 찾아, 화면이 받은 칸 키와 가격이 그대로 맞는다.
- * 칸별 후보가 없는 기존 결과는 칸이 없는 것으로 본다.
+ * 칸별 후보가 없는 기존 결과와 칸의 후보가 비어 있는 결과는 칸이 없는 것으로 본다.
  */
 @Service
 @RequiredArgsConstructor
@@ -53,8 +54,9 @@ public class BundleOptionService {
                 .findFirst()
                 .orElseThrow(BundleOptionService::notFound);
         List<Candidate> candidates = BundleSnapshotReader.find(readTree(job.getStateSnapshot()), slotKey)
-                .orElseThrow(BundleOptionService::notFound)
-                .candidates();
+                .map(BundleSlot::candidates)
+                .filter(found -> !found.isEmpty())
+                .orElseThrow(BundleOptionService::notFound);
 
         Integer budget = ResultAssembler.intOrNull(result.path("query").path("budgetTotal"));
         return new BundleSlotOptionsResponse(budget, bundle.getTotal(), options(bundle.getTotal(), budget, slot, candidates));

@@ -133,7 +133,7 @@ public class RecommendationController {
                     "bundleIndex 는 1부터. slotKey 는 추천 결과의 bundles[].slots[].slotKey. " +
                     "selectable 은 예산 안이면 true 이고, 아니면 overBudgetBy 에 초과 금액을 준다. " +
                     "예산이 없는 결과면 budget, remaining 은 null 이고 모두 선택할 수 있다. " +
-                    "job, 조합, 칸이 없거나 칸별 후보가 없는 결과면 404 NOT_FOUND."
+                    "job, 조합, 칸이 없거나 칸별 후보가 없거나 비어 있으면 404 NOT_FOUND."
     )
     @GetMapping("/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options")
     public ResponseEntity<ApiResponse<BundleSlotOptionsResponse>> getBundleSlotOptions(

@@ -246,6 +246,24 @@ class BundleOptionServiceTest {
     }
 
     @Test
+    void 칸의_후보가_비었거나_쓸_수_없는_후보뿐이면_NOT_FOUND다() {
+        givenJob("100", "30", "");
+        assertNotFound(1, "toner");
+
+        givenJob("100", "30", "{\"productId\":\"a\",\"name\":\"가격 없음\",\"score\":90}");
+        assertNotFound(1, "toner");
+    }
+
+    @Test
+    void 후보가_지금_제품뿐이면_그_제품을_돌려준다() {
+        givenJob("100", "30", candidate("cur", 30, 50));
+
+        assertThat(service.getOptions(userId, jobId, 1, "toner").getOptions())
+                .extracting(Option::getProductId, Option::isCurrent)
+                .containsExactly(tuple("cur", true));
+    }
+
+    @Test
     void 칸별_후보가_없는_기존_결과면_NOT_FOUND다() throws IOException {
         givenJob(JobStatus.COMPLETED, sample("S6_BUNDLE"), "{}");
 
