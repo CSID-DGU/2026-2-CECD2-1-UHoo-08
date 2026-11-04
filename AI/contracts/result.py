@@ -243,3 +243,6 @@ class RecommendationResult(CamelModel):
     replacement: Replacement | None = None
     schedule: RoutineSchedule | None = None
     uncompared_count: int | None = Field(default=None, ge=0)
+    # 점검할 때 쓰는 중이던 보유 제품 id 전부. 성분이 없어 비교하지 못한 제품도 넣는다.
+    # BE 가 지금 쓰는 제품과 비교해 달라졌으면 지난 결과로 보고 점검 전으로 내린다.
+    checked_user_product_ids: list[str] | None = None

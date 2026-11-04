@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -75,6 +76,30 @@ class RoutineCheckBuilderTest {
     }
 
     @Test
+    void 점검_뒤에_제품을_추가하면_지난_결과로_보고_점검_전이다() throws Exception {
+        Set<UUID> afterAdding = new HashSet<>(SAMPLE_USING_IDS);
+        afterAdding.add(UUID.randomUUID());
+
+        RoutineCheckResponse response = RoutineCheckBuilder.build(sample(), afterAdding);
+
+        assertThat(response.isChecked()).isFalse();
+        assertThat(response.getProductCount()).isEqualTo(6);
+        assertThat(response.getPairs()).isEmpty();
+        assertThat(response.getCounts().getAvoid()).isZero();
+    }
+
+    @Test
+    void 점검한_제품_목록이_없거나_id_형식이_틀리면_점검_전이다() throws Exception {
+        ObjectNode missing = sample();
+        missing.remove("checkedUserProductIds");
+        ObjectNode malformed = sample();
+        malformed.set("checkedUserProductIds", MAPPER.createArrayNode().add("up_12"));
+
+        assertThat(RoutineCheckBuilder.build(missing, SAMPLE_USING_IDS).isChecked()).isFalse();
+        assertThat(RoutineCheckBuilder.build(malformed, SAMPLE_USING_IDS).isChecked()).isFalse();
+    }
+
+    @Test
     void 대체_제안의_바꿀_제품이_지금_쓰는_중이_아니면_점검_전이다() throws Exception {
         ObjectNode result = sample();
         ((ObjectNode) result.path("replacement").path("replaceTarget"))
@@ -103,10 +128,25 @@ class RoutineCheckBuilderTest {
     }
 
     @Test
+    void 쌍_개수가_실린_쌍_수보다_적으면_점검_전이다() throws Exception {
+        for (String count : new String[]{"ok", "separate", "avoid"}) {
+            ObjectNode result = sample();
+            ((ObjectNode) result.path("counts")).put(count, 0);
+
+            RoutineCheckResponse response = RoutineCheckBuilder.build(result, SAMPLE_USING_IDS);
+
+            assertThat(response.isChecked()).isFalse();
+            assertThat(response.getPairs()).isEmpty();
+            assertThat(response.getCounts().getAvoid()).isZero();
+        }
+    }
+
+    @Test
     void 보유_제품이_2개_미만이면_쌍과_개수와_대체_제안을_비우고_사용_순서는_남긴다() throws Exception {
         ObjectNode result = sample();
         result.set("pairs", MAPPER.createArrayNode());
         result.remove("replacement");
+        result.set("checkedUserProductIds", MAPPER.valueToTree(Set.of(sampleId(1))));
 
         RoutineCheckResponse response = RoutineCheckBuilder.build(result, Set.of(sampleId(1)));
 
@@ -135,8 +175,10 @@ class RoutineCheckBuilderTest {
 
     @Test
     void 점검했지만_충돌이_없으면_점검은_했고_쌍은_비어_있다() throws Exception {
-        RoutineCheckResponse response = RoutineCheckBuilder.build(
-                MAPPER.readTree("{\"pairs\":[],\"counts\":{\"ok\":0,\"separate\":0,\"avoid\":0}}"), SAMPLE_USING_IDS);
+        ObjectNode result = (ObjectNode) MAPPER.readTree("{\"pairs\":[],\"counts\":{\"ok\":0,\"separate\":0,\"avoid\":0}}");
+        result.set("checkedUserProductIds", MAPPER.valueToTree(SAMPLE_USING_IDS));
+
+        RoutineCheckResponse response = RoutineCheckBuilder.build(result, SAMPLE_USING_IDS);
 
         assertThat(response.isChecked()).isTrue();
         assertThat(response.getPairs()).isEmpty();

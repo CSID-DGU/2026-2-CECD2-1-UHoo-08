@@ -34,5 +34,6 @@
   "pairs": null,
   "replacement": null,
   "schedule": null,
-  "uncomparedCount": null
+  "uncomparedCount": null,
+  "checkedUserProductIds": null
 }

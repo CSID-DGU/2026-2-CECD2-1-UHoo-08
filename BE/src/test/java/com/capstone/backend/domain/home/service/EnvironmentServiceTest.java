@@ -58,8 +58,9 @@ class EnvironmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EnvironmentService(userRepository, envDailyRepository, homeRecommendationRepository,
-                new HwadamProperties(), new JsonUtil(new ObjectMapper()));
+        service = new EnvironmentService(userRepository, envDailyRepository,
+                new HomeResultReader(homeRecommendationRepository, new JsonUtil(new ObjectMapper())),
+                new HwadamProperties());
     }
 
     private void givenUser(String region, String regionLabel) {

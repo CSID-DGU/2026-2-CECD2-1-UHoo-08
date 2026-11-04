@@ -66,7 +66,10 @@ public class UserProductController {
             description = "status: USING(기본, 쓰는 중), FINISHED(다 쓰거나 버린 제품), ALL. " +
                     "sort: REPLACE_NEED(기본, 기한 지남 → 곧 교체 → 괜찮음, 같은 상태는 경과 비율순), RECENT(최근 등록순). " +
                     "page 는 1부터. 교체 시기는 유통기한과 개봉 후 사용 기간 중 이른 날로 계산한다. " +
-                    "conflictText, conflictSummary 는 루틴 점검 결과가 연결되기 전까지 null 과 avoidCount=0."
+                    "conflictText, conflictSummary 는 루틴 점검 결과의 같이 쓰면 안 되는 쌍으로 채운다. " +
+                    "avoidCount 는 루틴 점검 화면의 개수와 같고, text 는 첫 쌍이며 쌍이 더 있으면 외 N건을 붙인다. " +
+                    "이름이 있는 쌍이 실려 있지 않으면 avoidCount 가 0 보다 커도 text 는 null 이다. " +
+                    "결과가 없거나 지난 결과면 null 과 avoidCount=0."
     )
     @GetMapping("/user-products")
     public ResponseEntity<ApiResponse<UserProductListResponse>> list(

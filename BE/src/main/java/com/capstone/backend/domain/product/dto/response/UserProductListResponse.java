@@ -33,11 +33,11 @@ public class UserProductListResponse {
         private String replaceText;
         /** 막대 길이 0~100 */
         private int replaceProgress;
-        /** 이 제품의 충돌 한 줄. 루틴 점검 결과가 연결되기 전까지 null */
+        /** 이 제품의 충돌 한 줄. 같이 쓰면 안 되는 제품이 없거나 루틴 점검 전이면 null */
         private String conflictText;
     }
 
-    /** 상단 배너. avoidCount 가 0 보다 크면 빨간 배너를 띄운다 */
+    /** 상단 배너. avoidCount 가 0 보다 크면 빨간 배너를 띄운다. 이름이 있는 쌍이 실려 있지 않으면 그때도 text 는 null 이다 */
     @Getter
     @AllArgsConstructor
     public static class ConflictSummary {
