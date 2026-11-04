@@ -37,7 +37,7 @@ public class UserProductListResponse {
         private String conflictText;
     }
 
-    /** 상단 배너. avoidCount 가 0 보다 크면 빨간 배너를 띄운다 */
+    /** 상단 배너. avoidCount 가 0 보다 크면 빨간 배너를 띄운다. 이름이 있는 쌍이 실려 있지 않으면 그때도 text 는 null 이다 */
     @Getter
     @AllArgsConstructor
     public static class ConflictSummary {
