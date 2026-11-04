@@ -244,7 +244,7 @@ public class ResultAssembler {
         }
     }
 
-    private static Integer intOrNull(JsonNode node) {
+    static Integer intOrNull(JsonNode node) {
         return node.isNumber() ? node.intValue() : null;
     }
 
