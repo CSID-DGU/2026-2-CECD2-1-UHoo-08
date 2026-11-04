@@ -22,6 +22,7 @@ import java.util.UUID;
  * 다음이면 점검 전으로 보고 모두 비운다. 빈 값이나 지난 값을 내리면 충돌이 없거나 지금 제품의 결과인 것처럼 보인다.
  *   결과에 쌍 목록(pairs)이 없다
  *   쌍 개수(counts)의 세 값 중 하나라도 없다. 쌍 목록은 일부만 실릴 수 있어 쌍으로 개수를 대신 세지 않는다
+ *   쌍 개수가 궁합별로 실린 쌍 수보다 적다. 개수만 보는 배너와 쌍으로 만드는 문구가 어긋난다
  *   쌍이나 대체 제안이 가리키는 보유 제품이 지금 쓰는 중인 제품이 아니다. 점검 뒤에 다 쓰거나 지운 제품이다
  * 보유 제품이 2개 미만이면 비교할 쌍이 없으므로 쌍 목록, 쌍 개수, 대체 제안을 비운다. 사용 순서는 제품 하나여도 남긴다.
  */
@@ -40,7 +41,8 @@ public final class RoutineCheckBuilder {
     public static RoutineCheckResponse build(JsonNode result, Set<UUID> usingIds) {
         int productCount = usingIds.size();
         Counts counts = counts(result.path("counts"));
-        if (!result.path("pairs").isArray() || counts == null || !referencesOnly(result, usingIds)) {
+        if (!result.path("pairs").isArray() || counts == null || !coversPairs(counts, result.path("pairs"))
+                || !referencesOnly(result, usingIds)) {
             return new RoutineCheckResponse(false, productCount, new Counts(0, 0, 0), List.of(), null, emptySchedule(), 0);
         }
         Schedule schedule = schedule(result.path("schedule"));
@@ -77,6 +79,23 @@ public final class RoutineCheckBuilder {
             return null;
         }
         return new Counts(ok.asInt(), separate.asInt(), avoid.asInt());
+    }
+
+    /** 궁합별 개수가 실린 쌍 수 이상인지 */
+    private static boolean coversPairs(Counts counts, JsonNode pairs) {
+        return counts.getOk() >= pairCount(pairs, CompatibilityLevel.OK)
+                && counts.getSeparate() >= pairCount(pairs, CompatibilityLevel.SEPARATE)
+                && counts.getAvoid() >= pairCount(pairs, CompatibilityLevel.AVOID);
+    }
+
+    private static int pairCount(JsonNode pairs, CompatibilityLevel level) {
+        int count = 0;
+        for (JsonNode pair : pairs) {
+            if (level.name().equals(pair.path("level").asText())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /** 쌍의 두 제품과 대체 제안의 바꿀 제품이 모두 지금 쓰는 중인 보유 제품인지 */

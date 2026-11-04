@@ -103,6 +103,20 @@ class RoutineCheckBuilderTest {
     }
 
     @Test
+    void 쌍_개수가_실린_쌍_수보다_적으면_점검_전이다() throws Exception {
+        for (String count : new String[]{"ok", "separate", "avoid"}) {
+            ObjectNode result = sample();
+            ((ObjectNode) result.path("counts")).put(count, 0);
+
+            RoutineCheckResponse response = RoutineCheckBuilder.build(result, SAMPLE_USING_IDS);
+
+            assertThat(response.isChecked()).isFalse();
+            assertThat(response.getPairs()).isEmpty();
+            assertThat(response.getCounts().getAvoid()).isZero();
+        }
+    }
+
+    @Test
     void 보유_제품이_2개_미만이면_쌍과_개수와_대체_제안을_비우고_사용_순서는_남긴다() throws Exception {
         ObjectNode result = sample();
         result.set("pairs", MAPPER.createArrayNode());
