@@ -7,6 +7,7 @@ import com.capstone.backend.domain.recommendation.dto.request.ProductSearchReque
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
@@ -17,6 +18,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
+import com.capstone.backend.domain.recommendation.service.BundleOptionService;
 import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
@@ -42,6 +44,7 @@ public class RecommendationController {
     private final RecommendationJobService recommendationJobService;
     private final RecommendationRefineService recommendationRefineService;
     private final RecommendationFeedbackService recommendationFeedbackService;
+    private final BundleOptionService bundleOptionService;
 
     @Operation(
             summary = "자연어 추천 요청",
@@ -122,6 +125,23 @@ public class RecommendationController {
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID jobId) {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getResult(userId, jobId)));
+    }
+
+    @Operation(
+            summary = "세트 교체 후보 조회",
+            description = "예산 세트의 한 칸을 바꿀 때 고를 수 있는 후보와 바꿨을 때의 총액을 적합도순으로 돌려준다. " +
+                    "bundleIndex 는 1부터. slotKey 는 추천 결과의 bundles[].slots[].slotKey. " +
+                    "selectable 은 예산 안이면 true 이고, 아니면 overBudgetBy 에 초과 금액을 준다. " +
+                    "예산이 없는 결과면 budget, remaining 은 null 이고 모두 선택할 수 있다. " +
+                    "job, 조합, 칸이 없거나 칸별 후보가 없거나 비어 있으면 404 NOT_FOUND."
+    )
+    @GetMapping("/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options")
+    public ResponseEntity<ApiResponse<BundleSlotOptionsResponse>> getBundleSlotOptions(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @PathVariable int bundleIndex,
+            @PathVariable String slotKey) {
+        return ResponseEntity.ok(ApiResponse.success(bundleOptionService.getOptions(userId, jobId, bundleIndex, slotKey)));
     }
 
     @Operation(

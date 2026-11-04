@@ -31,6 +31,8 @@ import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
 import com.capstone.backend.domain.recommendation.enums.TargetRelation;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
+import com.capstone.backend.domain.recommendation.service.BundleOptionService;
 import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
@@ -78,6 +80,8 @@ class RecommendationControllerTest {
     RecommendationRefineService recommendationRefineService;
     @Mock
     RecommendationFeedbackService recommendationFeedbackService;
+    @Mock
+    BundleOptionService bundleOptionService;
     @InjectMocks
     RecommendationController controller;
 
@@ -98,6 +102,42 @@ class RecommendationControllerTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void 세트_교체_후보를_명세_모양으로_내려보낸다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 1, "toner")).willReturn(new BundleSlotOptionsResponse(50000, 48200,
+                List.of(new BundleSlotOptionsResponse.Option("p1", "토너", 26000, 92, 52200, -2200, false, false, 2200),
+                        new BundleSlotOptionsResponse.Option("p2", "순한 토너", 20500, 88, 46700, 3300, true, true, null))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 1, "toner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.budget").value(50000))
+                .andExpect(jsonPath("$.data.currentTotal").value(48200))
+                .andExpect(jsonPath("$.data.options[0].productId").value("p1"))
+                .andExpect(jsonPath("$.data.options[0].name").value("토너"))
+                .andExpect(jsonPath("$.data.options[0].price").value(26000))
+                .andExpect(jsonPath("$.data.options[0].score").value(92))
+                .andExpect(jsonPath("$.data.options[0].newTotal").value(52200))
+                .andExpect(jsonPath("$.data.options[0].remaining").value(-2200))
+                .andExpect(jsonPath("$.data.options[0].isCurrent").value(false))
+                .andExpect(jsonPath("$.data.options[0].selectable").value(false))
+                .andExpect(jsonPath("$.data.options[0].overBudgetBy").value(2200))
+                .andExpect(jsonPath("$.data.options[1].isCurrent").value(true))
+                .andExpect(jsonPath("$.data.options[1].overBudgetBy").doesNotExist())
+                .andExpect(jsonPath("$.data.options[0].current").doesNotExist());
+    }
+
+    @Test
+    void 세트_칸이_없으면_404다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 9, "toner"))
+                .willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 9, "toner"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     // 자연어 추천 요청
