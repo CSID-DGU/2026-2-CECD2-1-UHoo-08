@@ -24,6 +24,7 @@ import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -297,7 +298,13 @@ class UserProductServiceTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** 지금 쓰는 제품을 그대로 점검한 결과 */
     private void givenRoutineResult(JsonNode result, List<UUID> usingIds) {
+        givenRoutineResult(result, usingIds, usingIds);
+    }
+
+    private void givenRoutineResult(JsonNode result, List<UUID> checkedIds, List<UUID> usingIds) {
+        ((ObjectNode) result).set("checkedUserProductIds", MAPPER.valueToTree(checkedIds));
         given(homeResultReader.find(userId, HomeRecommendationKind.ROUTINE))
                 .willReturn(Optional.of(new HomeResultReader.Card(UUID.randomUUID(), OffsetDateTime.now(), result)));
         given(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING)).willReturn(usingIds);
@@ -408,6 +415,21 @@ class UserProductServiceTest {
         givenRows(List.of(UsageType.USING), List.of(mine));
         givenRoutineResult(routine(1, pair(mine.getId(), "레티놀 앰플", UUID.randomUUID(), "비타민C 세럼", "AVOID")),
                 List.of(mine.getId(), UUID.randomUUID()));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+        assertThat(response.getConflictSummary().getText()).isNull();
+    }
+
+    @Test
+    void 점검_뒤에_제품을_추가하면_지난_결과라_비워_둔다() throws IOException {
+        UserProduct mine = using();
+        UUID other = UUID.randomUUID();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(routine(1, pair(mine.getId(), "레티놀 앰플", other, "비타민C 세럼", "AVOID")),
+                List.of(mine.getId(), other), List.of(mine.getId(), other, UUID.randomUUID()));
 
         UserProductListResponse response = listUsing();
 

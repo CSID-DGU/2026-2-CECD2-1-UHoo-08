@@ -183,7 +183,7 @@ public class UserProductService {
         return new UserProductListResponse(items, conflicts.summary(), listed.size());
     }
 
-    /** 루틴 점검 화면과 같은 기준으로 읽는다. 쌍이 가리키는 제품이 지금 쓰는 중이 아니면 점검 전으로 본다 */
+    /** 루틴 점검 화면과 같은 기준으로 읽는다. 점검 뒤에 쓰는 제품이 달라졌으면 점검 전으로 본다 */
     private ProductConflicts conflictsOf(UUID userId) {
         return homeResultReader.find(userId, HomeRecommendationKind.ROUTINE)
                 .map(card -> RoutineCheckBuilder.build(card.result(),

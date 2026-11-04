@@ -156,7 +156,7 @@ def test_되묻는_결과는_질문을_담는다():
     assert 나감["missingFields"] == []
 
 
-홈_블록 = ("conditions", "counts", "pairs", "replacement", "schedule", "uncomparedCount")
+홈_블록 = ("conditions", "counts", "pairs", "replacement", "schedule", "uncomparedCount", "checkedUserProductIds")
 BE_샘플 = pathlib.Path(__file__).resolve().parents[3] / "BE" / "src" / "test" / "resources" / "ai-results"
 _제품쌍 = {
     "a": {"userProductId": "up1", "name": "토너"},
@@ -198,6 +198,7 @@ def test_루틴_블록을_왕복한다():
         },
         "schedule": {"morning": ["토너"], "evening": ["크림"], "tip": "저녁에 쓰세요"},
         "uncomparedCount": 1,
+        "checkedUserProductIds": ["up1", "up2", "up3"],
     }
     결과 = RecommendationResult.model_validate({"jobId": "j1", "scenario": "HOME_ROUTINE", **블록})
     나감 = 결과.model_dump(mode="json", by_alias=True)
@@ -210,6 +211,7 @@ def test_루틴_블록을_왕복한다():
     {"counts": {"ok": 1, "separate": 2}},
     {"counts": {"ok": -1, "separate": 0, "avoid": 0}},
     {"uncomparedCount": -1},
+    {"checkedUserProductIds": "up1"},
     {"conditions": [{"label": "자외선 차단"}]},
     {"replacement": {"message": "바꾸세요"}},
 ])
