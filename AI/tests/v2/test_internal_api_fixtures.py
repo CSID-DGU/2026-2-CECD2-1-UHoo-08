@@ -40,10 +40,6 @@ FIXTURES = pathlib.Path(__file__).resolve().parents[3] / "docs" / "internal-api-
     "bundle-swap.response": BundleSwapResponse,
     "trends.response": TrendsResponse,
     "feedback-apply.request": FeedbackApplyRequest,
-}
-
-# BE DTO 가 아직 없어 예시도 없는 계약. BE 호출부를 만들 때 예시와 함께 모델로 옮긴다.
-예시_없음 = {
     "compatibility-check.request": CompatibilityCheckRequest,
     "compatibility-check.response": CompatibilityCheckResponse,
 }
@@ -65,7 +61,7 @@ def test_요청과_응답_계약마다_예시가_있다():
         if inspect.isclass(값) and issubclass(값, WireModel)
         and (이름.endswith(("Request", "Response")) or 값 is Accepted)
     }
-    assert 계약 - set(모델.values()) - set(예시_없음.values()) == set()
+    assert 계약 - set(모델.values()) == set()
 
 
 @pytest.mark.parametrize("이름", sorted(모델))

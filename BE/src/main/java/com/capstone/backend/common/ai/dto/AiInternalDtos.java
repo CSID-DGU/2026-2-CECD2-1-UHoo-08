@@ -1,5 +1,6 @@
 package com.capstone.backend.common.ai.dto;
 
+import com.capstone.backend.domain.home.enums.CompatibilityLevel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
@@ -105,6 +106,37 @@ public final class AiInternalDtos {
     }
 
     public record TrendsResponse(List<TrendItem> items, boolean stub) {
+    }
+
+    public record CompatibilityCheckRequest(String userId, String productId) {
+    }
+
+    /** 보유 제품 하나와 이 제품 사이에서 걸린 성분 조합 */
+    public record CompatibilityPairDetail(
+            String userProductId,
+            String ingredientA,
+            String ingredientB,
+            CompatibilityLevel level,
+            String advice,
+            String schedule
+    ) {
+    }
+
+    /**
+     * 쌍 중 가장 강한 단계가 level 이다.
+     *
+     * @param stub true 면 level 의 OK 는 판정 결과가 아니다
+     */
+    public record CompatibilityCheckResponse(CompatibilityLevel level, List<CompatibilityPairDetail> pairs, boolean stub) {
+
+        public CompatibilityCheckResponse {
+            pairs = pairs == null ? List.of() : pairs;
+        }
+
+        /** 호출에 실패했을 때 쓰는 값 */
+        public static CompatibilityCheckResponse ok() {
+            return new CompatibilityCheckResponse(CompatibilityLevel.OK, List.of(), false);
+        }
     }
 
     /** 이 사용자의 가중치 prior 재계산. 피드백 저장 뒤 한 번 던진다. */
