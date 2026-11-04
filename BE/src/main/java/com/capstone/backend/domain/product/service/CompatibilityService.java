@@ -9,15 +9,18 @@ import com.capstone.backend.domain.home.enums.CompatibilityLevel;
 import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse;
 import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse.Pair;
 import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse.Schedule;
+import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse.Conflict;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.enums.UsageType;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
  * 성분 정규화와 판정 규칙은 AI 에 있어 다시 구현하지 않고, AI 결과를 화면 모양으로 바꾼다.
  * AI 호출이 오래 걸릴 수 있어 DB 연결을 붙잡지 않도록 트랜잭션을 걸지 않는다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CompatibilityService {
@@ -74,6 +78,23 @@ public class CompatibilityService {
                 .sorted(Comparator.comparing(Pair::getLevel))
                 .toList();
         return result(pairs);
+    }
+
+    /**
+     * 보유 제품 등록 응답의 충돌 목록. 보유 제품당 가장 심한 쌍 하나다.
+     * 이미 등록을 마친 뒤에 부르므로 어떤 이유로 실패해도 빈 목록을 돌려준다.
+     */
+    public List<Conflict> conflictsOf(UUID userId, UUID productId) {
+        try {
+            Map<UUID, Conflict> conflicts = new LinkedHashMap<>();
+            check(userId, productId).getPairs().forEach(pair -> conflicts.putIfAbsent(pair.getUserProductId(),
+                    new Conflict(pair.getUserProductId(), pair.getUserProductName(), pair.getLevel().name(),
+                            pair.getReason())));
+            return List.copyOf(conflicts.values());
+        } catch (RuntimeException e) {
+            log.warn("[Compatibility] 등록 뒤 궁합 확인 실패. 충돌을 비워 둔다: productId={}", productId, e);
+            return List.of();
+        }
     }
 
     /** 괜찮은 쌍은 충돌이 아니다 */

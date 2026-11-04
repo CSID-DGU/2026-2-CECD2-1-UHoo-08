@@ -8,6 +8,7 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.home.enums.CompatibilityLevel;
 import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse;
 import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse.Pair;
+import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse.Conflict;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.entity.UserProduct;
 import com.capstone.backend.domain.product.enums.UsageType;
@@ -25,6 +26,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
@@ -249,6 +251,55 @@ class CompatibilityServiceTest {
 
         assertThat(response.getLevel()).isEqualTo(CompatibilityLevel.OK);
         assertThat(response.getBannerText()).isNull();
+    }
+
+    @Test
+    void 등록_충돌_목록은_보유_제품당_가장_심한_쌍_하나다() {
+        UserProduct retinol = using("레티놀 앰플");
+        UserProduct toner = using("AHA 토너");
+        givenHoldings();
+        givenAi(CompatibilityLevel.AVOID,
+                pair(retinol, "AHA", "레티놀", CompatibilityLevel.SEPARATE, "나눠 쓰세요", null),
+                pair(toner, "AHA", "BHA", CompatibilityLevel.SEPARATE, "시간을 두세요", null),
+                pair(retinol, "비타민C", "레티놀", CompatibilityLevel.AVOID, "같이 쓰지 마세요", null));
+
+        List<Conflict> conflicts = service.conflictsOf(userId, productId);
+
+        assertThat(conflicts).extracting(Conflict::getUserProductId, Conflict::getName, Conflict::getLevel, Conflict::getAdvice)
+                .containsExactly(
+                        tuple(retinol.getId(), "레티놀 앰플", "AVOID", "같이 쓰지 마세요"),
+                        tuple(toner.getId(), "AHA 토너", "SEPARATE", "시간을 두세요"));
+    }
+
+    @Test
+    void 등록한_제품과_같은_행은_충돌_상대에서_뺀다() {
+        UserProduct registered = UserProduct.builder().id(UUID.randomUUID()).userId(userId).productId(productId)
+                .usageType(UsageType.USING).build();
+        rows.add(registered);
+        UserProduct cream = using("수분 크림");
+        givenHoldings();
+        givenAi(CompatibilityLevel.AVOID,
+                pair(registered, "AHA", "AHA", CompatibilityLevel.AVOID, null, null),
+                pair(cream, "AHA", "레티놀", CompatibilityLevel.SEPARATE, null, null));
+
+        assertThat(service.conflictsOf(userId, productId)).extracting(Conflict::getUserProductId)
+                .containsExactly(cream.getId());
+    }
+
+    @Test
+    void 등록_충돌_목록은_충돌이_없으면_비어_있다() {
+        using("수분 크림");
+        givenHoldings();
+        given(aiInternalClient.checkCompatibility(userId, productId)).willReturn(CompatibilityCheckResponse.ok());
+
+        assertThat(service.conflictsOf(userId, productId)).isEmpty();
+    }
+
+    @Test
+    void 등록_충돌_목록은_확인이_실패해도_예외를_올리지_않는다() {
+        given(productRepository.existsById(productId)).willThrow(new IllegalStateException("DB 연결 실패"));
+
+        assertThat(service.conflictsOf(userId, productId)).isEmpty();
     }
 
     @Test
