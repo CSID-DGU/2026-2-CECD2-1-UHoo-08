@@ -2,16 +2,13 @@ package com.capstone.backend.domain.home.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
-import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.CoveredCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentRecommendationResponse.MissingCondition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
 import com.capstone.backend.domain.home.dto.response.RoutineCheckResponse;
-import com.capstone.backend.domain.home.entity.HomeRecommendation;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.enums.HomeRecommendationState;
-import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
 import com.capstone.backend.domain.product.enums.UsageType;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
@@ -22,7 +19,6 @@ import com.capstone.backend.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,16 +31,14 @@ import java.util.UUID;
 /**
  * 홈 맞춤 추천 카드. AI 홈 배치가 하루 한 번 home_recommendations 에 덮어쓴 결과를 읽어 화면 모양으로 바꾼다.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HomeRecommendationService {
 
     private final UserRepository userRepository;
-    private final HomeRecommendationRepository homeRecommendationRepository;
+    private final HomeResultReader homeResultReader;
     private final UserProductRepository userProductRepository;
     private final ResultAssembler resultAssembler;
-    private final JsonUtil jsonUtil;
 
     /**
      * 비어 있는 환경 조건을 채울 제품 추천. 지역을 설정하지 않았으면 REGION_NOT_SET.
@@ -59,18 +53,16 @@ public class HomeRecommendationService {
             throw new BusinessException(ErrorCode.REGION_NOT_SET);
         }
 
-        Optional<HomeRecommendation> found = homeRecommendationRepository.findById(
-                new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV));
-        JsonNode result = found.map(row -> readTree(row.getResult(), userId, HomeRecommendationKind.ENV))
-                .orElse(MissingNode.getInstance());
-        if (found.isEmpty() || !result.isObject()) {
+        Optional<HomeResultReader.Card> found = homeResultReader.find(userId, HomeRecommendationKind.ENV);
+        if (found.isEmpty()) {
             return new EnvironmentRecommendationResponse(HomeRecommendationState.NOT_READY, List.of(), List.of(), null, null);
         }
-        HomeRecommendation row = found.get();
+        HomeResultReader.Card card = found.get();
+        JsonNode result = card.result();
 
-        List<Condition> conditions = EnvConditions.parse(result).orElseGet(List::of);
+        List<Condition> conditions = HomeResultReader.conditionsOf(card).orElseGet(List::of);
         RecommendationResultV2Response assembled = resultAssembler.assemble(new ResultAssembler.Source(
-                row.getJobId(), null, result.path("scenario").asText(null), RecommendationBasis.SELF,
+                card.jobId(), null, result.path("scenario").asText(null), RecommendationBasis.SELF,
                 result, MissingNode.getInstance(), user.getSkinType(), MissingNode.getInstance()), null);
         return new EnvironmentRecommendationResponse(
                 assembled.getItems().isEmpty() ? HomeRecommendationState.FULLY_COVERED : HomeRecommendationState.READY,
@@ -78,7 +70,7 @@ public class HomeRecommendationService {
                 conditions.stream().filter(Condition::isCovered)
                         .map(c -> new CoveredCondition(c.getKey(), c.getLabel(), c.getCoveredBy())).toList(),
                 assembled,
-                row.getGeneratedAt());
+                card.generatedAt());
     }
 
     /**
@@ -89,18 +81,9 @@ public class HomeRecommendationService {
     @Transactional(readOnly = true)
     public RoutineCheckResponse getRoutineCheck(UUID userId) {
         Set<UUID> usingIds = new HashSet<>(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING));
-        JsonNode result = homeRecommendationRepository.findById(new HomeRecommendation.Key(userId, HomeRecommendationKind.ROUTINE))
-                .map(row -> readTree(row.getResult(), userId, HomeRecommendationKind.ROUTINE))
+        JsonNode result = homeResultReader.find(userId, HomeRecommendationKind.ROUTINE)
+                .map(HomeResultReader.Card::result)
                 .orElse(MissingNode.getInstance());
         return RoutineCheckBuilder.build(result, usingIds);
-    }
-
-    private JsonNode readTree(String json, UUID userId, HomeRecommendationKind kind) {
-        try {
-            return jsonUtil.readTree(json);
-        } catch (BusinessException e) {
-            log.warn("[HomeRecommendation] 홈 추천 결과를 읽지 못해 계산 전으로 본다: userId={}, kind={}", userId, kind, e);
-            return MissingNode.getInstance();
-        }
     }
 }
