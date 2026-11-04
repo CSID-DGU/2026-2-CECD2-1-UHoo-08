@@ -99,8 +99,9 @@ PENDING → IN_PROGRESS → COMPLETED
 | `HOME_ROUTINE` | `replacement?` `replaceTarget` `message?` `items[]` | 바꿀 제품과 대체 후보 |
 | `HOME_ROUTINE` | `schedule` `morning[]` `evening[]` `tip?` | 아침, 저녁 사용 순서 |
 | `HOME_ROUTINE` | `uncomparedCount` | 비교하지 못한 제품 수 |
+| `HOME_ROUTINE` | `checkedUserProductIds[]` | 점검할 때 쓰는 중이던 보유 제품 id 전부. 비교하지 못한 제품도 넣는다 |
 
-`null` 은 아직 분석 전이고, 빈 목록은 분석했지만 해당 항목이 없다는 뜻이다. BE 는 `conditions`, `counts`, `pairs` 가 `null` 이면 카드를 분석 전으로 내려보낸다. `replacement` 만은 바꿀 제품이 없을 때도 `null` 이다.
+`null` 은 아직 분석 전이고, 빈 목록은 분석했지만 해당 항목이 없다는 뜻이다. BE 는 `conditions`, `counts`, `pairs` 가 `null` 이면 카드를 분석 전으로 내려보낸다. `replacement` 만은 바꿀 제품이 없을 때도 `null` 이다. `checkedUserProductIds` 가 없거나 지금 쓰는 제품과 다르면 지난 결과로 보고 역시 분석 전으로 내려보낸다.
 
 ## 예산 세트 칸
 

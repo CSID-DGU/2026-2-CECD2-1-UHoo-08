@@ -124,5 +124,10 @@
     ],
     "tip": "레티놀은 저녁에만 쓰세요."
   },
-  "uncomparedCount": 0
+  "uncomparedCount": 0,
+  "checkedUserProductIds": [
+    "up_1001",
+    "up_1002",
+    "up_1003"
+  ]
 }
