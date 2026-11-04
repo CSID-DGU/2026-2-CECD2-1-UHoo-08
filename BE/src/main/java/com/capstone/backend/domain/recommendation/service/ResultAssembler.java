@@ -144,7 +144,8 @@ public class ResultAssembler {
     }
 
     /**
-     * 예산 세트 조합. AI 의 BundleOption 에는 칸 정보가 아직 없어, 칸 키는 칸 순서로 두고 칸 이름과 조합 유형은 비워 둔다.
+     * 예산 세트 조합. 칸 키와 칸 이름은 AI 값을 쓴다.
+     * 칸 정보가 없는 기존 결과는 칸 키를 칸 순서로 두고 칸 이름을 비워 둔다. 조합 유형은 AI 계약에 없어 비워 둔다.
      */
     static List<Bundle> bundles(JsonNode array, JsonNode query, Map<String, Product> products) {
         Integer budget = intOrNull(query.path("budgetTotal"));
@@ -158,14 +159,21 @@ public class ResultAssembler {
             for (JsonNode item : node.path("items")) {
                 Integer score = intOrNull(item.path("totalScore"));
                 totalScore += score == null ? 0 : score;
-                slots.add(new Slot(String.valueOf(slot++), null, item.path("productId").asText(null),
+                String slotKey = textOrNull(item.path("slotKey"));
+                slots.add(new Slot(slotKey != null ? slotKey : String.valueOf(slot), textOrNull(item.path("slotLabel")),
+                        item.path("productId").asText(null),
                         item.path("name").asText(null), price(item, products.get(item.path("productId").asText(null))),
                         score));
+                slot++;
             }
             bundles.add(new Bundle(index++, null, node.path("label").asText(null), total,
                     budget == null ? null : budget - total, totalScore, slots));
         }
         return bundles;
+    }
+
+    private static String textOrNull(JsonNode node) {
+        return node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
     }
 
     /** AI 가 가격을 비워 두면 상품의 정가로 채운다 */

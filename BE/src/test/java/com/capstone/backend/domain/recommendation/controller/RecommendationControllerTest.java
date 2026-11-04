@@ -283,7 +283,7 @@ class RecommendationControllerTest {
                 .andExpect(jsonPath("$.data.alternativesDroppedCount").value(0))
                 .andExpect(jsonPath("$.data.bundles[0].index").value(1))
                 .andExpect(jsonPath("$.data.bundles[0].remaining").value(8000))
-                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("2"))
+                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("cream"))
                 .andExpect(content().string(containsString("\"parentJobId\":null")))
                 .andExpect(content().string(containsString("\"appliedPreference\":null")))
                 .andExpect(content().string(containsString("\"type\":null")))
