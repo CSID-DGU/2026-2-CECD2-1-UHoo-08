@@ -22,9 +22,6 @@ import java.util.UUID;
  */
 final class ProductConflicts {
 
-    private static final String LATIN_WITH_FINAL_SOUND = "LMNRlmnr";
-    private static final String DIGIT_WITH_FINAL_SOUND = "013678";
-
     private final Map<UUID, String> texts;
     private final ConflictSummary summary;
 
@@ -74,7 +71,7 @@ final class ProductConflicts {
 
     private static String sentence(Set<String> names) {
         String joined = String.join(", ", names);
-        return joined + withParticle(joined) + " 같이 쓰지 마세요";
+        return joined + KoreanParticle.and(joined) + " 같이 쓰지 마세요";
     }
 
     /** 첫 쌍을 문구로 쓰고, 개수가 더 많으면 나머지를 외 N건으로 붙인다 */
@@ -92,22 +89,5 @@ final class ProductConflicts {
 
     private static boolean hasName(UserProductRef ref) {
         return ref.getName() != null && !ref.getName().isBlank();
-    }
-
-    /** 마지막 글자의 받침으로 과, 와 를 고른다. 괄호 같은 기호는 건너뛰고, 읽는 소리를 모르는 글자는 와 로 둔다 */
-    private static String withParticle(String text) {
-        for (int i = text.length() - 1; i >= 0; i--) {
-            char c = text.charAt(i);
-            if (c >= '가' && c <= '힣') {
-                return (c - '가') % 28 != 0 ? "과" : "와";
-            }
-            if (Character.isDigit(c)) {
-                return DIGIT_WITH_FINAL_SOUND.indexOf(c) >= 0 ? "과" : "와";
-            }
-            if (Character.isLetter(c)) {
-                return LATIN_WITH_FINAL_SOUND.indexOf(c) >= 0 ? "과" : "와";
-            }
-        }
-        return "와";
     }
 }
