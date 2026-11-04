@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.UUID;
 
 /**
  * AI 내부 API 호출.
@@ -75,6 +76,34 @@ public class AiInternalClient {
     public BundleSwapResponse swapBundleItem(BundleSwapRequest request) {
         return postSync("/internal/bundle/swap", request,
                 BundleSwapResponse.class, SYNC_TIMEOUT);
+    }
+
+    /**
+     * 사려는 제품이 쓰는 중인 제품과 맞는지 확인한다.
+     * 실패하면 예외 대신 OK 인 빈 결과를 돌려준다. 궁합 확인 실패로 상품 상세나 등록이 막히면 안 된다.
+     */
+    public CompatibilityCheckResponse checkCompatibility(UUID userId, UUID productId) {
+        return checkCompatibility(userId, productId, SYNC_TIMEOUT);
+    }
+
+    CompatibilityCheckResponse checkCompatibility(UUID userId, UUID productId, Duration timeout) {
+        String path = "/internal/compatibility/check";
+        CompatibilityCheckResponse response;
+        try {
+            response = postSync(path, new CompatibilityCheckRequest(userId.toString(), productId.toString()),
+                    CompatibilityCheckResponse.class, timeout);
+        } catch (RuntimeException e) {
+            log.warn("AI {} 호출 실패. 궁합을 OK 로 둔다: productId={}", path, productId, e);
+            return CompatibilityCheckResponse.ok();
+        }
+        if (response == null || response.level() == null) {
+            log.warn("AI {} 응답에 판정 단계가 없다. 궁합을 OK 로 둔다: productId={}", path, productId);
+            return CompatibilityCheckResponse.ok();
+        }
+        if (response.stub()) {
+            log.warn("AI {} 는 아직 stub 이다. OK 는 판정 결과가 아니다.", path);
+        }
+        return response;
     }
 
     public TrendsResponse getTrends(int limit) {
