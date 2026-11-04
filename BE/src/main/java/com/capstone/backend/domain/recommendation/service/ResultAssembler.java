@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +146,8 @@ public class ResultAssembler {
 
     /**
      * 예산 세트 조합. 칸 키와 칸 이름은 AI 값을 쓴다.
-     * 칸 정보가 없는 기존 결과는 칸 키를 칸 순서로 두고 칸 이름을 비워 둔다. 조합 유형은 AI 계약에 없어 비워 둔다.
+     * 칸 정보가 없는 기존 결과는 칸 키를 칸 순서로 두고 칸 이름을 비워 둔다. 칸 순서가 AI 칸 키와 겹치면 다음 번호를 쓴다.
+     * 조합 유형은 AI 계약에 없어 비워 둔다.
      */
     static List<Bundle> bundles(JsonNode array, JsonNode query, Map<String, Product> products) {
         Integer budget = intOrNull(query.path("budgetTotal"));
@@ -156,11 +158,12 @@ public class ResultAssembler {
             List<Slot> slots = new ArrayList<>();
             int totalScore = 0;
             int slot = 0;
+            Set<String> usedKeys = slotKeysOf(node.path("items"));
             for (JsonNode item : node.path("items")) {
                 Integer score = intOrNull(item.path("totalScore"));
                 totalScore += score == null ? 0 : score;
                 String slotKey = textOrNull(item.path("slotKey"));
-                slots.add(new Slot(slotKey != null ? slotKey : String.valueOf(slot), textOrNull(item.path("slotLabel")),
+                slots.add(new Slot(slotKey != null ? slotKey : orderKey(slot, usedKeys), textOrNull(item.path("slotLabel")),
                         item.path("productId").asText(null),
                         item.path("name").asText(null), price(item, products.get(item.path("productId").asText(null))),
                         score));
@@ -170,6 +173,26 @@ public class ResultAssembler {
                     budget == null ? null : budget - total, totalScore, slots));
         }
         return bundles;
+    }
+
+    private static Set<String> slotKeysOf(JsonNode items) {
+        Set<String> keys = new HashSet<>();
+        items.forEach(item -> {
+            String slotKey = textOrNull(item.path("slotKey"));
+            if (slotKey != null) {
+                keys.add(slotKey);
+            }
+        });
+        return keys;
+    }
+
+    /** 칸 순서로 만든 칸 키. 이미 쓰인 번호면 다음 번호를 쓰고, 쓴 번호를 usedKeys 에 남긴다 */
+    private static String orderKey(int slot, Set<String> usedKeys) {
+        int order = slot;
+        while (!usedKeys.add(String.valueOf(order))) {
+            order++;
+        }
+        return String.valueOf(order);
     }
 
     private static String textOrNull(JsonNode node) {

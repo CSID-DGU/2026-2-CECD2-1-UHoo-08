@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -122,6 +123,25 @@ class ResultAssemblerTest {
         assertThat(ResultAssembler.bundles(bundles, MissingNode.getInstance(), Map.of()).get(0).getSlots())
                 .extracting(Slot::getSlotKey, Slot::getLabel)
                 .containsExactly(tuple("0", null), tuple("1", null), tuple("cream", "크림"));
+    }
+
+    @Test
+    void 일부_제품에만_칸_키가_있으면_칸_순서_키가_AI_칸_키와_겹치지_않는다() throws IOException {
+        JsonNode bundles = MAPPER.readTree("""
+                [{"label":"균형형","totalPrice":1000,"items":[
+                  {"productId":"p1","name":"토너","price":500,"slotKey":"1"},
+                  {"productId":"p2","name":"세럼","price":500},
+                  {"productId":"p3","name":"크림","price":0}
+                ]},{"label":"알뜰형","totalPrice":1000,"items":[
+                  {"productId":"p1","name":"토너","price":500},
+                  {"productId":"p2","name":"세럼","price":500,"slotKey":"0"}
+                ]}]
+                """);
+
+        List<Bundle> result = ResultAssembler.bundles(bundles, MissingNode.getInstance(), Map.of());
+
+        assertThat(result.get(0).getSlots()).extracting(Slot::getSlotKey).containsExactly("1", "2", "3");
+        assertThat(result.get(1).getSlots()).extracting(Slot::getSlotKey).containsExactly("1", "0");
     }
 
     @Test
