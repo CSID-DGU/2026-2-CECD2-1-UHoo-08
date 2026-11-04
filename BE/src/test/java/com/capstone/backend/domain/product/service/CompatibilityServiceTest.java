@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -212,6 +213,23 @@ class CompatibilityServiceTest {
                 pair(cream, "AHA", "판테놀", null, null, null));
 
         assertThat(service.check(userId, productId).getPairs()).isEmpty();
+    }
+
+    @Test
+    void 비어_있거나_성분_이름이_없는_쌍은_빼고_나머지로_판정한다() {
+        UserProduct cream = using("수분 크림");
+        givenHoldings();
+        given(aiInternalClient.checkCompatibility(userId, productId))
+                .willReturn(new CompatibilityCheckResponse(CompatibilityLevel.AVOID, Arrays.asList(
+                        null,
+                        pair(cream, null, "레티놀", CompatibilityLevel.AVOID, null, null),
+                        pair(cream, "레티놀", null, CompatibilityLevel.AVOID, null, null),
+                        pair(cream, "AHA", "레티놀", CompatibilityLevel.SEPARATE, null, null)), false));
+
+        ProductCompatibilityResponse response = service.check(userId, productId);
+
+        assertThat(response.getLevel()).isEqualTo(CompatibilityLevel.SEPARATE);
+        assertThat(response.getPairs()).extracting(Pair::getIngredientA).containsExactly("AHA");
     }
 
     @Test

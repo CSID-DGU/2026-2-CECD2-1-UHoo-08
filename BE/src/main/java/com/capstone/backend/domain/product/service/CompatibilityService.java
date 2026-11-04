@@ -68,6 +68,7 @@ public class CompatibilityService {
         // 걸러 낸 쌍으로 판정을 다시 정하므로 AI 의 level 은 쓰지 않는다
         CompatibilityCheckResponse checked = aiInternalClient.checkCompatibility(userId, productId);
         List<Pair> pairs = checked.pairs().stream()
+                .filter(CompatibilityService::isReadable)
                 .filter(CompatibilityService::isConflict)
                 .filter(pair -> others.containsKey(pair.userProductId()))
                 .filter(pair -> names.containsKey(others.get(pair.userProductId()).getProductId()))
@@ -95,6 +96,11 @@ public class CompatibilityService {
             log.warn("[Compatibility] 등록 뒤 궁합 확인 실패. 충돌을 비워 둔다: productId={}", productId, e);
             return List.of();
         }
+    }
+
+    /** 비어 있거나 성분 이름이 없는 쌍은 안내 문구를 만들 수 없다 */
+    private static boolean isReadable(CompatibilityPairDetail pair) {
+        return pair != null && pair.ingredientA() != null && pair.ingredientB() != null;
     }
 
     /** 괜찮은 쌍은 충돌이 아니다 */
