@@ -2,12 +2,14 @@ package com.capstone.backend.domain.product.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
+import com.capstone.backend.domain.home.service.HomeResultReader;
+import com.capstone.backend.domain.home.service.RoutineCheckBuilder;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductDeleteResponse;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse;
-import com.capstone.backend.domain.product.dto.response.UserProductListResponse.ConflictSummary;
 import com.capstone.backend.domain.product.dto.response.UserProductListResponse.Item;
 import com.capstone.backend.domain.product.dto.response.UserProductUpdateResponse;
 import com.capstone.backend.domain.product.entity.PhotoRecognition;
@@ -32,6 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +57,7 @@ public class UserProductService {
     private final UserProductRepository userProductRepository;
     private final ProductRepository productRepository;
     private final PhotoRecognitionService photoRecognitionService;
+    private final HomeResultReader homeResultReader;
 
     /**
      * 쓰는 중인 보유 제품으로 등록한다. 예전에 다 썼거나 버린 행은 되살리지 않고 그대로 둔다.
@@ -143,7 +147,7 @@ public class UserProductService {
     /**
      * 보유 제품 목록. 교체 시기는 저장하지 않고 조회할 때 계산한다.
      * 교체 필요도순은 계산값으로 정렬하므로 이 사용자의 해당 상태 행을 모두 읽어 정렬한 뒤 페이지로 자른다.
-     * 충돌 문구와 배너는 루틴 점검 결과가 연결되기 전까지 비워 둔다.
+     * 충돌 문구와 배너는 루틴 점검 결과에서 만든다. 결과가 없거나 지난 결과면 비워 둔다.
      *
      * @param page 1부터 시작
      */
@@ -170,12 +174,22 @@ public class UserProductService {
                 .sorted(comparator(sort))
                 .toList();
 
+        ProductConflicts conflicts = conflictsOf(userId);
         List<Item> items = listed.stream()
                 .skip((long) (page - 1) * size)
                 .limit(size)
-                .map(Listed::toItem)
+                .map(l -> l.toItem(conflicts.textOf(l.row().getId())))
                 .toList();
-        return new UserProductListResponse(items, ConflictSummary.none(), listed.size());
+        return new UserProductListResponse(items, conflicts.summary(), listed.size());
+    }
+
+    /** 루틴 점검 화면과 같은 기준으로 읽는다. 쌍이 가리키는 제품이 지금 쓰는 중이 아니면 점검 전으로 본다 */
+    private ProductConflicts conflictsOf(UUID userId) {
+        return homeResultReader.find(userId, HomeRecommendationKind.ROUTINE)
+                .map(card -> RoutineCheckBuilder.build(card.result(),
+                        new HashSet<>(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING))))
+                .map(ProductConflicts::from)
+                .orElseGet(ProductConflicts::none);
     }
 
     /** 경과 비율의 기준일. 개봉일이 없는 예전 행은 구매일, 그것도 없으면 등록일 */
@@ -209,10 +223,10 @@ public class UserProductService {
     }
 
     private record Listed(UserProduct row, Product product, Estimate estimate) {
-        Item toItem() {
+        Item toItem(String conflictText) {
             return new Item(row.getId(), product.getId(), product.getName(), product.getBrand(),
                     product.getImageUrl(), row.getOpenedAt(), row.getRemainingPct(),
-                    estimate.status(), estimate.text(), estimate.progress(), null);
+                    estimate.status(), estimate.text(), estimate.progress(), conflictText);
         }
     }
 

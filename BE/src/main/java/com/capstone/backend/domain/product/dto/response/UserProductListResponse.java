@@ -33,7 +33,7 @@ public class UserProductListResponse {
         private String replaceText;
         /** 막대 길이 0~100 */
         private int replaceProgress;
-        /** 이 제품의 충돌 한 줄. 루틴 점검 결과가 연결되기 전까지 null */
+        /** 이 제품의 충돌 한 줄. 같이 쓰면 안 되는 제품이 없거나 루틴 점검 전이면 null */
         private String conflictText;
     }
 
