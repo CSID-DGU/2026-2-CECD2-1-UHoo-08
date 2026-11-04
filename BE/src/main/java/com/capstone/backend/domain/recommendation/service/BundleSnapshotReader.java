@@ -48,6 +48,9 @@ public final class BundleSnapshotReader {
     }
 
     private static List<Candidate> candidates(JsonNode array) {
+        if (!array.isArray()) {
+            return List.of();
+        }
         List<Candidate> candidates = new ArrayList<>();
         array.forEach(node -> {
             String productId = textOrNull(node.path("productId"));

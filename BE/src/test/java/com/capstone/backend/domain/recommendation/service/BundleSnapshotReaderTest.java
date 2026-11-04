@@ -67,6 +67,15 @@ class BundleSnapshotReaderTest {
     }
 
     @Test
+    void 후보_블록이_배열이_아니면_후보가_없다() throws IOException {
+        JsonNode snapshot = MAPPER.readTree("""
+                {"bundle_slots":[{"slotKey":"toner","candidates":{"x":{"productId":"p1","price":1000}}}]}
+                """);
+
+        assertThat(BundleSnapshotReader.find(snapshot, "toner").orElseThrow().candidates()).isEmpty();
+    }
+
+    @Test
     void 후보_블록이_없는_칸은_후보가_비어_있고_칸_이름이_없으면_칸_키로_둔다() throws IOException {
         BundleSlot slot = BundleSnapshotReader.find(MAPPER.readTree("{\"bundle_slots\":[{\"slotKey\":\"toner\"}]}"), "toner").orElseThrow();
 
