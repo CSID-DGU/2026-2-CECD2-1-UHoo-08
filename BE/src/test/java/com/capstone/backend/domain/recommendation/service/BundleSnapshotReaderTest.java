@@ -43,6 +43,7 @@ class BundleSnapshotReaderTest {
         assertThat(BundleSnapshotReader.slots(MissingNode.getInstance())).isEmpty();
         assertThat(BundleSnapshotReader.slots(MAPPER.readTree("{}"))).isEmpty();
         assertThat(BundleSnapshotReader.slots(MAPPER.readTree("{\"bundle_slots\":\"toner\"}"))).isEmpty();
+        assertThat(BundleSnapshotReader.slots(MAPPER.readTree("{\"bundle_slots\":{\"x\":{\"slotKey\":\"toner\"}}}"))).isEmpty();
         assertThat(BundleSnapshotReader.slots(MAPPER.readTree("{\"bundle_slots\":[\"toner\",{\"label\":\"토너\"},{\"slotKey\":\" \"}]}"))).isEmpty();
     }
 

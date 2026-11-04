@@ -28,8 +28,12 @@ public final class BundleSnapshotReader {
      * @param stateSnapshot job 의 그래프 상태. 없으면 MissingNode
      */
     public static List<BundleSlot> slots(JsonNode stateSnapshot) {
+        JsonNode array = stateSnapshot.path("bundle_slots");
+        if (!array.isArray()) {
+            return List.of();
+        }
         List<BundleSlot> slots = new ArrayList<>();
-        stateSnapshot.path("bundle_slots").forEach(node -> {
+        array.forEach(node -> {
             String slotKey = textOrNull(node.path("slotKey"));
             if (slotKey != null) {
                 String label = textOrNull(node.path("label"));
