@@ -142,37 +142,6 @@ class HomeRunRequest(WireModel):
     kind: HomeKind
 
 
-# ── POST /internal/bundle/swap ────────────────────────────────
-class BundleSwapRequest(WireModel):
-    """세트에서 제품 하나를 바꾼다. 총액과 나머지 후보가 다시 계산된다."""
-
-    job_id: str = Field(min_length=1)
-    bundle_index: int = Field(ge=0)
-    slot: int = Field(ge=0)
-    product_id: str = Field(min_length=1)
-
-
-class BundleSwapResponse(WireModel):
-    # contracts/result.py 의 BundleOption 모양이다.
-    bundle: dict | None = None
-    stub: bool = False
-
-
-# ── GET /internal/trends ──────────────────────────────────────
-class TrendItem(WireModel):
-    product_id: str
-    name: str
-    brand: str
-    image_url: str | None = None
-    trend_score: float
-    mention_count: int
-
-
-class TrendsResponse(WireModel):
-    items: list[TrendItem] = Field(default_factory=list)
-    stub: bool = False
-
-
 # ── POST /internal/compatibility/check ────────────────────────
 class CompatibilityCheckRequest(WireModel):
     user_id: str = Field(min_length=1)

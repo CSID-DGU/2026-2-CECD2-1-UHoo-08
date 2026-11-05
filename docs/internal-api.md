@@ -17,8 +17,6 @@ AI 는 `AI/tests/v2/test_internal_api_fixtures.py`, BE 는 `AiContractTest` 로 
 | `POST /internal/agent/clarify` | 비동기 202 | `jobId` `answer` | `Accepted` | 되묻기 답변 |
 | `POST /internal/products/recognize-photos` | 동기 | `nameImage?` `dateImage?` (둘 중 하나 필수) | `candidates[]` `expiryDate?` `paoMonths?` `mfgDate?` `raw` | 사진 등록 |
 | `POST /internal/home/run` | 비동기 202 | `userId` `kind` | `Accepted` | 홈 카드 일일 배치 |
-| `POST /internal/bundle/swap` | 동기 | `jobId` `bundleIndex` `slot` `productId` | `bundle` | 예산 세트 교체 |
-| `GET /internal/trends` | 동기 | `limit` | `items[]` | 홈 '요즘 뜨는 제품' |
 | `POST /internal/feedback/apply` | 비동기 202 | `userId` | `Accepted` | 피드백 저장 뒤 |
 | `POST /internal/compatibility/check` | 동기 | `userId` `productId` | `level` `pairs[]` `userProductId` `ingredientA` `ingredientB` `level` `advice?` `schedule?` | 상품 상세, 보유 제품 등록의 궁합 확인 |
 
@@ -60,7 +58,7 @@ PENDING → IN_PROGRESS → COMPLETED
 
 ## 아직 stub 인 경로
 
-피드백 반영을 뺀 일곱 경로가 stub 이다. 응답에 `stub: true` 가 붙는다.
+피드백 반영을 뺀 다섯 경로가 stub 이다. 응답에 `stub: true` 가 붙는다.
 
 - **동기** 호출은 빈 결과가 온다. 표시를 보지 않으면 "결과 없음"으로 읽고 넘어가게 된다.
   궁합 확인(`compatibility/check`)의 `level=OK` 도 판정 결과가 아니다. 판정하는 코드와 규칙이 아직 없다.

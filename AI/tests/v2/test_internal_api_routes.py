@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.internal.v2 import agent, feedback, router
-from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse, TrendsResponse
+from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse
 
 app = FastAPI()
 app.include_router(router, prefix="/internal")
@@ -39,8 +39,6 @@ POST_경로 = [
     ("/internal/agent/clarify", {"jobId": "j1", "answer": "3만원"}, 202),
     ("/internal/products/recognize-photos", {"nameImage": "https://x/a.jpg"}, 200),
     ("/internal/home/run", {"userId": "u1", "kind": "ROUTINE"}, 202),
-    ("/internal/bundle/swap",
-     {"jobId": "j1", "bundleIndex": 0, "slot": 1, "productId": "p1"}, 200),
     ("/internal/feedback/apply", {"userId": "u1"}, 202),
     ("/internal/compatibility/check", {"userId": "u1", "productId": "p1"}, 200),
 ]
@@ -52,10 +50,9 @@ def test_경로가_열려_있다(경로, 본문, 기대_코드):
     assert 응답.status_code == 기대_코드, 응답.text
 
 
-def test_트렌드는_GET이다():
-    응답 = client.get("/internal/trends")
-    assert 응답.status_code == 200
-    TrendsResponse.model_validate(응답.json())
+def test_지운_경로는_열려_있지_않다():
+    assert client.get("/internal/trends").status_code == 404
+    assert client.post("/internal/bundle/swap", json={}).status_code == 404
 
 
 def test_피드백_반영은_stub이_아니다():

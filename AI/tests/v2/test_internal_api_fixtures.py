@@ -14,18 +14,14 @@ from contracts.internal_api import (
     Accepted,
     AgentClarifyRequest,
     AgentRunV2Request,
-    BundleSwapRequest,
-    BundleSwapResponse,
     CompatibilityCheckRequest,
     CompatibilityCheckResponse,
     FeedbackApplyRequest,
     HomeRunRequest,
     RecognizePhotosRequest,
     RecognizePhotosResponse,
-    TrendsResponse,
     WireModel,
 )
-from contracts.result import BundleOption
 
 FIXTURES = pathlib.Path(__file__).resolve().parents[3] / "docs" / "internal-api-fixtures"
 
@@ -36,9 +32,6 @@ FIXTURES = pathlib.Path(__file__).resolve().parents[3] / "docs" / "internal-api-
     "recognize-photos.request": RecognizePhotosRequest,
     "recognize-photos.response": RecognizePhotosResponse,
     "home-run.request": HomeRunRequest,
-    "bundle-swap.request": BundleSwapRequest,
-    "bundle-swap.response": BundleSwapResponse,
-    "trends.response": TrendsResponse,
     "feedback-apply.request": FeedbackApplyRequest,
     "compatibility-check.request": CompatibilityCheckRequest,
     "compatibility-check.response": CompatibilityCheckResponse,
@@ -67,8 +60,3 @@ def test_요청과_응답_계약마다_예시가_있다():
 @pytest.mark.parametrize("이름", sorted(모델))
 def test_예시가_계약을_통과한다(이름):
     모델[이름].model_validate(_읽기(이름))
-
-
-def test_세트_교체_응답의_조합도_계약을_통과한다():
-    """계약에서 bundle 은 dict 라 안쪽은 따로 봐야 한다."""
-    BundleOption.model_validate(_읽기("bundle-swap.response")["bundle"])

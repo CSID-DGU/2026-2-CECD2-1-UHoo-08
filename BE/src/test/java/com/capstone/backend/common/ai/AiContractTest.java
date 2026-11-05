@@ -3,15 +3,12 @@ package com.capstone.backend.common.ai;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.Accepted;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.BundleSwapRequest;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.BundleSwapResponse;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.CompatibilityCheckRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.CompatibilityCheckResponse;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.FeedbackApplyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.HomeRunRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.RecognizePhotosRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.RecognizePhotosResponse;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.TrendsResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,9 +49,6 @@ class AiContractTest {
             Map.entry("recognize-photos.request", RecognizePhotosRequest.class),
             Map.entry("recognize-photos.response", RecognizePhotosResponse.class),
             Map.entry("home-run.request", HomeRunRequest.class),
-            Map.entry("bundle-swap.request", BundleSwapRequest.class),
-            Map.entry("bundle-swap.response", BundleSwapResponse.class),
-            Map.entry("trends.response", TrendsResponse.class),
             Map.entry("feedback-apply.request", FeedbackApplyRequest.class),
             Map.entry("compatibility-check.request", CompatibilityCheckRequest.class),
             Map.entry("compatibility-check.response", CompatibilityCheckResponse.class)
