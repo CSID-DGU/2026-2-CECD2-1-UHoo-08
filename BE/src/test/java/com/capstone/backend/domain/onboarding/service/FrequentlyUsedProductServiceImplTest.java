@@ -1,8 +1,8 @@
 package com.capstone.backend.domain.onboarding.service;
 
-import com.capstone.backend.domain.onboarding.dto.RegisteredProductBatchRequest;
-import com.capstone.backend.domain.onboarding.entity.Registered;
-import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
+import com.capstone.backend.domain.onboarding.dto.FrequentlyUsedProductBatchRequest;
+import com.capstone.backend.domain.onboarding.entity.FrequentlyUsedProduct;
+import com.capstone.backend.domain.onboarding.repository.FrequentlyUsedProductRepository;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.user.entity.User;
@@ -29,21 +29,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
- * 온보딩의 "자주 사용하는 제품"은 registered_products 에만 남는다.
+ * 온보딩의 "자주 사용하는 제품"은 frequently_used_products 에만 남는다.
  * 서비스가 사용 기록(UserProductRepository)을 아예 의존하지 않으므로, 사용 기록을 건드릴 길이 없다.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class RegisteredProductServiceImplTest {
+class FrequentlyUsedProductServiceImplTest {
 
     @Mock
     ProductRepository productRepository;
     @Mock
-    RegisteredRepository registeredRepository;
+    FrequentlyUsedProductRepository frequentlyUsedProductRepository;
     @Mock
     UserRepository userRepository;
     @InjectMocks
-    RegisteredProductServiceImpl service;
+    FrequentlyUsedProductServiceImpl service;
 
     private final UUID userId = UUID.randomUUID();
     private final UUID productId = UUID.randomUUID();
@@ -58,21 +58,21 @@ class RegisteredProductServiceImplTest {
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
     }
 
-    private RegisteredProductBatchRequest batch(UUID... ids) {
-        RegisteredProductBatchRequest request = new RegisteredProductBatchRequest();
+    private FrequentlyUsedProductBatchRequest batch(UUID... ids) {
+        FrequentlyUsedProductBatchRequest request = new FrequentlyUsedProductBatchRequest();
         ReflectionTestUtils.setField(request, "productIds", List.of(ids));
         return request;
     }
 
     @Test
-    void 고른_제품을_registered_products에_남긴다() {
-        given(registeredRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
+    void 고른_제품을_frequently_used_products에_남긴다() {
+        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
 
         int saved = service.saveBatch(userId, batch(productId));
 
         assertThat(saved).isEqualTo(1);
-        ArgumentCaptor<Registered> captor = ArgumentCaptor.forClass(Registered.class);
-        verify(registeredRepository).save(captor.capture());
+        ArgumentCaptor<FrequentlyUsedProduct> captor = ArgumentCaptor.forClass(FrequentlyUsedProduct.class);
+        verify(frequentlyUsedProductRepository).save(captor.capture());
         assertThat(captor.getValue().getUser()).isEqualTo(user);
         assertThat(captor.getValue().getProduct()).isEqualTo(product);
     }
@@ -80,22 +80,22 @@ class RegisteredProductServiceImplTest {
     @Test
     void 이미_고른_제품은_다시_넣지_않는다() {
         // 온보딩 화면은 다시 들어와 완료할 수 있다
-        given(registeredRepository.existsByUserIdAndProductId(userId, productId)).willReturn(true);
+        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(true);
 
         int saved = service.saveBatch(userId, batch(productId));
 
         assertThat(saved).isZero();
-        verify(registeredRepository, never()).save(any());
+        verify(frequentlyUsedProductRepository, never()).save(any());
     }
 
     @Test
     void 같은_요청에_같은_제품이_두_번_와도_한_번만_처리한다() {
-        given(registeredRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
+        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
 
         int saved = service.saveBatch(userId, batch(productId, productId));
 
         assertThat(saved).isEqualTo(1);
-        verify(registeredRepository).save(any(Registered.class));
+        verify(frequentlyUsedProductRepository).save(any(FrequentlyUsedProduct.class));
     }
 
     @Test
@@ -106,6 +106,6 @@ class RegisteredProductServiceImplTest {
         int saved = service.saveBatch(userId, batch(missing));
 
         assertThat(saved).isZero();
-        verify(registeredRepository, never()).save(any());
+        verify(frequentlyUsedProductRepository, never()).save(any());
     }
 }

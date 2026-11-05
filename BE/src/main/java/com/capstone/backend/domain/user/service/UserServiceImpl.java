@@ -4,7 +4,7 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
-import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
+import com.capstone.backend.domain.onboarding.repository.FrequentlyUsedProductRepository;
 import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.OnboardingCompleteResponse;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final WishlistRepository wishlistRepository;
     private final PriceTrackingRepository priceTrackingRepository;
-    private final RegisteredRepository registeredRepository;
+    private final FrequentlyUsedProductRepository frequentlyUsedProductRepository;
     private final StorageService storageService;
 
     private static final String PROFILE_IMAGE_BUCKET = "profile_image";
@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
 
         long wishlistCount = wishlistRepository.countByUserId(userId);
         long trackingCount = priceTrackingRepository.countByUserId(userId);
-        long registeredCount = registeredRepository.countByUserId(userId);
+        long registeredCount = frequentlyUsedProductRepository.countByUserId(userId);
 
         return UserMeResponse.of(user, wishlistCount, trackingCount, registeredCount);
     }

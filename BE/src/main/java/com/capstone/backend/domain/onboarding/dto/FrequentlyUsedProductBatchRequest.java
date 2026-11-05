@@ -8,6 +8,6 @@ import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
-public class RegisteredProductBatchRequest {
+public class FrequentlyUsedProductBatchRequest {
     private List<UUID> productIds;
 }
