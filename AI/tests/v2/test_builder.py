@@ -10,7 +10,11 @@ from graph.builder import build, run_scenario
 
 
 @pytest.mark.asyncio
-async def test_노드가_하나도_없어도_끝까지_돈다():
+async def test_노드가_하나도_없어도_끝까지_돈다(monkeypatch):
+    """실제로 구현된 노드가 있어도, 빌더의 pass-through 자체는 이 성질을 지켜야
+    한다. 그래서 _load 를 강제로 비워 "노드가 없는 상태"를 재현한다."""
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+
     결과 = await run_scenario("S2_SEARCH", {"job_id": "j1", "user_id": "u1"})
     assert [단계.removesuffix("(stub)") for 단계 in 결과["trace"]] == [
         "retrieve", "inventory", "prefilter", "score", "collaborative", "compose", "guard",
@@ -18,9 +22,11 @@ async def test_노드가_하나도_없어도_끝까지_돈다():
 
 
 @pytest.mark.asyncio
-async def test_아직_없는_노드임을_trace에_표시한다():
+async def test_아직_없는_노드임을_trace에_표시한다(monkeypatch):
     """전부 돌았다는 것과 전부 비어 있다는 것은 다르다. 표시가 없으면
     빈 결과를 정상으로 읽게 된다."""
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+
     결과 = await run_scenario("S2_SEARCH")
     assert all(단계.endswith("(stub)") for 단계 in 결과["trace"])
 
