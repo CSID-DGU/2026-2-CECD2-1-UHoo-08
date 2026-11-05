@@ -9,5 +9,4 @@ import java.util.UUID;
 public interface FrequentlyUsedProductRepository extends JpaRepository<FrequentlyUsedProduct, UUID> {
     List<FrequentlyUsedProduct> findByUserId(UUID userId);
     boolean existsByUserIdAndProductId(UUID userId, UUID productId);
-    long countByUserId(UUID userId);
 }

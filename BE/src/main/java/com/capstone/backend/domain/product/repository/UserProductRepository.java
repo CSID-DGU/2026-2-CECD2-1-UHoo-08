@@ -25,6 +25,9 @@ public interface UserProductRepository extends JpaRepository<UserProduct, UUID> 
     /** 이 사용자의 보유 제품 중 주어진 상태인 행. 교체 필요도순은 계산값으로 정렬하므로 모두 읽는다 */
     List<UserProduct> findByUserIdAndUsageTypeIn(UUID userId, Collection<UsageType> usageTypes);
 
+    /** 이 사용자의 보유 제품 중 주어진 상태인 행 수. 마이페이지의 구매 제품 수를 센다 */
+    long countByUserIdAndUsageType(UUID userId, UsageType usageType);
+
     /** 이 사용자의 보유 제품 중 주어진 상태인 행의 id. 루틴 점검에서 보유 제품 수를 세고 점검 결과가 지금 제품과 맞는지 본다 */
     @Query("SELECT up.id FROM UserProduct up WHERE up.userId = :userId AND up.usageType = :usageType")
     List<UUID> findIdsByUserIdAndUsageType(@Param("userId") UUID userId, @Param("usageType") UsageType usageType);
