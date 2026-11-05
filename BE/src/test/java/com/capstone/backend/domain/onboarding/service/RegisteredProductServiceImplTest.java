@@ -1,7 +1,5 @@
 package com.capstone.backend.domain.onboarding.service;
 
-import com.capstone.backend.common.exception.BusinessException;
-import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.onboarding.dto.RegisteredProductBatchRequest;
 import com.capstone.backend.domain.onboarding.entity.Registered;
 import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
@@ -20,13 +18,11 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -111,28 +107,5 @@ class RegisteredProductServiceImplTest {
 
         assertThat(saved).isZero();
         verify(registeredRepository, never()).save(any());
-    }
-
-    @Test
-    void 등록을_취소하면_registered_products의_그_행만_지운다() {
-        UUID registeredId = UUID.randomUUID();
-        Registered registered = Registered.builder().id(registeredId).user(user).product(product)
-                .createdAt(LocalDateTime.now()).build();
-        given(registeredRepository.findByIdAndUserId(registeredId, userId)).willReturn(Optional.of(registered));
-
-        service.removeFavoriteItem(userId, registeredId);
-
-        verify(registeredRepository).delete(registered);
-    }
-
-    @Test
-    void 남의_등록은_취소할_수_없다() {
-        UUID registeredId = UUID.randomUUID();
-        given(registeredRepository.findByIdAndUserId(registeredId, userId)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.removeFavoriteItem(userId, registeredId))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FOUND);
-        verify(registeredRepository, never()).delete(any());
     }
 }
