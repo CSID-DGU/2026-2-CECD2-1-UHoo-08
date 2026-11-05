@@ -20,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/environment")
 @RequiredArgsConstructor
-@Tag(name = "12. Environment", description = "생활 환경 API")
+@Tag(name = "10. Home & Environment", description = "홈 맞춤 추천, 생활 환경, 트렌드 API")
 public class EnvironmentController {
 
     private final EnvironmentService environmentService;

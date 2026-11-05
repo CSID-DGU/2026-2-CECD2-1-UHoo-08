@@ -18,7 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/home")
 @RequiredArgsConstructor
-@Tag(name = "13. Home", description = "홈 맞춤 추천 API")
+@Tag(name = "10. Home & Environment", description = "홈 맞춤 추천, 생활 환경, 트렌드 API")
 public class HomeRecommendationController {
 
     private final HomeRecommendationService homeRecommendationService;

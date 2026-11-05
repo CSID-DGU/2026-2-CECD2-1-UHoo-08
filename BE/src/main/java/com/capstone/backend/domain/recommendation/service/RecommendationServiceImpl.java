@@ -333,6 +333,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public ProductSearchResponse searchProducts(UUID userId, String query) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations/search 호출. POST /recommendations/queries 로 옮겨야 한다: userId={}", userId);
         return agentClient.searchProducts(query, userId != null ? userId.toString() : null);
     }
 
