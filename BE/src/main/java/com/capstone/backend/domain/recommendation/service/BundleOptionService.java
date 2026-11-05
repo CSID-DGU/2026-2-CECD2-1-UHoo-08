@@ -5,8 +5,10 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.BundleSwapRequest;
 import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse.Option;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response.Bundle;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response.Slot;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
@@ -15,10 +17,12 @@ import com.capstone.backend.domain.recommendation.repository.RecommendationRepos
 import com.capstone.backend.domain.recommendation.service.BundleSnapshotReader.BundleSlot;
 import com.capstone.backend.domain.recommendation.service.BundleSnapshotReader.Candidate;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -28,7 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 예산 세트의 칸 교체 후보. 가격과 점수를 다시 더하는 계산이라 AI 를 거치지 않고 job 에 저장된 값으로 계산한다.
+ * 예산 세트의 칸 교체 후보와 교체. 가격과 점수를 다시 더하는 계산이라 AI 를 거치지 않고 job 에 저장된 값으로 계산한다.
  *
  * 조합과 칸은 추천 결과 조회와 같은 변환으로 찾아, 화면이 받은 칸 키와 가격이 그대로 맞는다.
  * 칸별 후보가 없는 기존 결과와 칸의 후보가 비어 있는 결과는 칸이 없는 것으로 본다.
@@ -47,7 +51,73 @@ public class BundleOptionService {
                 .filter(found -> found.getStatus() == JobStatus.COMPLETED)
                 .orElseThrow(BundleOptionService::notFound);
         JsonNode result = readTree(job.getResult());
+        Selection selection = select(job, result, bundleIndex, slotKey);
+        return new BundleSlotOptionsResponse(selection.budget(), selection.bundle().getTotal(), selection.options());
+    }
 
+    /**
+     * 칸을 후보 제품으로 바꾸고 합계를 다시 계산해 저장한다. 교체 후보 조회와 같은 계산을 쓴다.
+     * 그 조합의 그 칸과 합계만 바꾸고, 다른 조합과 그래프 상태는 그대로 둔다.
+     */
+    @Transactional
+    public BundleSwapResponse swap(UUID userId, UUID jobId, int bundleIndex, BundleSwapRequest request) {
+        Recommendation job = recommendationRepository.findByIdAndUserIdForUpdate(jobId, userId)
+                .filter(found -> found.getStatus() == JobStatus.COMPLETED)
+                .orElseThrow(BundleOptionService::notFound);
+        JsonNode result = readTree(job.getResult());
+        Selection selection = select(job, result, bundleIndex, request.getSlotKey());
+        Option option = selection.options().stream()
+                .filter(found -> found.getProductId().equals(request.getProductId()))
+                .findFirst()
+                .orElseThrow(BundleOptionService::notFound);
+
+        if (option.isCurrent()) {
+            return new BundleSwapResponse(selection.bundle());
+        }
+        if (!option.isSelectable()) {
+            throw new BusinessException(ErrorCode.BUNDLE_OVER_BUDGET);
+        }
+
+        ObjectNode bundleNode = (ObjectNode) result.path("bundles").get(bundleIndex - 1);
+        int slotPosition = selection.bundle().getSlots().indexOf(selection.slot());
+        replaceItem((ObjectNode) bundleNode.path("items").get(slotPosition), option, productOf(option.getProductId()));
+        bundleNode.put("totalPrice", option.getNewTotal());
+        if (selection.budget() != null) {
+            bundleNode.putNull("overBudgetReason");
+        }
+
+        job.replaceResult(jsonUtil.write(result), LocalDateTime.now());
+        return new BundleSwapResponse(bundleAt(result, bundleIndex));
+    }
+
+    /** 칸 키는 그대로 두고 제품 값을 바꾼다. 이전 제품의 점수 분해, 배지, 이유가 남지 않게 지운다 */
+    private static void replaceItem(ObjectNode item, Option option, Product product) {
+        item.put("productId", option.getProductId());
+        item.put("name", option.getName());
+        item.put("brand", product.getBrand());
+        item.put("imageUrl", product.getImageUrl());
+        item.put("price", option.getPrice());
+        item.put("totalScore", option.getScore());
+        item.putArray("breakdown");
+        item.putArray("badges");
+        item.putNull("reason");
+        item.putNull("change");
+        item.putNull("rankDelta");
+    }
+
+    private Product productOf(String productId) {
+        try {
+            return productRepository.findById(UUID.fromString(productId)).orElseThrow(BundleOptionService::notFound);
+        } catch (IllegalArgumentException e) {
+            throw notFound();
+        }
+    }
+
+    /** 고른 조합과 칸, 그 칸의 후보별 계산 */
+    private record Selection(Bundle bundle, Slot slot, Integer budget, List<Option> options) {
+    }
+
+    private Selection select(Recommendation job, JsonNode result, int bundleIndex, String slotKey) {
         Bundle bundle = bundleAt(result, bundleIndex);
         Slot slot = bundle.getSlots().stream()
                 .filter(found -> slotKey.equals(found.getSlotKey()))
@@ -59,7 +129,7 @@ public class BundleOptionService {
                 .orElseThrow(BundleOptionService::notFound);
 
         Integer budget = ResultAssembler.intOrNull(result.path("query").path("budgetTotal"));
-        return new BundleSlotOptionsResponse(budget, bundle.getTotal(), options(bundle.getTotal(), budget, slot, candidates));
+        return new Selection(bundle, slot, budget, options(bundle.getTotal(), budget, slot, candidates));
     }
 
     private Bundle bundleAt(JsonNode result, int bundleIndex) {

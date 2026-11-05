@@ -1,6 +1,7 @@
 package com.capstone.backend.domain.recommendation.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
+import com.capstone.backend.domain.recommendation.dto.request.BundleSwapRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.FeedbackRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
@@ -8,6 +9,7 @@ import com.capstone.backend.domain.recommendation.dto.request.RecommendationQuer
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
@@ -142,6 +144,21 @@ public class RecommendationController {
             @PathVariable int bundleIndex,
             @PathVariable String slotKey) {
         return ResponseEntity.ok(ApiResponse.success(bundleOptionService.getOptions(userId, jobId, bundleIndex, slotKey)));
+    }
+
+    @Operation(
+            summary = "세트 제품 교체",
+            description = "예산 세트의 한 칸을 교체 후보 조회에서 고른 제품으로 바꾸고 총액과 총점을 다시 계산한다. 다른 조합은 그대로 둔다. " +
+                    "지금 제품을 다시 고르면 저장하지 않고 지금 조합을 돌려준다. 교체하면 예산을 넘으면 422 BUNDLE_OVER_BUDGET. " +
+                    "job, 조합, 칸이 없거나 후보에 없는 제품이면 404 NOT_FOUND."
+    )
+    @PatchMapping("/{jobId}/bundles/{bundleIndex}")
+    public ResponseEntity<ApiResponse<BundleSwapResponse>> swapBundleProduct(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @PathVariable int bundleIndex,
+            @Valid @RequestBody BundleSwapRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(bundleOptionService.swap(userId, jobId, bundleIndex, request)));
     }
 
     @Operation(
