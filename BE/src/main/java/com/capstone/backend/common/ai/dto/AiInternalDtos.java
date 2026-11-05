@@ -88,26 +88,6 @@ public final class AiInternalDtos {
     public record HomeRunRequest(String userId, String kind) {
     }
 
-    public record BundleSwapRequest(String jobId, int bundleIndex, int slot, String productId) {
-    }
-
-    /** bundle 은 추천 결과의 BundleOption 모양이다. */
-    public record BundleSwapResponse(Map<String, Object> bundle, boolean stub) {
-    }
-
-    public record TrendItem(
-            String productId,
-            String name,
-            String brand,
-            String imageUrl,
-            double trendScore,
-            int mentionCount
-    ) {
-    }
-
-    public record TrendsResponse(List<TrendItem> items, boolean stub) {
-    }
-
     public record CompatibilityCheckRequest(String userId, String productId) {
     }
 

@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from contracts.internal_api import (
     AgentClarifyRequest,
     AgentRunV2Request,
-    BundleSwapRequest,
     CompatibilityCheckRequest,
     CompatibilityCheckResponse,
     FeedbackApplyRequest,
@@ -154,11 +153,6 @@ def test_홈은_두_종류만_받는다():
     assert {k.value for k in HomeKind} == {"ROUTINE", "ENV"}
     with pytest.raises(ValidationError):
         HomeRunRequest(user_id="u1", kind="TREND")
-
-
-def test_세트_교체_위치는_음수가_될_수_없다():
-    with pytest.raises(ValidationError):
-        BundleSwapRequest(job_id="j1", bundle_index=-1, slot=0, product_id="p1")
 
 
 def test_인식_결과는_모르는_값을_비워_둔다():

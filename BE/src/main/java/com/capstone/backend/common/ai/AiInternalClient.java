@@ -73,11 +73,6 @@ public class AiInternalClient {
                 RecognizePhotosResponse.class, RECOGNIZE_TIMEOUT);
     }
 
-    public BundleSwapResponse swapBundleItem(BundleSwapRequest request) {
-        return postSync("/internal/bundle/swap", request,
-                BundleSwapResponse.class, SYNC_TIMEOUT);
-    }
-
     /**
      * 사려는 제품이 쓰는 중인 제품과 맞는지 확인한다.
      * 실패하면 예외 대신 OK 인 빈 결과를 돌려준다. 궁합 확인 실패로 상품 상세나 등록이 막히면 안 된다.
@@ -104,15 +99,6 @@ public class AiInternalClient {
             log.warn("AI {} 는 아직 stub 이다. OK 는 판정 결과가 아니다.", path);
         }
         return response;
-    }
-
-    public TrendsResponse getTrends(int limit) {
-        return webClient.get()
-                .uri(aiServerUrl + "/internal/trends?limit=" + limit)
-                .retrieve()
-                .bodyToMono(TrendsResponse.class)
-                .timeout(SYNC_TIMEOUT)
-                .block();
     }
 
     // ── 공통 ──────────────────────────────────────────────────
