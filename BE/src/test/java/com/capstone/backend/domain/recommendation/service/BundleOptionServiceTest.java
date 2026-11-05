@@ -5,12 +5,18 @@ import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.BundleSwapRequest;
 import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse.Option;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response.Bundle;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response.Slot;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -282,5 +288,182 @@ class BundleOptionServiceTest {
         givenJob(JobStatus.COMPLETED, sample("S2_SEARCH"), "{}");
 
         assertNotFound(1, "toner");
+    }
+
+    // 세트 제품 교체
+
+    private static final String GENTLE_TONER = "44444444-4444-4444-4444-444444444444";
+    private static final String CUR = "aaaaaaaa-0000-0000-0000-000000000001";
+    private static final String OTHER = "aaaaaaaa-0000-0000-0000-000000000002";
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private Recommendation givenLockedJob(JobStatus status, String result, String snapshot) {
+        Recommendation job = Recommendation.builder().id(jobId).status(status).result(result).stateSnapshot(snapshot).build();
+        given(recommendationRepository.findByIdAndUserIdForUpdate(jobId, userId)).willReturn(Optional.of(job));
+        return job;
+    }
+
+    /** 합계 100, 지금 칸 가격 30 인 조합과 그 칸의 후보. 예산 초과 사유가 있다 */
+    private Recommendation givenLockedJob(int budget, int otherPrice) {
+        return givenLockedJob(JobStatus.COMPLETED,
+                "{\"query\":{\"budgetTotal\":" + budget + "},\"bundles\":[{\"label\":\"균형형\",\"totalPrice\":100,"
+                        + "\"overBudgetReason\":\"넘음\",\"items\":["
+                        + "{\"productId\":\"" + CUR + "\",\"name\":\"지금 제품\",\"price\":30,\"totalScore\":50,\"slotKey\":\"toner\"},"
+                        + "{\"productId\":\"etc\",\"name\":\"다른 칸\",\"price\":70,\"totalScore\":60,\"slotKey\":\"serum\"}]}]}",
+                "{\"bundle_slots\":[{\"slotKey\":\"toner\",\"label\":\"토너\",\"candidates\":["
+                        + candidate(OTHER, otherPrice, 90) + "]}]}");
+    }
+
+    private void givenProduct(String id) {
+        given(productRepository.findById(UUID.fromString(id))).willReturn(Optional.of(
+                Product.builder().id(UUID.fromString(id)).brand("새 브랜드").imageUrl("https://img/new").build()));
+    }
+
+    private static BundleSwapRequest swapRequest(String slotKey, String productId) {
+        return BundleSwapRequest.builder().slotKey(slotKey).productId(productId).build();
+    }
+
+    private void assertSwapFails(int bundleIndex, BundleSwapRequest request, ErrorCode code) {
+        assertThatThrownBy(() -> service.swap(userId, jobId, bundleIndex, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(code);
+    }
+
+    @Test
+    void 칸을_바꾸면_갱신된_조합을_돌려주고_그_칸과_합계만_저장한다() throws IOException {
+        Recommendation job = givenLockedJob(JobStatus.COMPLETED, sample("S6_BUNDLE"), sample("S6_BUNDLE_SNAPSHOT"));
+        String snapshotBefore = job.getStateSnapshot();
+        JsonNode before = mapper.readTree(job.getResult());
+        givenProduct(GENTLE_TONER);
+
+        BundleSwapResponse response = service.swap(userId, jobId, 1, swapRequest("toner", GENTLE_TONER));
+
+        Bundle bundle = response.getBundle();
+        assertThat(bundle.getIndex()).isEqualTo(1);
+        assertThat(bundle.getTotal()).isEqualTo(85000);
+        assertThat(bundle.getRemaining()).isEqualTo(15000);
+        assertThat(bundle.getTotalScore()).isEqualTo(217);
+        assertThat(bundle.getSlots()).extracting(Slot::getSlotKey, Slot::getLabel, Slot::getProductId, Slot::getName, Slot::getPrice, Slot::getScore)
+                .containsExactly(
+                        tuple("toner", "토너", GENTLE_TONER, "순한 토너", 15000, 72),
+                        tuple("serum", "세럼", "22222222-2222-2222-2222-222222222222", "비타 세럼", 38000, 75),
+                        tuple("cream", "크림", "33333333-3333-3333-3333-333333333333", "수분 크림", 32000, 70));
+
+        JsonNode saved = mapper.readTree(job.getResult());
+        JsonNode item = saved.path("bundles").get(0).path("items").get(0);
+        assertThat(saved.path("bundles").get(0).path("totalPrice").asInt()).isEqualTo(85000);
+        assertThat(item.path("brand").asText()).isEqualTo("새 브랜드");
+        assertThat(item.path("imageUrl").asText()).isEqualTo("https://img/new");
+        assertThat(item.path("slotKey").asText()).isEqualTo("toner");
+        assertThat(saved.path("bundles").get(1)).isEqualTo(before.path("bundles").get(1));
+        assertThat(saved.path("bundles").get(0).path("items").get(1)).isEqualTo(before.path("bundles").get(0).path("items").get(1));
+        assertThat(saved.path("query")).isEqualTo(before.path("query"));
+        assertThat(job.getStateSnapshot()).isEqualTo(snapshotBefore);
+        assertThat(job.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void 바꾼_뒤_다시_조회하면_바뀐_제품이_지금_제품이다() throws IOException {
+        Recommendation job = givenLockedJob(JobStatus.COMPLETED, sample("S6_BUNDLE"), sample("S6_BUNDLE_SNAPSHOT"));
+        givenProduct(GENTLE_TONER);
+        service.swap(userId, jobId, 1, swapRequest("toner", GENTLE_TONER));
+        given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.of(job));
+
+        BundleSlotOptionsResponse options = service.getOptions(userId, jobId, 1, "toner");
+
+        assertThat(options.getCurrentTotal()).isEqualTo(85000);
+        assertThat(options.getOptions()).extracting(Option::getName, Option::getNewTotal, Option::isCurrent)
+                .containsExactly(tuple("그린티 토너", 92000, false), tuple("순한 토너", 85000, true));
+    }
+
+    @Test
+    void 이전_제품의_점수_분해와_배지와_이유를_지운다() throws IOException {
+        Recommendation job = givenLockedJob(100, 30);
+        ObjectNode result = (ObjectNode) mapper.readTree(job.getResult());
+        ObjectNode item = (ObjectNode) result.path("bundles").get(0).path("items").get(0);
+        item.putArray("breakdown").add("이전");
+        item.putArray("badges").add("이전");
+        item.put("reason", "이전");
+        job.replaceResult(result.toString(), null);
+        givenProduct(OTHER);
+
+        service.swap(userId, jobId, 1, swapRequest("toner", OTHER));
+
+        JsonNode saved = mapper.readTree(job.getResult()).path("bundles").get(0).path("items").get(0);
+        assertThat(saved.path("breakdown")).isEmpty();
+        assertThat(saved.path("badges")).isEmpty();
+        assertThat(saved.path("reason").isNull()).isTrue();
+    }
+
+    @Test
+    void 정확히_0이_남으면_바꾸고_예산_초과_사유를_지운다() throws IOException {
+        Recommendation job = givenLockedJob(100, 30);
+        givenProduct(OTHER);
+
+        assertThat(service.swap(userId, jobId, 1, swapRequest("toner", OTHER)).getBundle().getRemaining()).isZero();
+
+        assertThat(mapper.readTree(job.getResult()).path("bundles").get(0).path("overBudgetReason").isNull()).isTrue();
+    }
+
+    @Test
+    void 일원이라도_넘으면_BUNDLE_OVER_BUDGET이고_저장하지_않는다() {
+        Recommendation job = givenLockedJob(100, 31);
+        String before = job.getResult();
+
+        assertSwapFails(1, swapRequest("toner", OTHER), ErrorCode.BUNDLE_OVER_BUDGET);
+
+        assertThat(job.getResult()).isEqualTo(before);
+    }
+
+    @Test
+    void 지금_제품을_다시_고르면_저장하지_않고_지금_조합을_돌려준다() {
+        Recommendation job = givenLockedJob(100, 30);
+        String before = job.getResult();
+
+        BundleSwapResponse response = service.swap(userId, jobId, 1, swapRequest("toner", CUR));
+
+        assertThat(response.getBundle().getTotal()).isEqualTo(100);
+        assertThat(job.getResult()).isEqualTo(before);
+        assertThat(job.getUpdatedAt()).isNull();
+    }
+
+    @Test
+    void 후보에_없는_제품이면_NOT_FOUND이고_저장하지_않는다() {
+        Recommendation job = givenLockedJob(100, 30);
+        String before = job.getResult();
+
+        assertSwapFails(1, swapRequest("toner", UUID.randomUUID().toString()), ErrorCode.NOT_FOUND);
+
+        assertThat(job.getResult()).isEqualTo(before);
+    }
+
+    @Test
+    void 교체에서_없는_조합이나_칸이면_NOT_FOUND다() {
+        givenLockedJob(100, 30);
+
+        assertSwapFails(9, swapRequest("toner", OTHER), ErrorCode.NOT_FOUND);
+        assertSwapFails(1, swapRequest("serum", OTHER), ErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    void 교체에서_없는_job이나_완료되지_않은_job이면_NOT_FOUND다() throws IOException {
+        given(recommendationRepository.findByIdAndUserIdForUpdate(jobId, userId)).willReturn(Optional.empty());
+        assertSwapFails(1, swapRequest("toner", OTHER), ErrorCode.NOT_FOUND);
+
+        givenLockedJob(JobStatus.IN_PROGRESS, sample("S6_BUNDLE"), sample("S6_BUNDLE_SNAPSHOT"));
+        assertSwapFails(1, swapRequest("toner", GENTLE_TONER), ErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    void 상품_정보가_없는_후보면_NOT_FOUND이고_저장하지_않는다() {
+        Recommendation job = givenLockedJob(100, 30);
+        String before = job.getResult();
+        given(productRepository.findById(UUID.fromString(OTHER))).willReturn(Optional.empty());
+
+        assertSwapFails(1, swapRequest("toner", OTHER), ErrorCode.NOT_FOUND);
+
+        assertThat(job.getResult()).isEqualTo(before);
     }
 }
