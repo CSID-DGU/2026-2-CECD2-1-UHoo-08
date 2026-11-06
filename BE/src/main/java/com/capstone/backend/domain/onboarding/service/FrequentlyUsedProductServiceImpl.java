@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -39,8 +40,8 @@ public class FrequentlyUsedProductServiceImpl implements FrequentlyUsedProductSe
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
         int saved = 0;
-        // 같은 요청에 같은 제품이 두 번 들어와도 한 번만 처리한다
-        for (UUID productId : request.getProductIds().stream().distinct().toList()) {
+        // 같은 요청에 같은 제품이 두 번 들어와도 한 번만 처리하고, 빈 값은 없는 제품처럼 건너뛴다
+        for (UUID productId : request.getProductIds().stream().filter(Objects::nonNull).distinct().toList()) {
             Product product = productRepository.findById(productId).orElse(null);
             if (product == null) continue;
 

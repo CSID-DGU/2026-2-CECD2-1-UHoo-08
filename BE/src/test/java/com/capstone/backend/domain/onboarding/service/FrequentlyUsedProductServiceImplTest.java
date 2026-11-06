@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,6 +96,19 @@ class FrequentlyUsedProductServiceImplTest {
         int saved = service.saveBatch(userId, batch(productId, productId));
 
         assertThat(saved).isEqualTo(1);
+        verify(frequentlyUsedProductRepository).save(any(FrequentlyUsedProduct.class));
+    }
+
+    @Test
+    void 빈_값은_건너뛰고_나머지는_저장한다() {
+        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
+        FrequentlyUsedProductBatchRequest request = new FrequentlyUsedProductBatchRequest();
+        ReflectionTestUtils.setField(request, "productIds", Arrays.asList(null, productId, null));
+
+        int saved = service.saveBatch(userId, request);
+
+        assertThat(saved).isEqualTo(1);
+        verify(productRepository, never()).findById(null);
         verify(frequentlyUsedProductRepository).save(any(FrequentlyUsedProduct.class));
     }
 
