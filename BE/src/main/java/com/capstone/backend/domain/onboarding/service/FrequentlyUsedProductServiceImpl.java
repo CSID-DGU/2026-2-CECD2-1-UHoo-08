@@ -2,26 +2,17 @@ package com.capstone.backend.domain.onboarding.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
-import com.capstone.backend.domain.product.entity.Product;
-import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.onboarding.dto.FrequentlyUsedProductBatchRequest;
-import com.capstone.backend.domain.onboarding.entity.FrequentlyUsedProduct;
 import com.capstone.backend.domain.onboarding.repository.FrequentlyUsedProductRepository;
-import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 온보딩에서 고르는 "자주 사용하는 제품".
@@ -33,11 +24,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FrequentlyUsedProductServiceImpl implements FrequentlyUsedProductService {
 
-    private final ProductRepository productRepository;
     private final FrequentlyUsedProductRepository frequentlyUsedProductRepository;
     private final UserRepository userRepository;
 
-    /** 제품과 이미 고른 제품을 한 번에 읽어, 요청한 제품 수와 상관없이 조회 수가 같다 */
+    /** 없는 제품과 이미 고른 제품은 DB 가 한 문장 안에서 건너뛴다. 같은 요청이 겹쳐도 실패하지 않는다 */
     @Override
     @Transactional
     public int saveBatch(UUID userId, FrequentlyUsedProductBatchRequest request) {
@@ -46,24 +36,9 @@ public class FrequentlyUsedProductServiceImpl implements FrequentlyUsedProductSe
         List<UUID> productIds = request.getProductIds().stream().filter(Objects::nonNull).distinct().toList();
         if (productIds.isEmpty()) return 0;
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        Map<UUID, Product> products = productRepository.findAllById(productIds).stream()
-                .collect(Collectors.toMap(Product::getId, Function.identity()));
-        Set<UUID> alreadyChosen = new HashSet<>(
-                frequentlyUsedProductRepository.findProductIdsByUserIdAndProductIdIn(userId, productIds));
-
-        LocalDateTime now = LocalDateTime.now();
-        List<FrequentlyUsedProduct> rows = productIds.stream()
-                .filter(products::containsKey)
-                .filter(productId -> !alreadyChosen.contains(productId))
-                .map(productId -> FrequentlyUsedProduct.builder()
-                        .user(user)
-                        .product(products.get(productId))
-                        .createdAt(now)
-                        .build())
-                .toList();
-        frequentlyUsedProductRepository.saveAll(rows);
-        return rows.size();
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        return frequentlyUsedProductRepository.insertIfAbsent(userId, productIds, LocalDateTime.now());
     }
 }
