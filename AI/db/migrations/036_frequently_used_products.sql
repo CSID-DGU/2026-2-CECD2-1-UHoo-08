@@ -8,8 +8,9 @@
 --   사용자와 제품마다 한 줄만 둔다
 --   id 와 created_at 에 기본값을 둔다
 --
--- 이 파일을 적용하면 테이블 이름이 바뀌어, 지금 돌고 있는 BE 는 JPA validate 에서 테이블을 찾지 못한다.
--- 적용한 뒤 곧바로 새 BE 를 배포한다. 여러 번 실행해도 결과가 같다.
+-- 배포는 마이그레이션을 실행하지 않아, 적용한 뒤에도 새 BE 로 바뀔 때까지 옛 BE 가 돈다.
+-- 옛 BE 가 계속 읽고 쓰도록 옛 이름의 뷰를 남긴다(5번). 새 BE 를 배포한 뒤 다음 마이그레이션에서 지운다.
+-- 여러 번 실행해도 결과가 같다.
 
 
 -- 1. 테이블 이름 -------------------------------------------------------------
@@ -86,3 +87,15 @@ COMMENT ON TABLE frequently_used_products IS
 COMMENT ON COLUMN user_products.usage_type IS
   'USING(쓰는 중)|USED(다 씀)|DISCARDED(버림). 산 제품 한 통마다 한 줄이다. '
   '조회는 product_views, 좋아요는 wishlists, 온보딩의 자주 사용하는 제품은 frequently_used_products 에 있다';
+
+
+-- 5. 옛 이름의 뷰 -------------------------------------------------------------
+-- 옛 BE 는 registered_products 를 읽고 쓴다. 테이블 하나를 그대로 비추는 뷰라 PostgreSQL 이 INSERT, DELETE 도
+-- 그대로 넘기고, JPA validate 도 뷰를 테이블로 받아들인다. 새 BE 는 이 뷰를 쓰지 않는다.
+
+CREATE OR REPLACE VIEW registered_products AS
+SELECT id, user_id, product_id, created_at
+FROM frequently_used_products;
+
+COMMENT ON VIEW registered_products IS
+  '옛 BE 호환용. frequently_used_products 로 이름을 바꾼 뒤 새 BE 배포 전까지만 둔다';
