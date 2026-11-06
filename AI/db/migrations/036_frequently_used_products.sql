@@ -12,6 +12,10 @@
 -- 옛 BE 가 계속 읽고 쓰도록 옛 이름의 뷰를 남긴다(5번). 새 BE 를 배포한 뒤 다음 마이그레이션에서 지운다.
 -- 여러 번 실행해도 결과가 같다.
 
+-- 이름 변경과 제약 추가는 이 테이블과 users, products 를 잠근다. 다른 작업이 잠금을 오래 쥐고 있으면
+-- 기다리지 않고 실패하게 한다. 실패하면 사용이 적은 때 다시 실행한다.
+SET lock_timeout = '5s';
+
 
 -- 1. 테이블 이름 -------------------------------------------------------------
 
@@ -99,3 +103,5 @@ FROM frequently_used_products;
 
 COMMENT ON VIEW registered_products IS
   '옛 BE 호환용. frequently_used_products 로 이름을 바꾼 뒤 새 BE 배포 전까지만 둔다';
+
+RESET lock_timeout;
