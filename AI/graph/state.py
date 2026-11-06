@@ -23,6 +23,9 @@ class GraphState(TypedDict, total=False):
     # 조건 수정(S7)일 때 직전 job. 그 job의 스냅샷에서 후보와 조건을 복원한다.
     parent_job_id: str | None
     raw_query: str
+    # 상품 상세에서 온 요청의 기준 상품. 있으면 빌더가 Normalize 와 Router 를
+    # 건너뛰고 query_spec 의 base_product_ref 로 옮겨 평가 경로를 돈다.
+    base_product_id: str | None
     # Normalize 출력. contracts.query_spec.QuerySpec 을 dump 한 dict.
     query_spec: dict
     # Router 출력. graph.registry.SCENARIOS 의 키.
@@ -52,12 +55,17 @@ class GraphState(TypedDict, total=False):
     alternatives: list[dict]
     collaborative: list[dict]
     bundles: list[dict]
+    # Bundle 이 채운다. contracts.result.BundleSlot 을 by_alias 로 dump 한 dict.
+    # 조합이 달라도 칸별 후보는 같아 job 에 한 벌만 둔다. BE 가 스냅샷에서 읽는다.
+    bundle_slots: list[dict]
 
     # ── 출력 ──────────────────────────────────────────────
     # Compose 출력. contracts.result 의 공통 응답 스키마를 따른다.
     result: dict
     # Clarify 가 채우면 job 이 NEEDS_CLARIFICATION 으로 멈춘다.
     clarify_question: str | None
+    # 무엇이 비어서 묻는지. Router 가 쓰고, 되묻는 결과를 만들 때 읽는다.
+    clarify_missing_fields: list[str]
     # 되묻기는 1회까지. 답변이 와도 부족하면 그대로 진행한다.
     clarify_count: int
     # 되물은 질문에 대한 사용자의 답. Normalize 가 원래 질의와 함께 읽는다.

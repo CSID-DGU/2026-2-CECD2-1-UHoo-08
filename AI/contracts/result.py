@@ -89,12 +89,42 @@ class ExcludedItem(CamelModel):
     detail: str | None = None
 
 
+class BundleItem(ResultItem):
+    """세트 조합의 제품 하나. 어느 칸을 채우는지 함께 담는다.
+
+    칸 정보가 없는 결과가 이미 저장되어 있어 선택값으로 둔다.
+    """
+
+    slot_key: str | None = Field(default=None, min_length=1)  # 예: "toner"
+    slot_label: str | None = Field(default=None, min_length=1)  # 예: "토너"
+
+
+class BundleSlotCandidate(CamelModel):
+    """칸을 바꿀 때 고를 수 있는 제품.
+
+    교체하면 합계를 다시 계산하므로 가격을 모르는 제품은 후보에 넣지 않는다.
+    """
+
+    product_id: str = Field(min_length=1)
+    name: str
+    price: int = Field(ge=0)
+    score: int = Field(ge=0, le=100)
+
+
+class BundleSlot(CamelModel):
+    """칸 하나와 후보. state_snapshot 의 bundle_slots 에 by_alias 로 저장한다."""
+
+    slot_key: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    candidates: list[BundleSlotCandidate] = Field(default_factory=list)
+
+
 class BundleOption(CamelModel):
     """예산 세트 조합 하나."""
 
     label: str = Field(min_length=1)  # "균형형", "알뜰형" 같은 성격 이름
     total_price: int = Field(ge=0)
-    items: list[ResultItem] = Field(min_length=1)
+    items: list[BundleItem] = Field(min_length=1)
     # 예산을 넘겼다면 왜 넘겼는지. 넘기지 않았으면 None.
     over_budget_reason: str | None = None
 
@@ -104,6 +134,9 @@ class Clarify(CamelModel):
 
     question: str = Field(min_length=1)
     options: list[str] = Field(default_factory=list)  # 고르기 쉽게 주는 보기
+    # 비어서 묻는 필드. QuerySpec.missing_required() 의 이름 그대로다.
+    # 필수 값은 다 있는데 요청이 막연해서 묻는 경우에는 비어 있다.
+    missing_fields: list[str] = Field(default_factory=list)
 
 
 class QuerySummary(CamelModel):
@@ -123,6 +156,68 @@ class QuerySummary(CamelModel):
     value_seeking: bool = False
 
 
+class EnvCondition(CamelModel):
+    """홈 환경 카드의 조건 하나. 요즘 환경에 필요한 기능과 그것을 채운 제품."""
+
+    key: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    basis: str | None = None  # 왜 필요한지. 예: "미세먼지 나쁨 14일"
+    covered: bool = False
+    covered_by: str | None = None  # 채운 보유 제품 이름
+
+
+class CompatibilityLevel(str, Enum):
+    OK = "OK"              # 같이 써도 된다
+    SEPARATE = "SEPARATE"  # 시간대를 나눠 쓴다
+    AVOID = "AVOID"        # 같이 쓰지 않는다
+
+
+class RoutineCounts(CamelModel):
+    ok: int = Field(ge=0)
+    separate: int = Field(ge=0)
+    avoid: int = Field(ge=0)
+
+
+class UserProductRef(CamelModel):
+    """사용자의 보유 제품 하나를 가리킨다. 상품이 아니라 user_products 의 행이다."""
+
+    user_product_id: str = Field(min_length=1)
+    name: str
+
+
+class CompatibilityPair(CamelModel):
+    a: UserProductRef
+    b: UserProductRef
+    level: CompatibilityLevel
+    title: str | None = None
+    reason: str | None = None
+
+
+class ReplacementItem(CamelModel):
+    """바꿀 제품 대신 권하는 후보."""
+
+    product_id: str = Field(min_length=1)
+    name: str
+    brand: str
+    price: int | None = None
+    total_score: int | None = Field(default=None, ge=0, le=100)
+    badge: str | None = None
+
+
+class Replacement(CamelModel):
+    replace_target: UserProductRef
+    message: str | None = None
+    items: list[ReplacementItem] = Field(default_factory=list)
+
+
+class RoutineSchedule(CamelModel):
+    """아침, 저녁에 쓸 순서. 제품 이름을 순서대로 담는다."""
+
+    morning: list[str] = Field(default_factory=list)
+    evening: list[str] = Field(default_factory=list)
+    tip: str | None = None
+
+
 class RecommendationResult(CamelModel):
     """job 하나의 최종 결과."""
 
@@ -137,3 +232,17 @@ class RecommendationResult(CamelModel):
     excluded: list[ExcludedItem] = Field(default_factory=list)
 
     clarify: Clarify | None = None
+
+    # 홈 카드에서만 채운다. None 은 아직 분석 전이고, 빈 목록은 분석했지만 해당
+    # 항목이 없다는 뜻이다. 둘을 합치면 분석 전 카드가 문제없는 카드로 보인다.
+    conditions: list[EnvCondition] | None = None  # HOME_ENV
+
+    # 이 아래는 HOME_ROUTINE. replacement 는 분석한 뒤에도 바꿀 제품이 없으면 None 이다.
+    counts: RoutineCounts | None = None
+    pairs: list[CompatibilityPair] | None = None
+    replacement: Replacement | None = None
+    schedule: RoutineSchedule | None = None
+    uncompared_count: int | None = Field(default=None, ge=0)
+    # 점검할 때 쓰는 중이던 보유 제품 id 전부. 성분이 없어 비교하지 못한 제품도 넣는다.
+    # BE 가 지금 쓰는 제품과 비교해 달라졌으면 지난 결과로 보고 점검 전으로 내린다.
+    checked_user_product_ids: list[str] | None = None

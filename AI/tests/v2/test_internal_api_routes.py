@@ -10,8 +10,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.internal.v2 import agent, router
-from contracts.internal_api import RecognizePhotosResponse, TrendsResponse
+from api.internal.v2 import agent, feedback, router
+from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse
 
 app = FastAPI()
 app.include_router(router, prefix="/internal")
@@ -31,6 +31,7 @@ def _실행하지_않는다(monkeypatch):
 
     monkeypatch.setattr(agent, "_실행", 아무것도)
     monkeypatch.setattr(agent, "_이어_돌리기", 아무것도)
+    monkeypatch.setattr(feedback, "_반영", 아무것도)
 
 # docs/internal-api.md 와 같은 목록이다.
 POST_경로 = [
@@ -38,9 +39,8 @@ POST_경로 = [
     ("/internal/agent/clarify", {"jobId": "j1", "answer": "3만원"}, 202),
     ("/internal/products/recognize-photos", {"nameImage": "https://x/a.jpg"}, 200),
     ("/internal/home/run", {"userId": "u1", "kind": "ROUTINE"}, 202),
-    ("/internal/bundle/swap",
-     {"jobId": "j1", "bundleIndex": 0, "slot": 1, "productId": "p1"}, 200),
     ("/internal/feedback/apply", {"userId": "u1"}, 202),
+    ("/internal/compatibility/check", {"userId": "u1", "productId": "p1"}, 200),
 ]
 
 
@@ -50,13 +50,22 @@ def test_경로가_열려_있다(경로, 본문, 기대_코드):
     assert 응답.status_code == 기대_코드, 응답.text
 
 
-def test_트렌드는_GET이다():
-    응답 = client.get("/internal/trends")
-    assert 응답.status_code == 200
-    TrendsResponse.model_validate(응답.json())
+def test_지운_경로는_열려_있지_않다():
+    assert client.get("/internal/trends").status_code == 404
+    assert client.post("/internal/bundle/swap", json={}).status_code == 404
 
 
-@pytest.mark.parametrize("경로, 본문, _", POST_경로, ids=lambda v: v if isinstance(v, str) else "")
+def test_피드백_반영은_stub이_아니다():
+    응답 = client.post("/internal/feedback/apply", json={"userId": "u1"})
+    assert 응답.status_code == 202
+    assert not 응답.json().get("stub")
+
+
+@pytest.mark.parametrize(
+    "경로, 본문, _",
+    [경로 for 경로 in POST_경로 if 경로[0] != "/internal/feedback/apply"],
+    ids=lambda v: v if isinstance(v, str) else "",
+)
 def test_아직_stub임을_알린다(경로, 본문, _):
     """표시가 없으면 빈 결과를 정상으로 읽고 다음 작업으로 넘어간다."""
     assert client.post(경로, json=본문).json()["stub"] is True
@@ -65,7 +74,30 @@ def test_아직_stub임을_알린다(경로, 본문, _):
 def test_잘못된_요청은_422다():
     """BE 가 옛 필드 이름으로 보내면 조용히 무시되지 않는다."""
     응답 = client.post("/internal/agent/run/v2",
+                       json={"jobId": "j1", "userId": "u1", "productCode": "p1"})
+    assert 응답.status_code == 422
+
+
+def test_기준_상품만_보내도_추천_실행_경로가_받는다():
+    응답 = client.post("/internal/agent/run/v2",
                        json={"jobId": "j1", "userId": "u1", "baseProductId": "p1"})
+    assert 응답.status_code == 202
+
+
+def test_질의도_기준_상품도_없으면_422다():
+    응답 = client.post("/internal/agent/run/v2", json={"jobId": "j1", "userId": "u1"})
+    assert 응답.status_code == 422
+
+
+def test_궁합_응답이_계약과_같다():
+    """stub 표시가 없으면 판정하지 않은 OK 가 괜찮다는 결과로 읽힌다."""
+    응답 = client.post("/internal/compatibility/check", json={"userId": "u1", "productId": "p1"})
+    assert 응답.json() == {"level": "OK", "pairs": [], "stub": True}
+    CompatibilityCheckResponse.model_validate(응답.json())
+
+
+def test_궁합_요청에_상품이_없으면_422다():
+    응답 = client.post("/internal/compatibility/check", json={"userId": "u1"})
     assert 응답.status_code == 422
 
 
@@ -74,3 +106,51 @@ def test_인식_응답이_계약과_같다():
                        json={"nameImage": "https://x/a.jpg"})
     결과 = RecognizePhotosResponse.model_validate(응답.json())
     assert 결과.candidates == [] and 결과.expiry_date is None
+
+
+def test_기한_사진만_보내도_인식_경로가_응답한다():
+    응답 = client.post("/internal/products/recognize-photos",
+                       json={"nameImage": None, "dateImage": "https://x/d.jpg"})
+    assert 응답.status_code == 200
+    assert RecognizePhotosResponse.model_validate(응답.json()).candidates == []
+
+
+def test_사진이_하나도_없으면_인식_경로가_거부한다():
+    assert client.post("/internal/products/recognize-photos", json={}).status_code == 422
+
+
+_추천_경로 = [
+    ("/internal/agent/run/v2", {"jobId": "j1", "userId": "u1", "rawQuery": "여름 쿠션"}, "_실행"),
+    ("/internal/agent/clarify", {"jobId": "j1", "answer": "3만원"}, "_이어_돌리기"),
+]
+
+
+@pytest.fixture
+def 실행_기록(monkeypatch):
+    """배경 작업이 실제로 걸렸는지 남긴다."""
+    걸린: list[str] = []
+
+    for 이름 in ("_실행", "_이어_돌리기"):
+        async def 기록(req, 이름=이름):
+            걸린.append(이름)
+
+        monkeypatch.setattr(agent, 이름, 기록)
+    return 걸린
+
+
+@pytest.mark.parametrize("경로, 본문, _", _추천_경로, ids=["run_v2", "clarify"])
+def test_stub이면_실행을_걸지_않는다(경로, 본문, _, 실행_기록, monkeypatch):
+    """돌리면 빈 결과로 완료되어 '추천 없음' 으로 읽힌다. job 은 PENDING 으로
+    두고 멈춘 job 정리 배치가 FAILED 로 바꾸게 한다."""
+    monkeypatch.setattr(agent, "_결과를_만들_수_있나", lambda: False)
+
+    assert client.post(경로, json=본문).json()["stub"] is True
+    assert 실행_기록 == []
+
+
+@pytest.mark.parametrize("경로, 본문, 실행", _추천_경로, ids=["run_v2", "clarify"])
+def test_결과를_만들_수_있으면_실행을_건다(경로, 본문, 실행, 실행_기록, monkeypatch):
+    monkeypatch.setattr(agent, "_결과를_만들_수_있나", lambda: True)
+
+    assert client.post(경로, json=본문).json()["stub"] is False
+    assert 실행_기록 == [실행]

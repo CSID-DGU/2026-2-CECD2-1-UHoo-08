@@ -113,6 +113,38 @@ def test_알_수_없는_보유_상태를_잡는다(가짜루트):
     assert any("usage_type" in p for p in 문제)
 
 
+@pytest.mark.parametrize("옛_값", ["ONBOARDING", "VIEWED", "INTERESTED"])
+def test_사용_기록이_아닌_옛_보유_상태를_잡는다(가짜루트, 옛_값):
+    """조회·좋아요·온보딩 제품은 user_products 에 없다. DB CHECK 와 같은 세 값만 받는다."""
+    _쓰기(가짜루트 / "data/synthetic/personas/personas_v1.jsonl", [{
+        "id": "persona-0001", "split": "dev", "source": "claude",
+        "inventory": [{"product_id": "p-1", "usage_type": 옛_값}],
+    }])
+    문제, _ = _수집(가짜루트)
+    assert any("usage_type" in p for p in 문제)
+
+
+@pytest.mark.parametrize("값", ["USING", "USED", "DISCARDED"])
+def test_적재기는_세_사용_상태를_그대로_넣는다(값):
+    from eval.load_synthetic import _보유_행
+
+    assert _보유_행("u-1", {"product_id": "p-1", "usage_type": 값})["usage_type"] == 값
+
+
+def test_적재기는_보유_상태가_없으면_USING으로_넣는다():
+    from eval.load_synthetic import _보유_행
+
+    assert _보유_행("u-1", {"product_id": "p-1"})["usage_type"] == "USING"
+
+
+@pytest.mark.parametrize("옛_값", ["ONBOARDING", "VIEWED", "INTERESTED", "OWNED"])
+def test_적재기는_세_값이_아니면_DB에_넣기_전에_멈춘다(옛_값):
+    from eval.load_synthetic import _보유_행
+
+    with pytest.raises(ValueError, match="usage_type"):
+        _보유_행("u-1", {"product_id": "p-1", "usage_type": 옛_값})
+
+
 def test_깨진_줄은_그_줄만_알린다(가짜루트):
     경로 = 가짜루트 / "data/synthetic/queries/queries_v1.jsonl"
     경로.parent.mkdir(parents=True, exist_ok=True)

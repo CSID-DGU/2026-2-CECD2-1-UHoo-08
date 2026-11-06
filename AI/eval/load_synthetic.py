@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from eval.validate import USAGE_TYPES
+
 PERSONA_DIR = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "personas"
 
 # 페르소나 id → 사용자 id 를 만들 때 쓰는 고정 이름공간.
@@ -68,11 +70,15 @@ def _사용자_행(rec: dict) -> dict:
 
 
 def _보유_행(user_id: str, 보유: dict) -> dict:
+    # 검증을 건너뛰고 적재해도 DB CHECK 에 걸리기 전에 여기서 무엇이 틀렸는지 알린다
+    사용 = 보유.get("usage_type", "USING")
+    if 사용 not in USAGE_TYPES:
+        raise ValueError(f"usage_type 은 {sorted(USAGE_TYPES)} 중 하나여야 한다: {사용!r}")
     지금 = datetime.now(timezone.utc).isoformat()
     행 = {
         "user_id": user_id,
         "product_id": 보유["product_id"],
-        "usage_type": 보유.get("usage_type", "USING"),
+        "usage_type": 사용,
         "source": "MANUAL",
         "created_at": 지금,
         "updated_at": 지금,

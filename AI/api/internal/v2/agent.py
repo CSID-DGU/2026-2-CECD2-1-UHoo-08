@@ -37,9 +37,11 @@ _남길_키 = (
 def _결과를_만들_수_있나() -> bool:
     """결과를 조립하는 단계가 실제로 있는지 본다.
 
-    compose 가 아직 없으면 job 은 완료되지만 결과가 비어 있다. 호출한 쪽이
-    그것을 '추천 없음' 으로 읽지 않도록 응답에 표시한다. compose 가 들어오면
-    따로 고치지 않아도 표시가 사라진다.
+    compose 가 아직 없으면 돌려도 빈 결과로 완료된다. 그러면 상태 조회는
+    완료라 하고 결과 조회는 상품 없는 성공이 되어, 호출한 쪽은 '추천 없음'
+    으로 읽는다. 그래서 이때는 실행을 걸지 않고 응답에 표시만 한다. job 은
+    PENDING 으로 남고, 멈춘 job 정리 배치가 기한이 지나면 FAILED 로 바꾼다.
+    compose 가 들어오면 따로 고치지 않아도 실행이 걸리고 표시가 사라진다.
     """
     return builder._load("compose") is not None
 
@@ -60,7 +62,10 @@ def _되묻는_결과(상태: dict, 질문: str) -> dict:
             conditions=spec.get("conditions") or [],
             target=상태.get("basis") or Target.SELF,
         ),
-        clarify=Clarify(question=질문),
+        clarify=Clarify(
+            question=질문,
+            missing_fields=상태.get("clarify_missing_fields") or [],
+        ),
     ).model_dump(mode="json", by_alias=True)
 
 
@@ -70,9 +75,9 @@ async def _돌리기(상태: dict) -> None:
 
     job_id = 상태["job_id"]
 
-    async def 진행(문구: str, 비율: int) -> None:
+    async def 진행(문구: str, 비율: int, 단계들: list[dict]) -> None:
         await job_updater.update(
-            job_id, step=문구, progress=비율, status=JobStatus.IN_PROGRESS.value
+            job_id, step=문구, progress=비율, status=JobStatus.IN_PROGRESS.value, steps=단계들
         )
 
     async def 실패(e: Exception) -> None:
@@ -113,7 +118,8 @@ async def _실행(req: AgentRunV2Request) -> None:
     await _돌리기({
         "job_id": req.job_id,
         "user_id": req.user_id,
-        "raw_query": req.raw_query,
+        "raw_query": req.raw_query or "",
+        "base_product_id": req.base_product_id,
         "basis": req.basis.value,
         "target_profile": req.target_profile,
         "parent_job_id": req.parent_job_id,
@@ -148,11 +154,17 @@ async def _이어_돌리기(req: AgentClarifyRequest) -> None:
 
 @router.post("/agent/run/v2", status_code=status.HTTP_202_ACCEPTED)
 async def run_v2(req: AgentRunV2Request, tasks: BackgroundTasks) -> Accepted:
+    if not _결과를_만들_수_있나():
+        logger.warning("stub: /agent/run/v2 job=%s 는 실행하지 않는다", req.job_id)
+        return Accepted(job_id=req.job_id, stub=True)
     tasks.add_task(_실행, req)
-    return Accepted(job_id=req.job_id, stub=not _결과를_만들_수_있나())
+    return Accepted(job_id=req.job_id)
 
 
 @router.post("/agent/clarify", status_code=status.HTTP_202_ACCEPTED)
 async def clarify(req: AgentClarifyRequest, tasks: BackgroundTasks) -> Accepted:
+    if not _결과를_만들_수_있나():
+        logger.warning("stub: /agent/clarify job=%s 는 실행하지 않는다", req.job_id)
+        return Accepted(job_id=req.job_id, stub=True)
     tasks.add_task(_이어_돌리기, req)
-    return Accepted(job_id=req.job_id, stub=not _결과를_만들_수_있나())
+    return Accepted(job_id=req.job_id)

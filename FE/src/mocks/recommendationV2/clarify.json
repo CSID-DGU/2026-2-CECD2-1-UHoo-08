@@ -23,6 +23,17 @@
       "10만원",
       "15만원",
       "상관 없어요"
+    ],
+    "missingFields": [
+      "budget.total",
+      "bundle_steps"
     ]
-  }
+  },
+  "conditions": null,
+  "counts": null,
+  "pairs": null,
+  "replacement": null,
+  "schedule": null,
+  "uncomparedCount": null,
+  "checkedUserProductIds": null
 }

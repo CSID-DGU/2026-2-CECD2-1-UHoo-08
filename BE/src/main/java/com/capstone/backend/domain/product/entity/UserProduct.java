@@ -1,6 +1,7 @@
 package com.capstone.backend.domain.product.entity;
 
 import com.capstone.backend.domain.product.enums.RegistrationSource;
+import com.capstone.backend.domain.product.enums.UsageType;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,8 +31,10 @@ public class UserProduct {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
+    /** USING | USED | DISCARDED. 산 제품 한 통마다 한 줄이고, 다시 사면 새 줄을 넣는다 */
+    @Enumerated(EnumType.STRING)
     @Column(name = "usage_type", nullable = false, length = 20)
-    private String usageType;
+    private UsageType usageType;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -79,4 +82,42 @@ public class UserProduct {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    /** 기한·잔량 정보 중 값이 있는 것만 바꾼다 */
+    public void updateInfo(Integer remainingPct, LocalDate openedAt, LocalDate expiryDate, Integer paoMonths) {
+        if (remainingPct != null) {
+            this.remainingPct = remainingPct;
+        }
+        if (openedAt != null) {
+            this.openedAt = openedAt;
+        }
+        if (expiryDate != null) {
+            this.expiryDate = expiryDate;
+        }
+        if (paoMonths != null) {
+            this.paoMonths = paoMonths;
+        }
+    }
+
+    /** 다 썼다. 다 쓴 제품은 남은 양이 없다 */
+    public void finish(LocalDate finishedAt) {
+        this.usageType = UsageType.USED;
+        this.finishedAt = finishedAt;
+        this.remainingPct = 0;
+    }
+
+    /** 버렸다 */
+    public void discard() {
+        this.usageType = UsageType.DISCARDED;
+    }
+
+    /** 다 썼거나 버렸다고 잘못 누른 것을 되돌린다. 다 쓴 날은 더 이상 맞지 않아 비운다 */
+    public void reuse() {
+        this.usageType = UsageType.USING;
+        this.finishedAt = null;
+    }
+
+    public void touch(OffsetDateTime now) {
+        this.updatedAt = now;
+    }
 }

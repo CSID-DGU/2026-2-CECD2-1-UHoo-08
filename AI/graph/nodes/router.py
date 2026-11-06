@@ -1,7 +1,7 @@
 """채워진 QuerySpec 을 보고 어느 경로로 갈지 정한다.
 
 READS:  query_spec, parent_job_id, clarify_count
-WRITES: scenario, clarify_question
+WRITES: scenario, clarify_question, clarify_missing_fields
 
 LLM 을 부르지 않는다. 같은 값이면 언제나 같은 경로로 가야 하고, 그 보장이
 이 단계의 존재 이유다. 흔들릴 수 있는 자리는 Normalize 하나로 좁혀 둔다.
@@ -12,6 +12,7 @@ LLM 을 부르지 않는다. 같은 값이면 언제나 같은 경로로 가야 
 
 물을 것이 없으면 clarify_question 에 None 을 적는다. 비워 두면 앞서 물었던
 질문이 상태에 남아, 답을 받아 다시 돌 때 같은 자리에서 또 멈춘다.
+clarify_missing_fields 도 같은 이유로 매번 새로 적는다.
 """
 from __future__ import annotations
 
@@ -50,7 +51,11 @@ async def router(state: GraphState) -> dict:
         # Normalize 가 내보낸 값이라 여기까지 오면 스펙이 깨진 것이다.
         # 경로를 못 정하면 아무것도 못 하므로 조건 탐색으로 두고 되묻는다.
         logger.warning("router: query_spec 을 읽지 못했다. 되묻는다.")
-        return {"scenario": 기본_시나리오, "clarify_question": _막연할_때}
+        return {
+            "scenario": 기본_시나리오,
+            "clarify_question": _막연할_때,
+            "clarify_missing_fields": [],
+        }
 
     시나리오 = ROUTE[spec.request_type]
 
@@ -60,7 +65,7 @@ async def router(state: GraphState) -> dict:
         logger.info("router: 수정할 직전 결과가 없다. 새 검색으로 돈다.")
         시나리오 = 기본_시나리오
 
-    나감: dict = {"scenario": 시나리오, "clarify_question": None}
+    나감: dict = {"scenario": 시나리오, "clarify_question": None, "clarify_missing_fields": []}
 
     if not needs_clarification(spec):
         return 나감
@@ -74,6 +79,7 @@ async def router(state: GraphState) -> dict:
     빠진 = spec.missing_required()
     if 빠진:
         나감["clarify_question"] = _질문.get(빠진[0], _막연할_때)
+        나감["clarify_missing_fields"] = list(빠진)
     else:
         # 필수 값은 다 있는데 무엇을 원하는지가 막연한 경우다.
         assert spec.confidence < CONFIDENCE_THRESHOLD

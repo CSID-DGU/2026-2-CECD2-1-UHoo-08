@@ -61,5 +61,73 @@
       "detail": "보유하신 레티놀 세럼과 함께 쓰지 않는 게 좋아요."
     }
   ],
-  "clarify": null
+  "clarify": null,
+  "conditions": null,
+  "counts": {
+    "ok": 1,
+    "separate": 1,
+    "avoid": 0
+  },
+  "pairs": [
+    {
+      "a": {
+        "userProductId": "up_1001",
+        "name": "AHA 토너"
+      },
+      "b": {
+        "userProductId": "up_1003",
+        "name": "수분 크림"
+      },
+      "level": "OK",
+      "title": "같이 써도 괜찮아요",
+      "reason": "겹치는 자극 성분이 없어요."
+    },
+    {
+      "a": {
+        "userProductId": "up_1001",
+        "name": "AHA 토너"
+      },
+      "b": {
+        "userProductId": "up_1002",
+        "name": "레티놀 세럼"
+      },
+      "level": "SEPARATE",
+      "title": "시간을 나눠 쓰세요",
+      "reason": "함께 쓰면 자극이 커져요."
+    }
+  ],
+  "replacement": {
+    "replaceTarget": {
+      "userProductId": "up_1001",
+      "name": "AHA 토너"
+    },
+    "message": "자극이 적은 제품으로 바꾸는 걸 권해요.",
+    "items": [
+      {
+        "productId": "prd_3001",
+        "name": "시카 진정 세럼",
+        "brand": "라운드랩",
+        "price": 21000,
+        "totalScore": 82,
+        "badge": "쓰시는 제품과 모두 괜찮아요"
+      }
+    ]
+  },
+  "schedule": {
+    "morning": [
+      "AHA 토너",
+      "수분 크림"
+    ],
+    "evening": [
+      "레티놀 세럼",
+      "수분 크림"
+    ],
+    "tip": "레티놀은 저녁에만 쓰세요."
+  },
+  "uncomparedCount": 0,
+  "checkedUserProductIds": [
+    "up_1001",
+    "up_1002",
+    "up_1003"
+  ]
 }

@@ -9,10 +9,11 @@ BE 는 이 모양에 맞춰 호출부를 먼저 만들고, AI 는 내용을 나�
 """
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from contracts.query_spec import Target
+from contracts.result import CompatibilityLevel
 
 
 class WireModel(BaseModel):
@@ -62,14 +63,27 @@ class Accepted(WireModel):
 
 # ── POST /internal/agent/run/v2 ───────────────────────────────
 class AgentRunV2Request(WireModel):
+    """추천 실행 요청. 질의와 기준 상품 중 하나는 있어야 한다.
+
+    기준 상품이 있으면 무엇을 평가할지 이미 아는 요청이다. 문장을 해석하지
+    않고 평가 경로로 바로 간다. 질의가 함께 와도 조건으로 읽지 않는다.
+    """
+
     job_id: str = Field(min_length=1)
     user_id: str = Field(min_length=1)
-    raw_query: str = Field(min_length=1)
+    raw_query: str | None = Field(default=None, min_length=1)
+    base_product_id: str | None = Field(default=None, min_length=1)
     # 추천 기준. OTHER 면 target_profile 이 함께 온다.
     basis: Target = Target.SELF
     target_profile: dict | None = None
     # 조건 수정이면 직전 job. 그 job 의 스냅샷에서 조건과 후보를 복원한다.
     parent_job_id: str | None = None
+
+    @model_validator(mode="after")
+    def _질의나_기준_상품이_있다(self) -> "AgentRunV2Request":
+        if self.raw_query is None and self.base_product_id is None:
+            raise ValueError("rawQuery 와 baseProductId 중 하나는 있어야 한다")
+        return self
 
 
 # ── POST /internal/agent/clarify ──────────────────────────────
@@ -80,10 +94,21 @@ class AgentClarifyRequest(WireModel):
 
 # ── POST /internal/products/recognize-photos ──────────────────
 class RecognizePhotosRequest(WireModel):
-    """사진 두 장. 제품명 면은 필수, 기한 면은 선택이다."""
+    """제품명 면과 기한 면 사진. 둘 중 하나는 있어야 한다.
 
-    name_image: str = Field(min_length=1)  # 업로드된 이미지 URL
-    date_image: str | None = None
+    기한 면만 나중에 찍으면 제품명 면을 보내지 않는다. 함께 보내면 이미 읽은
+    제품명을 한 번 더 읽게 된다.
+    """
+
+    # 업로드된 이미지 URL
+    name_image: str | None = Field(default=None, min_length=1)
+    date_image: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _사진이_하나는_있다(self) -> "RecognizePhotosRequest":
+        if self.name_image is None and self.date_image is None:
+            raise ValueError("nameImage 와 dateImage 중 하나는 있어야 한다")
+        return self
 
 
 class ProductCandidate(WireModel):
@@ -117,34 +142,31 @@ class HomeRunRequest(WireModel):
     kind: HomeKind
 
 
-# ── POST /internal/bundle/swap ────────────────────────────────
-class BundleSwapRequest(WireModel):
-    """세트에서 제품 하나를 바꾼다. 총액과 나머지 후보가 다시 계산된다."""
-
-    job_id: str = Field(min_length=1)
-    bundle_index: int = Field(ge=0)
-    slot: int = Field(ge=0)
+# ── POST /internal/compatibility/check ────────────────────────
+class CompatibilityCheckRequest(WireModel):
+    user_id: str = Field(min_length=1)
     product_id: str = Field(min_length=1)
 
 
-class BundleSwapResponse(WireModel):
-    # contracts/result.py 의 BundleOption 모양이다.
-    bundle: dict | None = None
-    stub: bool = False
+class CompatibilityPairDetail(WireModel):
+    """보유 제품 하나와 이 제품 사이에서 걸린 성분 조합."""
+
+    user_product_id: str = Field(min_length=1)
+    ingredient_a: str = Field(min_length=1)
+    ingredient_b: str = Field(min_length=1)
+    level: CompatibilityLevel
+    advice: str | None = None
+    schedule: str | None = None  # 시간대 안내 문구
 
 
-# ── GET /internal/trends ──────────────────────────────────────
-class TrendItem(WireModel):
-    product_id: str
-    name: str
-    brand: str
-    image_url: str | None = None
-    trend_score: float
-    mention_count: int
+class CompatibilityCheckResponse(WireModel):
+    """쌍 중 가장 강한 단계가 level 이다.
 
+    stub 이면 level 의 OK 는 판정 결과가 아니다. 괜찮다는 뜻으로 읽으면 안 된다.
+    """
 
-class TrendsResponse(WireModel):
-    items: list[TrendItem] = Field(default_factory=list)
+    level: CompatibilityLevel
+    pairs: list[CompatibilityPairDetail] = Field(default_factory=list)
     stub: bool = False
 
 

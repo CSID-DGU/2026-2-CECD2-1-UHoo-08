@@ -1,0 +1,648 @@
+package com.capstone.backend.domain.recommendation.controller;
+
+import com.capstone.backend.common.exception.BusinessException;
+import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.common.exception.GlobalExceptionHandler;
+import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
+import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.request.FeedbackRequest;
+import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
+import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultV2Response;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
+import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
+import com.capstone.backend.domain.recommendation.entity.Recommendation;
+import com.capstone.backend.domain.recommendation.enums.FeedbackReason;
+import com.capstone.backend.domain.recommendation.enums.FeedbackVote;
+import com.capstone.backend.domain.recommendation.enums.JobStatus;
+import com.capstone.backend.domain.recommendation.service.ClarifyFieldMapper;
+import com.capstone.backend.domain.recommendation.service.ResultAssembler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
+import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
+import com.capstone.backend.domain.recommendation.enums.RefinePreset;
+import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
+import com.capstone.backend.domain.recommendation.enums.TargetRelation;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
+import com.capstone.backend.domain.recommendation.service.BundleOptionService;
+import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
+import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
+import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
+import com.capstone.backend.domain.recommendation.service.RecommendationService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+class RecommendationControllerTest {
+
+    @Mock
+    RecommendationService recommendationService;
+    @Mock
+    RecommendationJobService recommendationJobService;
+    @Mock
+    RecommendationRefineService recommendationRefineService;
+    @Mock
+    RecommendationFeedbackService recommendationFeedbackService;
+    @Mock
+    BundleOptionService bundleOptionService;
+    @InjectMocks
+    RecommendationController controller;
+
+    MockMvc mockMvc;
+
+    private final UUID userId = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void 세트_교체_후보를_명세_모양으로_내려보낸다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 1, "toner")).willReturn(new BundleSlotOptionsResponse(50000, 48200,
+                List.of(new BundleSlotOptionsResponse.Option("p1", "토너", 26000, 92, 52200, -2200, false, false, 2200),
+                        new BundleSlotOptionsResponse.Option("p2", "순한 토너", 20500, 88, 46700, 3300, true, true, null))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 1, "toner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.budget").value(50000))
+                .andExpect(jsonPath("$.data.currentTotal").value(48200))
+                .andExpect(jsonPath("$.data.options[0].productId").value("p1"))
+                .andExpect(jsonPath("$.data.options[0].name").value("토너"))
+                .andExpect(jsonPath("$.data.options[0].price").value(26000))
+                .andExpect(jsonPath("$.data.options[0].score").value(92))
+                .andExpect(jsonPath("$.data.options[0].newTotal").value(52200))
+                .andExpect(jsonPath("$.data.options[0].remaining").value(-2200))
+                .andExpect(jsonPath("$.data.options[0].isCurrent").value(false))
+                .andExpect(jsonPath("$.data.options[0].selectable").value(false))
+                .andExpect(jsonPath("$.data.options[0].overBudgetBy").value(2200))
+                .andExpect(jsonPath("$.data.options[1].isCurrent").value(true))
+                .andExpect(jsonPath("$.data.options[1].overBudgetBy").doesNotExist())
+                .andExpect(jsonPath("$.data.options[0].current").doesNotExist());
+    }
+
+    @Test
+    void 세트_제품을_교체하면_갱신된_조합을_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.swap(eq(userId), eq(jobId), eq(1), any())).willReturn(new BundleSwapResponse(
+                new RecommendationResultV2Response.Bundle(1, null, "균형형", 46700, 3300, 174, List.of(
+                        new RecommendationResultV2Response.Slot("toner", "토너", "p1", "토너 제품", 20500, 88)))));
+
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", jobId, 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\"toner\",\"productId\":\"p1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.bundle.index").value(1))
+                .andExpect(jsonPath("$.data.bundle.total").value(46700))
+                .andExpect(jsonPath("$.data.bundle.remaining").value(3300))
+                .andExpect(jsonPath("$.data.bundle.totalScore").value(174))
+                .andExpect(jsonPath("$.data.bundle.slots[0].slotKey").value("toner"))
+                .andExpect(jsonPath("$.data.bundle.slots[0].productId").value("p1"));
+    }
+
+    @Test
+    void 세트_제품_교체로_예산을_넘으면_422다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.swap(eq(userId), eq(jobId), eq(1), any()))
+                .willThrow(new BusinessException(ErrorCode.BUNDLE_OVER_BUDGET));
+
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", jobId, 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\"toner\",\"productId\":\"p1\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("BUNDLE_OVER_BUDGET"));
+    }
+
+    @Test
+    void 세트_제품_교체에_값이_비어_있으면_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", UUID.randomUUID(), 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\" \"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(bundleOptionService);
+    }
+
+    @Test
+    void 세트_칸이_없으면_404다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 9, "toner"))
+                .willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 9, "toner"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    // 자연어 추천 요청
+
+    @Test
+    void 추천을_요청하면_202와_jobId_예상_시간_상태_경로를_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        ArgumentCaptor<RecommendationQueryRequest> request = ArgumentCaptor.forClass(RecommendationQueryRequest.class);
+        given(recommendationJobService.requestQuery(eq(userId), request.capture())).willReturn(
+                new RecommendationQueryResponse(jobId, 8, "/recommendations/" + jobId + "/status"));
+
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"엄마 선물 쿠션","basis":"OTHER",
+                                 "targetProfile":{"relation":"MOM","personalColor":"AUTUMN_MUTE"}}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.estimatedSeconds").value(8))
+                .andExpect(jsonPath("$.data.statusUrl").value("/recommendations/" + jobId + "/status"));
+
+        assertThat(request.getValue().getBasis()).isEqualTo(RecommendationBasis.OTHER);
+        assertThat(request.getValue().getTargetProfile().getRelation()).isEqualTo(TargetRelation.MOM);
+        assertThat(request.getValue().getTargetProfile().getPersonalColor()).isEqualTo(TargetPersonalColor.AUTUMN_MUTE);
+    }
+
+    @Test
+    void 기준_상품만_있어도_접수한다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        ArgumentCaptor<RecommendationQueryRequest> request = ArgumentCaptor.forClass(RecommendationQueryRequest.class);
+        given(recommendationJobService.requestQuery(eq(userId), request.capture())).willReturn(
+                new RecommendationQueryResponse(jobId, 8, "/recommendations/" + jobId + "/status"));
+
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"baseProductId\":\"" + productId + "\"}"))
+                .andExpect(status().isAccepted());
+
+        assertThat(request.getValue().getBaseProductId()).isEqualTo(productId);
+    }
+
+    @Test
+    void 기준_상품_ID가_UUID가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"baseProductId":"not-a-uuid"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 문장과_기준_상품이_모두_없으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"  "}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 추천_기준이나_쓰실_분_정보의_값이_목록에_없으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"쿠션","basis":"FRIENDS"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"쿠션","basis":"OTHER","targetProfile":{"skinConcerns":["ACNE"]}}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 내_피부_기준인데_피부_정보가_없으면_404_SKIN_PROFILE_NOT_FOUND다() throws Exception {
+        given(recommendationJobService.requestQuery(eq(userId), any()))
+                .willThrow(new BusinessException(ErrorCode.SKIN_PROFILE_NOT_FOUND));
+
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"쿠션"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("SKIN_PROFILE_NOT_FOUND"));
+    }
+    // 추천 진행 상태 조회
+
+    @Test
+    void 자연어_추천_job은_시나리오_진행_단계_되묻기를_더해_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        Recommendation job = Recommendation.builder().id(jobId).status(JobStatus.NEEDS_CLARIFICATION)
+                .scenario("S6_BUNDLE").step("되묻는 중").progress(10).basis(RecommendationBasis.SELF).build();
+        given(recommendationService.getStatus(userId, jobId)).willReturn(new RecommendationStatusV2Response(job,
+                List.of(new Step("normalize", "요청 이해", "DONE")),
+                new Clarify("두 가지만 알려주시면 바로 찾아드릴게요", ClarifyFieldMapper.map("S6_BUNDLE", null))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/status", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.status").value("NEEDS_CLARIFICATION"))
+                .andExpect(jsonPath("$.data.scenario").value("S6_BUNDLE"))
+                .andExpect(jsonPath("$.data.progress").value(10))
+                .andExpect(jsonPath("$.data.step").value("되묻는 중"))
+                .andExpect(jsonPath("$.data.steps[0].key").value("normalize"))
+                .andExpect(jsonPath("$.data.steps[0].state").value("DONE"))
+                .andExpect(jsonPath("$.data.clarify.message").value("두 가지만 알려주시면 바로 찾아드릴게요"))
+                .andExpect(jsonPath("$.data.clarify.fields[0].key").value("budget"))
+                .andExpect(jsonPath("$.data.clarify.fields[0].inputType").value("AMOUNT"))
+                .andExpect(jsonPath("$.data.clarify.fields[0].presets[1]").value(50000))
+                .andExpect(content().string(containsString("\"presets\":null")));
+    }
+
+    @Test
+    void 판정_전이면_시나리오와_되묻기는_null로_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        Recommendation job = Recommendation.builder().id(jobId).status(JobStatus.PENDING).progress(0)
+                .basis(RecommendationBasis.SELF).build();
+        given(recommendationService.getStatus(userId, jobId))
+                .willReturn(new RecommendationStatusV2Response(job, List.of(), null));
+
+        mockMvc.perform(get("/recommendations/{jobId}/status", jobId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"scenario\":null")))
+                .andExpect(content().string(containsString("\"clarify\":null")))
+                .andExpect(jsonPath("$.data.steps").isEmpty());
+    }
+
+    @Test
+    void 상품_기준_추천_job은_기존_필드만_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        Recommendation job = Recommendation.builder().id(jobId).status(JobStatus.COMPLETED).step("완료").progress(100).build();
+        given(recommendationService.getStatus(userId, jobId)).willReturn(RecommendationStatusResponse.from(job));
+
+        mockMvc.perform(get("/recommendations/{jobId}/status", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.progress").value(100))
+                .andExpect(jsonPath("$.data.scenario").doesNotExist())
+                .andExpect(jsonPath("$.data.steps").doesNotExist())
+                .andExpect(jsonPath("$.data.clarify").doesNotExist());
+    }
+
+    @Test
+    void 없거나_남의_job이면_404_NOT_FOUND다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationService.getStatus(userId, jobId)).willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/status", jobId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+    // 추천 결과 조회
+
+    @Test
+    void 자연어_추천_결과는_공통_결과_형식으로_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RecommendationResultV2Response result = assembleSample(jobId, "S6_BUNDLE");
+        given(recommendationService.getResult(userId, jobId)).willReturn(result);
+
+        mockMvc.perform(get("/recommendations/{jobId}", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.scenario").value("S6_BUNDLE"))
+                .andExpect(jsonPath("$.data.basis").value("SELF"))
+                .andExpect(jsonPath("$.data.summary.categoryLabel").value("스킨케어"))
+                .andExpect(jsonPath("$.data.summary.conditions[3]").value("총 10만원"))
+                .andExpect(jsonPath("$.data.excluded.count").value(0))
+                .andExpect(jsonPath("$.data.alternativesDroppedCount").value(0))
+                .andExpect(jsonPath("$.data.bundles[0].index").value(1))
+                .andExpect(jsonPath("$.data.bundles[0].remaining").value(8000))
+                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("cream"))
+                .andExpect(content().string(containsString("\"parentJobId\":null")))
+                .andExpect(content().string(containsString("\"appliedPreference\":null")))
+                .andExpect(content().string(containsString("\"type\":null")))
+                .andExpect(jsonPath("$.data.similarUserProducts").isEmpty());
+    }
+
+    @Test
+    void 완료되지_않은_job의_결과를_읽으면_409_JOB_NOT_COMPLETED다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationService.getResult(userId, jobId)).willThrow(new BusinessException(ErrorCode.JOB_NOT_COMPLETED));
+
+        mockMvc.perform(get("/recommendations/{jobId}", jobId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
+    }
+
+    // 추가 질문 답변
+
+    @Test
+    void 답을_보내면_202와_같은_jobId와_진행_중_상태를_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        ArgumentCaptor<ClarificationRequest> request = ArgumentCaptor.forClass(ClarificationRequest.class);
+        given(recommendationJobService.answerClarification(eq(userId), eq(jobId), request.capture()))
+                .willReturn(new ClarificationResponse(jobId, JobStatus.IN_PROGRESS));
+
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"budget":50000,"bundleSteps":["스킨","로션","선크림"]}}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.jobId").value(jobId.toString()))
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+
+        assertThat(request.getValue().getAnswers().getBudget()).isEqualTo(50000);
+        assertThat(request.getValue().getAnswers().getBundleSteps()).containsExactly("스킨", "로션", "선크림");
+    }
+
+    @Test
+    void 답이_하나도_없으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"text":"  "}}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity());
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 답이_너무_길면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"text\":\"%s\"}}".formatted("가".repeat(501))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[%s]}}"
+                                .formatted(String.join(",", Collections.nCopies(11, "\"스킨\"")))))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"bundleSteps\":[\"%s\"]}}".formatted("가".repeat(51))))
+                .andExpect(status().isUnprocessableEntity());
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 되묻는_중이_아닌_job에_답하면_409_CLARIFY_NOT_REQUIRED다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationJobService.answerClarification(eq(userId), eq(jobId), any()))
+                .willThrow(new BusinessException(ErrorCode.CLARIFY_NOT_REQUIRED));
+
+        mockMvc.perform(post("/recommendations/{jobId}/clarifications", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":{"text":"쿠션"}}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CLARIFY_NOT_REQUIRED"));
+    }
+
+    // 조건 추가 선택지 조회
+
+    @Test
+    void 조건_추가_선택지는_지금_조건과_선택지를_내린다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getOptions(userId, jobId)).willReturn(new RefinementOptionsResponse(
+                List.of("쿠션", "매트", "3만원 이하"),
+                List.of(new RefinementOptionsResponse.Preset(RefinePreset.CHEAPER, "더 저렴하게", true),
+                        new RefinementOptionsResponse.Preset(RefinePreset.UNSCENTED, "향 없는 걸로", false))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinement-options", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.currentConditions[2]").value("3만원 이하"))
+                .andExpect(jsonPath("$.data.presets[0].key").value("CHEAPER"))
+                .andExpect(jsonPath("$.data.presets[0].label").value("더 저렴하게"))
+                .andExpect(jsonPath("$.data.presets[0].frequent").value(true))
+                .andExpect(jsonPath("$.data.presets[1].frequent").value(false));
+    }
+
+    @Test
+    void 남의_job의_선택지를_조회하면_404_NOT_FOUND다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getOptions(userId, jobId)).willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinement-options", jobId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    // 조건 추가(재탐색)
+
+    @Test
+    void 조건을_더하면_202와_새_jobId_직전_jobId_예상_시간을_돌려준다() throws Exception {
+        UUID parentJobId = UUID.randomUUID();
+        UUID newJobId = UUID.randomUUID();
+        ArgumentCaptor<RefinementRequest> request = ArgumentCaptor.forClass(RefinementRequest.class);
+        given(recommendationRefineService.refine(eq(userId), eq(parentJobId), request.capture()))
+                .willReturn(new RefinementResponse(newJobId, parentJobId, 4));
+
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", parentJobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":["CHEAPER","UNSCENTED"],"freeText":null}
+                                """))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.jobId").value(newJobId.toString()))
+                .andExpect(jsonPath("$.data.parentJobId").value(parentJobId.toString()))
+                .andExpect(jsonPath("$.data.estimatedSeconds").value(4));
+
+        assertThat(request.getValue().getPresetKeys()).containsExactly(RefinePreset.CHEAPER, RefinePreset.UNSCENTED);
+    }
+
+    @Test
+    void 고른_조건과_직접_쓴_조건이_모두_비었으면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":[],"freeText":"  "}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationRefineService);
+    }
+
+    @Test
+    void 목록에_없는_조건_키면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"presetKeys":["CHEAPEST"]}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationRefineService);
+    }
+
+    @Test
+    void 직전_job이_끝나지_않았으면_409_JOB_NOT_COMPLETED다() throws Exception {
+        UUID parentJobId = UUID.randomUUID();
+        given(recommendationRefineService.refine(eq(userId), eq(parentJobId), any()))
+                .willThrow(new BusinessException(ErrorCode.JOB_NOT_COMPLETED));
+
+        mockMvc.perform(post("/recommendations/{jobId}/refinements", parentJobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"freeText":"쿠션만"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("JOB_NOT_COMPLETED"));
+    }
+
+    // 조건 수정 이력
+
+    @Test
+    void 조건_수정_이력은_단계와_지금_단계를_내리고_suggestion은_null이다() throws Exception {
+        UUID rootId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getHistory(userId, jobId)).willReturn(new RefinementHistoryResponse(
+                List.of(new RefinementHistoryResponse.Step(rootId, "처음 검색", "여름 가벼운 매트 쿠션", 12, false),
+                        new RefinementHistoryResponse.Step(jobId, "+ 더 저렴하게", "3만원 이하 → 2만원 이하", 12, true)),
+                null));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinements/history", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.steps[0].jobId").value(rootId.toString()))
+                .andExpect(jsonPath("$.data.steps[0].label").value("처음 검색"))
+                .andExpect(jsonPath("$.data.steps[0].isCurrent").value(false))
+                .andExpect(jsonPath("$.data.steps[1].detail").value("3만원 이하 → 2만원 이하"))
+                .andExpect(jsonPath("$.data.steps[1].candidateCount").value(12))
+                .andExpect(jsonPath("$.data.steps[1].isCurrent").value(true))
+                .andExpect(jsonPath("$.data.steps[1].current").doesNotExist())
+                .andExpect(content().string(containsString("\"suggestion\":null")));
+    }
+
+    @Test
+    void 남의_job의_이력을_조회하면_404_NOT_FOUND다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationRefineService.getHistory(userId, jobId)).willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/refinements/history", jobId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    // 추천 피드백
+
+    @Test
+    void 피드백을_등록하면_201과_피드백_ID_안내_문구를_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        ArgumentCaptor<FeedbackRequest> request = ArgumentCaptor.forClass(FeedbackRequest.class);
+        given(recommendationFeedbackService.submit(eq(userId), eq(jobId), request.capture()))
+                .willReturn(new FeedbackResponse("301", "의견을 다음 추천에 반영할게요", null));
+
+        mockMvc.perform(post("/recommendations/{jobId}/feedback", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","vote":"DOWN","reasonTags":["TOO_EXPENSIVE"]}
+                                """.formatted(productId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.feedbackId").value("301"))
+                .andExpect(jsonPath("$.data.message").value("의견을 다음 추천에 반영할게요"))
+                .andExpect(content().string(containsString("\"changeId\":null")));
+
+        assertThat(request.getValue().getProductId()).isEqualTo(productId);
+        assertThat(request.getValue().getVote()).isEqualTo(FeedbackVote.DOWN);
+        assertThat(request.getValue().getReasonTags()).containsExactly(FeedbackReason.TOO_EXPENSIVE);
+    }
+
+    @Test
+    void vote가_없거나_목록에_없으면_422_VALIDATION_ERROR다() throws Exception {
+        UUID productId = UUID.randomUUID();
+        for (String body : List.of(
+                "{\"productId\":\"" + productId + "\"}",
+                "{\"productId\":\"" + productId + "\",\"vote\":\"LIKE\"}",
+                "{\"productId\":\"" + productId + "\",\"vote\":\"DOWN\",\"reasonTags\":[\"TOO_SMALL\"]}",
+                "{\"vote\":\"UP\"}")) {
+            mockMvc.perform(post("/recommendations/{jobId}/feedback", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+        verifyNoInteractions(recommendationFeedbackService);
+    }
+
+    @Test
+    void 결과에_없는_제품에_피드백하면_422_VALIDATION_ERROR다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(recommendationFeedbackService.submit(eq(userId), eq(jobId), any()))
+                .willThrow(new BusinessException(ErrorCode.VALIDATION_ERROR));
+
+        mockMvc.perform(post("/recommendations/{jobId}/feedback", jobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","vote":"UP"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    /** 실제 조립 결과로 응답 모양을 확인한다. 상품 정보는 비워 둔다 */
+    private static RecommendationResultV2Response assembleSample(UUID jobId, String scenario) throws Exception {
+        try (var in = RecommendationControllerTest.class.getResourceAsStream("/ai-results/" + scenario + ".json")) {
+            ResultAssembler assembler = new ResultAssembler(mock(ProductRepository.class));
+            return assembler.assemble(new ResultAssembler.Source(jobId, null, scenario, RecommendationBasis.SELF,
+                    new ObjectMapper().readTree(in), MissingNode.getInstance(), null, MissingNode.getInstance()), null);
+        }
+    }
+}

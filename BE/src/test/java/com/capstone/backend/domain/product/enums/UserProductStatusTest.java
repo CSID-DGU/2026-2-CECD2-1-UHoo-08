@@ -1,10 +1,8 @@
 package com.capstone.backend.domain.product.enums;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,35 +14,15 @@ class UserProductStatusTest {
             "USED, FINISHED",
             "DISCARDED, DISCARDED",
     })
-    void 저장된_usage_type을_API_상태로_바꾼다(String usageType, UserProductStatus expected) {
-        assertThat(UserProductStatus.fromUsageType(usageType)).contains(expected);
-        assertThat(UserProductStatus.fromUsageType(UsageType.valueOf(usageType))).contains(expected);
+    void usage_type과_API_상태는_하나씩_짝이_맞는다(UsageType usageType, UserProductStatus status) {
+        assertThat(UserProductStatus.from(usageType)).isEqualTo(status);
+        assertThat(status.usageType()).isEqualTo(usageType);
     }
 
     @ParameterizedTest
-    @NullSource
-    @ValueSource(strings = {"VIEWED", "INTERESTED", "ONBOARDING", "using", "UNKNOWN", ""})
-    void 보유가_아니거나_모르는_값은_상태가_없다(String usageType) {
-        assertThat(UserProductStatus.fromUsageType(usageType)).isEmpty();
-    }
-
-    @Test
-    void 상태를_바꿀_때_저장할_usage_type() {
-        assertThat(UserProductStatus.USING.storedUsageType()).isEqualTo(UsageType.USING);
-        assertThat(UserProductStatus.FINISHED.storedUsageType()).isEqualTo(UsageType.USED);
-        assertThat(UserProductStatus.DISCARDED.storedUsageType()).isEqualTo(UsageType.DISCARDED);
-    }
-
-    @Test
-    void USING_상태는_쓰는_중인_행만_찾는다() {
-        assertThat(UserProductStatus.USING.usageTypes()).containsExactly(UsageType.USING);
-        assertThat(UserProductStatus.FINISHED.usageTypes()).containsExactly(UsageType.USED);
-    }
-
-    @Test
-    void 조회_이력과_위시리스트와_예전_온보딩_값은_어느_상태에도_속하지_않는다() {
-        for (UserProductStatus status : UserProductStatus.values()) {
-            assertThat(status.usageTypes()).doesNotContain(UsageType.VIEWED, UsageType.INTERESTED, UsageType.ONBOARDING);
-        }
+    @EnumSource(UsageType.class)
+    void 모든_usage_type은_API_상태로_바뀐다(UsageType usageType) {
+        // DB CHECK 가 허용하는 값은 전부 API 상태가 있어야 목록 조회가 실패하지 않는다
+        assertThat(UserProductStatus.from(usageType).usageType()).isEqualTo(usageType);
     }
 }

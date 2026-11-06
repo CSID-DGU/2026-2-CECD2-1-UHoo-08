@@ -9,8 +9,8 @@
 """
 from fastapi import APIRouter
 
-from api.internal.v2 import agent, bundle, feedback, home, products, trends
+from api.internal.v2 import agent, compatibility, feedback, home, products
 
 router = APIRouter()
-for _하위 in (agent, products, home, bundle, trends, feedback):
+for _하위 in (agent, products, home, feedback, compatibility):
     router.include_router(_하위.router)

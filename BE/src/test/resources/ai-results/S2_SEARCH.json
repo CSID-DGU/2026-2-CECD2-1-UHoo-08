@@ -1,0 +1,67 @@
+{
+  "jobId": "3b1e8c2a-0000-0000-0000-000000000002",
+  "scenario": "S2_SEARCH",
+  "query": {
+    "raw": "여름 가벼운 매트 쿠션 3만원 이하",
+    "category": "base",
+    "conditions": ["여름", "매트", "쿠션"],
+    "budgetMax": 30000,
+    "budgetTotal": null,
+    "target": "SELF",
+    "useEnv": false,
+    "valueSeeking": false
+  },
+  "items": [
+    {
+      "productId": "11111111-1111-1111-1111-111111111111",
+      "name": "베어 워터 쿠션",
+      "brand": "ROMAND",
+      "imageUrl": "https://img/cushion.png",
+      "price": 28000,
+      "totalScore": 85,
+      "breakdown": [
+        {"key": "personalization", "label": "내 피부 적합", "score": 93.0, "weight": 0.35},
+        {"key": "budget_fit", "label": "예산 적합", "score": 87.5, "weight": 0.15}
+      ],
+      "badges": [{"type": "CONFLICT_SEPARATE", "text": "레티놀 나이트 앰플과 시간대를 나눠 쓰세요"}],
+      "reason": "지성 피부에 여름 조건을 같이 놓고 보면 가장 잘 맞아요",
+      "change": null,
+      "rankDelta": null
+    },
+    {
+      "productId": "22222222-2222-2222-2222-222222222222",
+      "name": "매트 핏 쿠션",
+      "brand": "CLIO",
+      "imageUrl": null,
+      "price": null,
+      "totalScore": 72,
+      "breakdown": [],
+      "badges": [],
+      "reason": null,
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "alternatives": [],
+  "similarUserProducts": [
+    {
+      "productId": "33333333-3333-3333-3333-333333333333",
+      "name": "세미매트 쿠션",
+      "brand": "HERA",
+      "imageUrl": null,
+      "price": 45000,
+      "totalScore": 70,
+      "breakdown": [],
+      "badges": [],
+      "reason": null,
+      "change": null,
+      "rankDelta": null
+    }
+  ],
+  "bundles": [],
+  "excluded": [
+    {"productId": "44444444-4444-4444-4444-444444444444", "name": "네오 쿠션 21N", "reason": "OWNED", "detail": "이미 쓰고 계세요"},
+    {"productId": "55555555-5555-5555-5555-555555555555", "name": "AHA 필링 쿠션", "reason": "CONFLICT", "detail": "레티놀 나이트 앰플과 같이 쓰면 안 돼요"}
+  ],
+  "clarify": null
+}

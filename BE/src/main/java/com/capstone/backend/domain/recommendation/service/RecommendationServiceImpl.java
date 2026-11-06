@@ -2,18 +2,28 @@ package com.capstone.backend.domain.recommendation.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.product.entity.Product;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationJobResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultBody;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationResultResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusResponse;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Clarify;
+import com.capstone.backend.domain.recommendation.dto.response.RecommendationStatusV2Response.Step;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
+import com.capstone.backend.domain.recommendation.entity.SearchLog;
+import com.capstone.backend.domain.recommendation.enums.JobStatus;
 import com.capstone.backend.domain.recommendation.repository.RecommendationRepository;
+import com.capstone.backend.domain.recommendation.repository.SearchLogRepository;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -38,10 +49,21 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final UserRepository userRepository;
     private final AgentClient agentClient;
     private final ObjectMapper objectMapper;
+    private final SearchLogRepository searchLogRepository;
+    private final JsonUtil jsonUtil;
+    private final ResultAssembler resultAssembler;
+    private final AppliedPreferenceFinder appliedPreferenceFinder;
+
+    /** 진행 단계 목록이 아직 없을 때(AI 반영 전) 현재 단계 문구 하나로 대신하는 항목의 key */
+    static final String CURRENT_STEP_KEY = "current";
+    /** AI 결과에 질문이 없을 때 쓰는 질문 제목 */
+    static final String DEFAULT_CLARIFY_MESSAGE = "조금만 더 알려주시면 바로 찾아드릴게요";
 
     @Override
     @Transactional
     public RecommendationJobResponse requestRecommendation(UUID userId, RecommendationRequest request) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations 호출: baseProductId={}", request.getBaseProductId());
+
         Product product = productRepository.findById(request.getBaseProductId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
@@ -61,7 +83,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .product(product)
                 .searchPurpose(request.getSearchPurpose())
                 .priceTolerancePercent(tolerancePercent)
-                .status("PENDING")
+                .status(JobStatus.PENDING)
                 .progress(0)
                 .createdAt(now)
                 .updatedAt(now)
@@ -88,22 +110,111 @@ public class RecommendationServiceImpl implements RecommendationService {
         return RecommendationJobResponse.of(saved.getId());
     }
 
+    /**
+     * 추천 진행 상태. 자연어 추천 job 은 시나리오, 진행 단계, 되묻기를 더해 내리고, 상품 기준 추천 job 은 기존 모양 그대로 내린다.
+     * 두 job 은 추천 기준(basis)으로 구분한다. 시나리오는 자연어 추천 job 도 판정 전에는 비어 있어 구분에 쓸 수 없다.
+     * job 이 처음 끝난 상태(완료, 실패, 되묻기)가 되면 검색 기록에 해석 결과를 한 번 남긴다.
+     */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public RecommendationStatusResponse getStatus(UUID userId, UUID jobId) {
         Recommendation job = recommendationRepository.findByIdAndUserId(jobId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        return RecommendationStatusResponse.from(job);
+        if (job.getBasis() == null) {
+            return RecommendationStatusResponse.from(job);
+        }
+
+        if (job.getStatus().isFinal() || job.getStatus() == JobStatus.NEEDS_CLARIFICATION) {
+            recordInterpretation(job);
+        }
+        Clarify clarify = job.getStatus() == JobStatus.NEEDS_CLARIFICATION ? clarifyOf(job) : null;
+        return new RecommendationStatusV2Response(job, stepsOf(job), clarify);
+    }
+
+    /** job 의 진행 단계 목록. 아직 없거나 읽을 수 없으면 현재 단계 문구 하나로 대신한다 */
+    List<Step> stepsOf(Recommendation job) {
+        List<Step> steps = new ArrayList<>();
+        JsonNode node = readTreeOrMissing(job.getSteps(), job.getId());
+        if (node.isArray()) {
+            for (JsonNode step : node) {
+                String key = step.path("key").asText(null);
+                String label = step.path("label").asText(null);
+                String state = step.path("state").asText(null);
+                if (key != null && label != null && state != null) {
+                    steps.add(new Step(key, label, state));
+                }
+            }
+        }
+        if (steps.isEmpty() && job.getStep() != null) {
+            steps.add(new Step(CURRENT_STEP_KEY, job.getStep(), "NOW"));
+        }
+        return steps;
+    }
+
+    /** 되묻기 질문은 AI 결과의 clarify.question 이다. 물어볼 항목은 AI 가 알려 준 빠진 필드로 정한다 */
+    Clarify clarifyOf(Recommendation job) {
+        JsonNode clarify = readTreeOrMissing(job.getResult(), job.getId()).path("clarify");
+        String question = clarify.path("question").asText(null);
+        String message = question == null || question.isBlank() ? DEFAULT_CLARIFY_MESSAGE : question;
+        return new Clarify(message, ClarifyFieldMapper.map(job.getScenario(), missingFieldsOf(clarify)));
+    }
+
+    /** 빠진 필드 이름. 목록이 아니면 없는 것으로 보고, 문자열이 아닌 값은 건너뛴다 */
+    private static List<String> missingFieldsOf(JsonNode clarify) {
+        JsonNode node = clarify.path("missingFields");
+        if (!node.isArray()) {
+            return null;
+        }
+        List<String> fields = new ArrayList<>();
+        for (JsonNode field : node) {
+            if (field.isTextual()) {
+                fields.add(field.textValue());
+            }
+        }
+        return fields;
+    }
+
+    private void recordInterpretation(Recommendation job) {
+        Float confidence = null;
+        JsonNode spec = readTreeOrMissing(job.getQuerySpec(), job.getId());
+        if (spec.path("confidence").isNumber()) {
+            confidence = spec.path("confidence").floatValue();
+        }
+        for (SearchLog searchLog : searchLogRepository.findByJobId(job.getId())) {
+            if (searchLog.isInterpretationEmpty()) {
+                searchLog.recordInterpretation(job.getScenario(), job.getQuerySpec(), confidence);
+            }
+        }
+    }
+
+    // AI 가 쓴 jsonb 하나가 깨져도 조회 자체는 실패시키지 않는다. 상태 조회는 화면이 계속 폴링하고, 결과 조회는 읽을 수 있는 부분만이라도 보여 준다
+    private JsonNode readTreeOrMissing(String json, UUID jobId) {
+        try {
+            return jsonUtil.readTree(json);
+        } catch (BusinessException e) {
+            log.warn("[Recommendation] job 의 jsonb 를 읽지 못해 비어 있는 것으로 본다: jobId={}", jobId);
+            return MissingNode.getInstance();
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RecommendationResultResponse getResult(UUID userId, UUID jobId) {
+    public RecommendationResultBody getResult(UUID userId, UUID jobId) {
         Recommendation job = recommendationRepository.findByIdAndUserId(jobId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        if (!"COMPLETED".equals(job.getStatus())) {
+        if (job.getStatus() != JobStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.JOB_NOT_COMPLETED);
+        }
+        // 자연어 추천 job 은 공통 결과 형식으로, 상품 기준 추천(v1) job 은 아래의 기존 형식으로 내린다
+        if (job.getBasis() != null) {
+            return resultAssembler.assemble(new ResultAssembler.Source(
+                    job.getId(), job.getParentJobId(), job.getScenario(), job.getBasis(),
+                    readTreeOrMissing(job.getResult(), job.getId()),
+                    readTreeOrMissing(job.getStateSnapshot(), job.getId()),
+                    job.getUser().getSkinType(),
+                    readTreeOrMissing(job.getTargetProfile(), job.getId())),
+                    appliedPreferenceFinder.find(userId));
         }
 
         Product baseProduct = job.getProduct();
@@ -222,6 +333,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public ProductSearchResponse searchProducts(UUID userId, String query) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations/search 호출. POST /recommendations/queries 로 옮겨야 한다: userId={}", userId);
         return agentClient.searchProducts(query, userId != null ? userId.toString() : null);
     }
 

@@ -134,6 +134,12 @@ public class User {
         if (priceTolerancePercent != null) this.priceTolerancePercent = priceTolerancePercent;
     }
 
+    /** 환경 데이터를 찾는 시·도 이름과 화면에 보여 줄 지역 이름을 함께 바꾼다 */
+    public void updateRegion(String region, String regionLabel) {
+        this.region = region;
+        this.regionLabel = regionLabel;
+    }
+
     public void updateAlertSettings(Boolean targetPriceAlert, Boolean weeklyReport) {
         if (targetPriceAlert != null) this.targetPriceAlert = targetPriceAlert;
         if (weeklyReport != null) this.weeklyReport = weeklyReport;

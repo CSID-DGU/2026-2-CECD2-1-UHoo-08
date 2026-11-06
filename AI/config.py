@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     LLM_VLM_BASE_URL: str = ""
     LLM_VLM_API_KEY: str = ""
 
+    LLM_AD_MODEL: str = ""
+    LLM_AD_BASE_URL: str = ""
+    LLM_AD_API_KEY: str = ""
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
@@ -72,5 +76,16 @@ class Settings(BaseSettings):
 
     # 기상청 단기예보 (공공데이터포털)
     KMA_SERVICE_KEY: str = ""
+
+    # Instagram Graph API. 인플루언서 게시물 수집이 읽는다.
+    #
+    # 토큰은 화담 페이지 토큰이라 만료가 없다. 수집 배치를 쓰지 않는
+    # 환경에서도 서버가 떠야 하므로 필수 값으로 두지 않는다.
+    META_PAGE_ACCESS_TOKEN: str = ""
+    META_IG_USER_ID: str = ""
+    META_GRAPH_API_VERSION: str = "v26.0"
+    # 게시물 수집 시각 (KST, 쉼표 구분). 비우면 스케줄을 띄우지 않는다.
+    # 호출 횟수 제한이 있어 하루 몇 번만 돈다.
+    INFLUENCER_COLLECT_HOURS: str = "6,18"
 
 settings = Settings()
