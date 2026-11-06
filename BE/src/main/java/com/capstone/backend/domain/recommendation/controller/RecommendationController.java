@@ -65,7 +65,13 @@ public class RecommendationController {
                 .body(ApiResponse.success(recommendationJobService.requestQuery(userId, request)));
     }
 
-    @Operation(summary = "자연어 제품 검색", description = "검색창 자연어 입력 → FastAPI 벡터 검색 → 결과 반환 (동기)")
+    /** 검색은 POST /recommendations/queries 로 옮겨 간다. FE 호출을 옮기면 지운다 */
+    @Deprecated
+    @Operation(summary = "자연어 제품 검색 (사용 중단)",
+            description = "검색창 자연어 입력으로 벡터 검색 결과를 바로 돌려준다(동기). " +
+                    "사용 중단. POST /recommendations/queries(비동기)로 대체한다. 요청, 상태 조회, 결과 조회 순서로 부르고, " +
+                    "상태가 NEEDS_CLARIFICATION 이면 POST /recommendations/{jobId}/clarifications 로 답한 뒤 다시 상태를 조회한다.",
+            deprecated = true)
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<ProductSearchResponse>> searchProducts(
             @AuthenticationPrincipal UUID userId,

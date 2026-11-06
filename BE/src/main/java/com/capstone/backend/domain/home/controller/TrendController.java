@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/trends")
 @RequiredArgsConstructor
-@Tag(name = "14. Trend", description = "트렌드 API")
+@Tag(name = "10. Home & Environment", description = "홈 맞춤 추천, 생활 환경, 트렌드 API")
 public class TrendController {
 
     private final TrendService trendService;

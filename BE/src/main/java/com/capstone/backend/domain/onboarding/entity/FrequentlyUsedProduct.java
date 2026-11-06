@@ -8,13 +8,17 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 온보딩에서 고른 자주 사용하는 제품. 지금 쓰는 중인지와 상관없는 취향 정보라 보유 제품(user_products)과 따로 둔다.
+ * 사용자와 제품마다 한 줄이다.
+ */
 @Entity
-@Table(name = "registered_products")
+@Table(name = "frequently_used_products")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Registered {
+public class FrequentlyUsedProduct {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -20,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin/home")
 @RequiredArgsConstructor
-@Tag(name = "15. Admin", description = "관리자 API")
+@Tag(name = "12. Admin", description = "관리자 API")
 public class HomeAdminController {
 
     private final HomeAdminService homeAdminService;

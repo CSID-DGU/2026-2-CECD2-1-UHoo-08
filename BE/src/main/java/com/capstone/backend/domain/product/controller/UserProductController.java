@@ -40,7 +40,7 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "10. User Products", description = "보유 제품 API")
+@Tag(name = "9. User Products", description = "보유 제품 API")
 public class UserProductController {
 
     private final PhotoRecognitionService photoRecognitionService;

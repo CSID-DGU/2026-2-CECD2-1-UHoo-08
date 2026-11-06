@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 /**
  * 보유 제품(user_products). 산 제품 한 통마다 한 줄이고, 다시 사면 새 줄을 넣는다.
  *
- * 좋아요(wishlists)와 온보딩의 자주 사용하는 제품(registered_products)은 여기서 건드리지 않는다.
+ * 좋아요(wishlists)와 온보딩의 자주 사용하는 제품(frequently_used_products)은 여기서 건드리지 않는다.
  */
 @Slf4j
 @Service

@@ -4,7 +4,8 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
-import com.capstone.backend.domain.onboarding.repository.RegisteredRepository;
+import com.capstone.backend.domain.product.enums.UsageType;
+import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.OnboardingCompleteResponse;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
@@ -30,7 +31,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final WishlistRepository wishlistRepository;
     private final PriceTrackingRepository priceTrackingRepository;
-    private final RegisteredRepository registeredRepository;
+    private final UserProductRepository userProductRepository;
     private final StorageService storageService;
 
     private static final String PROFILE_IMAGE_BUCKET = "profile_image";
@@ -44,7 +45,8 @@ public class UserServiceImpl implements UserService {
 
         long wishlistCount = wishlistRepository.countByUserId(userId);
         long trackingCount = priceTrackingRepository.countByUserId(userId);
-        long registeredCount = registeredRepository.countByUserId(userId);
+        // 마이페이지의 "구매 제품" 칸이다. 온보딩의 자주 사용하는 제품이 아니라 쓰는 중인 보유 제품을 센다
+        long registeredCount = userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING);
 
         return UserMeResponse.of(user, wishlistCount, trackingCount, registeredCount);
     }

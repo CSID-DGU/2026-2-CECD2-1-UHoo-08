@@ -15,7 +15,7 @@ import java.util.UUID;
  *
  * 상태를 바꾸거나 지울 때는 항상 행 하나(id)를 대상으로 한다. (user, product) 조건으로 한꺼번에 바꾸거나 지우면
  * 지난번에 다 쓴 기록까지 함께 덮이거나 사라진다. 조회는 product_views, 좋아요는 wishlists,
- * 온보딩의 자주 사용하는 제품은 registered_products 에 따로 있다.
+ * 온보딩의 자주 사용하는 제품은 frequently_used_products 에 따로 있다.
  */
 public interface UserProductRepository extends JpaRepository<UserProduct, UUID> {
 
@@ -24,6 +24,9 @@ public interface UserProductRepository extends JpaRepository<UserProduct, UUID> 
 
     /** 이 사용자의 보유 제품 중 주어진 상태인 행. 교체 필요도순은 계산값으로 정렬하므로 모두 읽는다 */
     List<UserProduct> findByUserIdAndUsageTypeIn(UUID userId, Collection<UsageType> usageTypes);
+
+    /** 이 사용자의 보유 제품 중 주어진 상태인 행 수. 마이페이지의 구매 제품 수를 센다 */
+    long countByUserIdAndUsageType(UUID userId, UsageType usageType);
 
     /** 이 사용자의 보유 제품 중 주어진 상태인 행의 id. 루틴 점검에서 보유 제품 수를 세고 점검 결과가 지금 제품과 맞는지 본다 */
     @Query("SELECT up.id FROM UserProduct up WHERE up.userId = :userId AND up.usageType = :usageType")
