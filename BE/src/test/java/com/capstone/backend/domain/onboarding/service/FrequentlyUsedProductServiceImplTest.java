@@ -25,9 +25,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * 온보딩의 "자주 사용하는 제품"은 frequently_used_products 에만 남는다.
@@ -48,78 +51,96 @@ class FrequentlyUsedProductServiceImplTest {
 
     private final UUID userId = UUID.randomUUID();
     private final UUID productId = UUID.randomUUID();
+    private final UUID otherId = UUID.randomUUID();
     private User user;
     private Product product;
+    private Product other;
 
     @BeforeEach
     void setUp() {
         user = User.builder().id(userId).name("하림").provider("KAKAO").build();
         product = Product.builder().id(productId).name("독도 토너").brand("라운드랩").category("토너").build();
+        other = Product.builder().id(otherId).name("수분 크림").brand("에스트라").category("크림").build();
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(productRepository.findById(productId)).willReturn(Optional.of(product));
+        given(productRepository.findAllById(any())).willReturn(List.of(product, other));
+        given(frequentlyUsedProductRepository.findProductIdsByUserIdAndProductIdIn(eq(userId), anyCollection()))
+                .willReturn(List.of());
     }
 
     private FrequentlyUsedProductBatchRequest batch(UUID... ids) {
         FrequentlyUsedProductBatchRequest request = new FrequentlyUsedProductBatchRequest();
-        ReflectionTestUtils.setField(request, "productIds", List.of(ids));
+        ReflectionTestUtils.setField(request, "productIds", Arrays.asList(ids));
         return request;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<FrequentlyUsedProduct> saved() {
+        ArgumentCaptor<List<FrequentlyUsedProduct>> captor = ArgumentCaptor.forClass(List.class);
+        verify(frequentlyUsedProductRepository).saveAll(captor.capture());
+        return captor.getValue();
     }
 
     @Test
     void 고른_제품을_frequently_used_products에_남긴다() {
-        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
+        int count = service.saveBatch(userId, batch(productId, otherId));
 
-        int saved = service.saveBatch(userId, batch(productId));
+        assertThat(count).isEqualTo(2);
+        assertThat(saved()).extracting(FrequentlyUsedProduct::getProduct).containsExactly(product, other);
+        assertThat(saved()).extracting(FrequentlyUsedProduct::getUser).containsOnly(user);
+    }
 
-        assertThat(saved).isEqualTo(1);
-        ArgumentCaptor<FrequentlyUsedProduct> captor = ArgumentCaptor.forClass(FrequentlyUsedProduct.class);
-        verify(frequentlyUsedProductRepository).save(captor.capture());
-        assertThat(captor.getValue().getUser()).isEqualTo(user);
-        assertThat(captor.getValue().getProduct()).isEqualTo(product);
+    @Test
+    void 제품과_이미_고른_제품을_한_번에_읽는다() {
+        service.saveBatch(userId, batch(productId, otherId));
+
+        verify(productRepository).findAllById(List.of(productId, otherId));
+        verify(frequentlyUsedProductRepository).findProductIdsByUserIdAndProductIdIn(userId, List.of(productId, otherId));
+        verify(productRepository, never()).findById(any());
     }
 
     @Test
     void 이미_고른_제품은_다시_넣지_않는다() {
         // 온보딩 화면은 다시 들어와 완료할 수 있다
-        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(true);
+        given(frequentlyUsedProductRepository.findProductIdsByUserIdAndProductIdIn(eq(userId), anyCollection()))
+                .willReturn(List.of(productId));
 
-        int saved = service.saveBatch(userId, batch(productId));
+        int count = service.saveBatch(userId, batch(productId, otherId));
 
-        assertThat(saved).isZero();
-        verify(frequentlyUsedProductRepository, never()).save(any());
+        assertThat(count).isEqualTo(1);
+        assertThat(saved()).extracting(FrequentlyUsedProduct::getProduct).containsExactly(other);
     }
 
     @Test
     void 같은_요청에_같은_제품이_두_번_와도_한_번만_처리한다() {
-        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
+        int count = service.saveBatch(userId, batch(productId, productId));
 
-        int saved = service.saveBatch(userId, batch(productId, productId));
-
-        assertThat(saved).isEqualTo(1);
-        verify(frequentlyUsedProductRepository).save(any(FrequentlyUsedProduct.class));
+        assertThat(count).isEqualTo(1);
+        assertThat(saved()).hasSize(1);
     }
 
     @Test
     void 빈_값은_건너뛰고_나머지는_저장한다() {
-        given(frequentlyUsedProductRepository.existsByUserIdAndProductId(userId, productId)).willReturn(false);
-        FrequentlyUsedProductBatchRequest request = new FrequentlyUsedProductBatchRequest();
-        ReflectionTestUtils.setField(request, "productIds", Arrays.asList(null, productId, null));
+        int count = service.saveBatch(userId, batch(null, productId, null));
 
-        int saved = service.saveBatch(userId, request);
-
-        assertThat(saved).isEqualTo(1);
-        verify(productRepository, never()).findById(null);
-        verify(frequentlyUsedProductRepository).save(any(FrequentlyUsedProduct.class));
+        assertThat(count).isEqualTo(1);
+        verify(productRepository).findAllById(List.of(productId));
     }
 
     @Test
     void 없는_제품은_건너뛴다() {
         UUID missing = UUID.randomUUID();
-        given(productRepository.findById(missing)).willReturn(Optional.empty());
 
-        int saved = service.saveBatch(userId, batch(missing));
+        int count = service.saveBatch(userId, batch(missing, productId));
 
-        assertThat(saved).isZero();
-        verify(frequentlyUsedProductRepository, never()).save(any());
+        assertThat(count).isEqualTo(1);
+        assertThat(saved()).extracting(FrequentlyUsedProduct::getProduct).containsExactly(product);
+    }
+
+    @Test
+    void 빈_요청이면_아무것도_읽지_않는다() {
+        assertThat(service.saveBatch(userId, batch())).isZero();
+        assertThat(service.saveBatch(userId, batch((UUID) null))).isZero();
+
+        verifyNoInteractions(productRepository, frequentlyUsedProductRepository);
     }
 }

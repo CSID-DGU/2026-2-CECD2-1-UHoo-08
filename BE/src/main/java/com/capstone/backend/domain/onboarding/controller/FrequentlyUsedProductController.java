@@ -5,6 +5,7 @@ import com.capstone.backend.domain.onboarding.dto.FrequentlyUsedProductBatchRequ
 import com.capstone.backend.domain.onboarding.service.FrequentlyUsedProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +25,13 @@ public class FrequentlyUsedProductController {
     @Operation(
             summary = "자주 사용하는 제품 일괄 등록",
             description = "온보딩 완료 시 고른 제품 UUID 목록을 자주 사용하는 제품으로 저장한다. " +
-                    "보유 제품(user_products)에는 넣지 않는다. 이미 등록했거나 없는 제품은 건너뛰고, 새로 저장한 개수를 돌려준다."
+                    "보유 제품(user_products)에는 넣지 않는다. 이미 등록했거나 없는 제품은 건너뛰고, 새로 저장한 개수를 돌려준다. " +
+                    "productIds 는 50개까지이고, 넘으면 422 VALIDATION_ERROR."
     )
     @PostMapping("/onboarding/frequently-used-products/batch")
     public ResponseEntity<ApiResponse<Integer>> saveBatch(
             @AuthenticationPrincipal UUID userId,
-            @RequestBody FrequentlyUsedProductBatchRequest request) {
+            @Valid @RequestBody FrequentlyUsedProductBatchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(frequentlyUsedProductService.saveBatch(userId, request)));
     }
 
@@ -43,7 +45,7 @@ public class FrequentlyUsedProductController {
     @PostMapping("/onboarding/favorites/items/batch")
     public ResponseEntity<ApiResponse<Integer>> saveBatchDeprecated(
             @AuthenticationPrincipal UUID userId,
-            @RequestBody FrequentlyUsedProductBatchRequest request) {
+            @Valid @RequestBody FrequentlyUsedProductBatchRequest request) {
         log.warn("[Deprecated] POST /onboarding/favorites/items/batch 호출. /onboarding/frequently-used-products/batch 로 옮겨야 한다");
         return saveBatch(userId, request);
     }
