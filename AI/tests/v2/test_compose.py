@@ -33,6 +33,26 @@ def 트렌드(monkeypatch):
     return 상태
 
 
+@pytest.fixture(autouse=True)
+def LLM(monkeypatch):
+    """이유 문장 LLM 을 가짜로 둔다. 기본은 응답 없음(규칙 문장)이다."""
+    상태: dict = {"응답": None, "예외": None, "받은": []}
+
+    class 가짜:
+        async def chat_json(self, system, user, **_):
+            상태["받은"].append(user)
+            if 상태["예외"]:
+                raise 상태["예외"]
+            return 상태["응답"]
+
+    모듈 = types.SimpleNamespace(LLMRole=types.SimpleNamespace(COMPOSE="compose"),
+                                get_llm=lambda role: 가짜())
+    import services
+    monkeypatch.setitem(sys.modules, "services.llm", 모듈)
+    monkeypatch.setattr(services, "llm", 모듈, raising=False)
+    return 상태
+
+
 @pytest.fixture
 def 가성비_설명(monkeypatch):
     """C 의 가성비 항목에 설명 함수가 있는 경우."""
@@ -209,3 +229,49 @@ def test_이유_문장은_점수가_높은_두_항목으로_만든다():
         "예산 적합, 내 피부 적합 점수가 높아요"
     assert 노드.rule_reason(_점수표("p", 80, review=60)) == "후기 일치 점수가 높아요"
     assert 노드.rule_reason(_점수표("p", 80)) is None
+
+
+# 추천 이유 LLM
+
+@pytest.mark.asyncio
+async def test_LLM이_쓴_이유_문장을_쓴다(LLM):
+    LLM["응답"] = {"p1": "건성 피부에 맞고 원하신 매트한 마무리예요"}
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "건성 피부에 맞고 원하신 매트한 마무리예요"
+    # 한 번에 부르고, 점수 항목이 없는 카드는 LLM 에 넘기지 않는다
+    assert len(LLM["받은"]) == 1
+    assert '"p2"' not in LLM["받은"][0]
+    assert '"내 피부 적합"' in LLM["받은"][0] and '"매트"' in LLM["받은"][0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("응답", [
+    None, "문장", ["p1"],
+    {"p1": ""}, {"p1": 3}, {"p1": "가" * 41}, {"다른": "좋아요"},
+])
+async def test_이유_문장이_이상하면_규칙_문장으로_채운다(LLM, 응답):
+    LLM["응답"] = 응답
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "내 피부 적합, 예산 적합 점수가 높아요"
+
+
+@pytest.mark.asyncio
+async def test_LLM_호출이_실패하면_규칙_문장으로_채운다(LLM):
+    LLM["예외"] = TimeoutError("느림")
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "내 피부 적합, 예산 적합 점수가 높아요"
+
+
+@pytest.mark.asyncio
+async def test_빠진_카드만_규칙_문장으로_채운다(LLM):
+    LLM["응답"] = {"p1": "가볍게 잘 맞는 쿠션이에요"}
+    결과 = (await 노드.compose(_상태(
+        scored=[_점수표("p1", 85, review=80), _점수표("p2", 72, budget_fit=90)],
+    )))["result"]
+    assert [i["reason"] for i in 결과["items"]] == ["가볍게 잘 맞는 쿠션이에요", "예산 적합 점수가 높아요"]
+
+
+@pytest.mark.asyncio
+async def test_점수_항목이_없으면_LLM을_부르지_않는다(LLM):
+    await 노드.compose(_상태(scored=[_점수표("p1", 70)]))
+    assert LLM["받은"] == []

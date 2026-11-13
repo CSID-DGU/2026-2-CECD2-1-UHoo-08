@@ -12,7 +12,7 @@ WRITES: result
 
     결과 카드       점수 상위 10개
     배지            카드마다 최대 2개. 시간대 나눠 쓰기, 환경, 가성비, 요즘 언급 순
-    추천 이유       점수가 높은 두 항목으로 만든 문장
+    추천 이유       카드 10개를 LLM 한 번으로. 실패하거나 빠진 카드는 점수가 높은 두 항목으로 만든 문장
     제외 목록       거른 후보와 이유
     비슷한 사람들   만족도를 점수 자리에 둔다
 
@@ -49,6 +49,8 @@ logger = logging.getLogger(__name__)
 # 환경, 가성비 배지를 다는 항목 점수
 배지_점수_기준 = 70
 요즘_언급_문구 = "요즘 언급이 늘고 있어요"
+# 이유 문장 LLM 응답을 기다리는 최대 시간(초). 넘기면 규칙 문장으로 채운다.
+이유_LLM_제한_초 = 15.0
 
 # 이 단계가 아직 없으면(stub) 결과를 만들 수 없는 경로
 _필수_부품: dict[str, tuple[str, ...]] = {
@@ -98,6 +100,64 @@ def rule_reason(점수표: dict) -> str | None:
         return None
     이름들 = ", ".join(SCORE_LABELS.get(항목["key"], 항목["label"]) for 항목 in 항목들)
     return f"{이름들} 점수가 높아요"
+
+
+def _이유_입력(s: dict, 메타: dict, 배지: list[Badge]) -> dict:
+    항목들 = sorted(s.get("breakdown") or [], key=lambda 항목: 항목["score"], reverse=True)[:2]
+    return {
+        "product_id": s["product_id"],
+        "name": 메타.get("name") or "",
+        "top_items": [
+            {"label": SCORE_LABELS.get(항목["key"], 항목["label"]), "score": round(항목["score"])}
+            for 항목 in 항목들
+        ],
+        "badges": [b.text for b in 배지],
+    }
+
+
+async def _llm_이유(
+    조건: list[str], 상위: list[dict], 메타: dict, 배지: dict[str, list[Badge]],
+) -> dict[str, str]:
+    """카드마다 LLM 이 쓴 이유 문장. 검증을 통과한 것만 돌려준다.
+
+    JSON 이 아니거나, 문장이 아니거나, 너무 길거나, 호출이 실패하면 그 카드는 빠진다.
+    빠진 카드는 부른 쪽이 규칙 문장으로 채운다.
+    """
+    from prompts.reason_compose import (
+        REASON_COMPOSE_SYSTEM,
+        build_reason_compose_user_prompt,
+        이유_최대_글자,
+    )
+    from services.llm import LLMRole, get_llm
+
+    카드들 = [
+        _이유_입력(s, 메타[s["product_id"]], 배지.get(s["product_id"], []))
+        for s in 상위 if s.get("breakdown")
+    ]
+    if not 카드들:
+        return {}
+    try:
+        원본 = await get_llm(LLMRole.COMPOSE).chat_json(
+            system=REASON_COMPOSE_SYSTEM,
+            user=build_reason_compose_user_prompt(조건, 카드들),
+            timeout=이유_LLM_제한_초,
+        )
+    except Exception:
+        logger.warning("compose: 이유 문장 LLM 호출 실패. 규칙 문장으로 채운다.", exc_info=True)
+        return {}
+    if not isinstance(원본, dict):
+        logger.warning("compose: 이유 문장 LLM 응답이 JSON 객체가 아니다. 규칙 문장으로 채운다.")
+        return {}
+
+    이유: dict[str, str] = {}
+    for 카드 in 카드들:
+        문장 = 원본.get(카드["product_id"])
+        if isinstance(문장, str) and 0 < len(문장.strip()) <= 이유_최대_글자:
+            이유[카드["product_id"]] = 문장.strip()
+    if len(이유) < len(카드들):
+        logger.info("compose: 이유 문장 %d개 중 %d개를 규칙 문장으로 채운다.",
+                    len(카드들), len(카드들) - len(이유))
+    return 이유
 
 
 async def _요즘_언급(상품_ids: list[str]) -> set[str]:
@@ -187,7 +247,7 @@ def _카드(pid: str, 메타: dict, total: int, **값: Any) -> ResultItem:
     )
 
 
-async def _결과_카드(state: GraphState, spec: QuerySpec) -> list[ResultItem]:
+async def _결과_카드(state: GraphState, spec: QuerySpec, 조건: list[str]) -> list[ResultItem]:
     메타 = state.get("product_meta") or {}
     상위 = []
     for s in state.get("scored") or []:
@@ -199,12 +259,14 @@ async def _결과_카드(state: GraphState, spec: QuerySpec) -> list[ResultItem]
             break
 
     배지 = await _배지들(state, spec, 상위, 메타)
+    # 배지 문구를 이유 문장의 재료로 쓰므로 배지를 먼저 단다
+    이유 = await _llm_이유(조건, 상위, 메타, 배지)
     return [
         _카드(
             s["product_id"], 메타[s["product_id"]], s["total"],
             breakdown=s.get("breakdown") or [],
             badges=배지.get(s["product_id"], []),
-            reason=rule_reason(s),
+            reason=이유.get(s["product_id"]) or rule_reason(s),
         )
         for s in 상위
     ]
@@ -248,7 +310,7 @@ async def compose(state: GraphState) -> dict:
     else:
         결과 = RecommendationResult(
             job_id=state["job_id"], scenario=시나리오, query=요약,
-            items=await _결과_카드(state, spec),
+            items=await _결과_카드(state, spec, 요약.conditions),
             similar_user_products=_비슷한_사람들(state),
             excluded=_제외(state),
         )
