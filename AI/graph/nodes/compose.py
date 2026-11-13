@@ -39,6 +39,7 @@ from contracts.score import SCORE_LABELS, ScoreContext
 from graph.state import GraphState
 from rules.condition_labels import summarize
 from rules.env_match import meets
+from rules.guard_rules import fallback_reason
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,7 @@ def _점수(점수표: dict, 키: str) -> float | None:
 
 def rule_reason(점수표: dict) -> str | None:
     """점수가 높은 두 항목으로 만든 이유 문장. 항목이 없으면 None."""
-    항목들 = sorted(점수표.get("breakdown") or [], key=lambda 항목: 항목["score"], reverse=True)[:2]
-    if not 항목들:
-        return None
-    이름들 = ", ".join(SCORE_LABELS.get(항목["key"], 항목["label"]) for 항목 in 항목들)
-    return f"{이름들} 점수가 높아요"
+    return fallback_reason(점수표.get("breakdown") or [])
 
 
 def _이유_입력(s: dict, 메타: dict, 배지: list[Badge]) -> dict:
