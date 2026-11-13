@@ -32,6 +32,8 @@ Node = Callable[[GraphState], Awaitable[dict]]
 # (화면에 보일 문구, 0~100, 단계 목록)
 ProgressHook = Callable[[str, int, list[dict]], Awaitable[None]]
 FailHook = Callable[[Exception], Awaitable[None]]
+# 경로가 정해진 직후의 상태를 받는다. 부른 쪽이 시나리오와 질의 해석을 job 에 적는다.
+RouteHook = Callable[[dict], Awaitable[None]]
 
 
 async def _pass_through(state: GraphState) -> dict:
@@ -205,6 +207,23 @@ def _기준_상품_스펙(상태: dict) -> dict:
     ).model_dump(mode="json")
 
 
+def _기준을_맞춘다(상태: dict) -> None:
+    """화면에서 고른 추천 기준 탭이 문장에서 읽은 기준보다 우선한다.
+
+    "엄마 선물" 이라고 써도 사용자가 '내 기준' 탭에 있으면 내 기준으로 찾는다.
+    뒤 단계는 query_spec.target 만 보므로 여기서 한 번 맞춰 둔다.
+    """
+    기준 = 상태.get("basis")
+    spec = 상태.get("query_spec")
+    if 기준 and isinstance(spec, dict):
+        상태["query_spec"] = {**spec, "target": 기준}
+
+
+async def _경로를_알린다(상태: dict, on_route: RouteHook | None) -> None:
+    if on_route is not None:
+        await on_route(상태)
+
+
 # 관문이 차지하는 진행률. 질의 해석은 전체에서 짧은 부분이라 앞쪽 10%만 쓴다.
 관문_구간 = 10
 
@@ -214,6 +233,7 @@ async def run_query(
     *,
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
+    on_route: RouteHook | None = None,
 ) -> GraphState:
     """질의를 해석하고, 그 결과가 가리키는 경로를 돈다.
 
@@ -226,12 +246,23 @@ async def run_query(
     멈춘 상태로 남기고 사용자의 답을 기다린다.
 
     기준 상품이 있으면 해석할 것이 없으므로 관문 없이 평가 경로를 돈다.
+
+    경로가 정해지면 on_route 를 부른다. 되묻느라 멈추는 경우도 부른다.
+    끝날 때까지 기다리면 진행 중인 job 의 시나리오가 화면에 보이지 않는다.
     """
     상태: dict = dict(initial or {})
     상태.setdefault("trace", [])
 
     if 상태.get("base_product_id"):
         상태["query_spec"] = _기준_상품_스펙(상태)
+        상태["scenario"] = ROUTE[RequestType.EVALUATE]
+        try:
+            await _경로를_알린다(상태, on_route)
+        except Exception as e:
+            logger.exception("경로 기록 실패")
+            if on_fail is not None:
+                await on_fail(e)
+            raise
         return await run_scenario(
             ROUTE[RequestType.EVALUATE], 상태, on_progress=on_progress, on_fail=on_fail,
         )
@@ -246,6 +277,10 @@ async def run_query(
                 이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간), (), SEARCH_ENTRY,
             )
             상태.update(await 단계(상태))
+        if not 상태.get("scenario"):
+            상태["scenario"] = 기본_시나리오()
+        _기준을_맞춘다(상태)
+        await _경로를_알린다(상태, on_route)
     except Exception as e:
         logger.exception("관문 실행 실패")
         if on_fail is not None:
@@ -255,7 +290,7 @@ async def run_query(
     if 상태.get("clarify_question"):
         return 상태
 
-    시나리오 = 상태.get("scenario") or 기본_시나리오()
+    시나리오 = 상태["scenario"]
     return await run_scenario(
         시나리오,
         상태,

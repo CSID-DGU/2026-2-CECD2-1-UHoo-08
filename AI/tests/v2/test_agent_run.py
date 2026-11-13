@@ -3,6 +3,7 @@
 그래프 자체는 test_builder 가 본다. 여기서는 "돌린 결과를 job 에 어떻게
 적느냐"만 확인한다. 그래서 실행은 가짜로 두고, 실제 LLM 을 부르지 않는다.
 """
+import json
 import sys
 import types
 
@@ -16,9 +17,12 @@ class 가짜기록:
     def __init__(self):
         self.호출: list[dict] = []
         self.스냅샷: dict | None = None
+        # 스냅샷 저장과 갱신이 어떤 순서로 일어났는지
+        self.순서: list[str] = []
 
     async def update(self, job_id, **kwargs):
         self.호출.append({"job_id": job_id, **kwargs})
+        self.순서.append(kwargs.get("status") or "update")
 
     @property
     def 마지막(self) -> dict:
@@ -41,6 +45,7 @@ def 기록(monkeypatch):
     # 되묻는 경우에는 멈춘 시점의 상태도 남긴다. 진짜를 두면 DB 를 찌른다.
     async def 저장(job_id, snapshot):
         가짜.스냅샷 = snapshot
+        가짜.순서.append("snapshot")
 
     저장소 = types.SimpleNamespace(save_snapshot=저장)
     monkeypatch.setitem(sys.modules, "services.job_store", 저장소)
@@ -163,3 +168,107 @@ async def test_실패하면_FAILED로_남기고_삼킨다(기록, 실행대역):
 
     assert 기록.마지막["status"] == "FAILED"
     assert "벡터 검색 실패" in 기록.마지막["error_msg"]
+
+
+@pytest.mark.asyncio
+async def test_경로가_정해지면_시나리오와_질의_해석을_바로_적는다(기록, monkeypatch):
+    """끝날 때까지 기다리면 진행 중인 job 의 시나리오가 화면에 보이지 않는다."""
+    본: dict = {}
+
+    async def 가짜(initial=None, **kwargs):
+        await kwargs["on_route"]({"scenario": "S2_SEARCH", "query_spec": {"category": "base"}})
+        본["경로_뒤_호출_수"] = len(기록.호출)
+        return {**(initial or {}), "result": {}}
+
+    monkeypatch.setattr(agent.builder, "run_query", 가짜)
+    await agent._실행(_요청)
+
+    assert 본["경로_뒤_호출_수"] == 1
+    assert 기록.호출[0]["scenario"] == "S2_SEARCH"
+    assert 기록.호출[0]["query_spec"] == {"category": "base"}
+
+
+@pytest.mark.asyncio
+async def test_되묻는_경우에도_시나리오를_적는다(기록, monkeypatch):
+    async def 가짜(initial=None, **kwargs):
+        정해진 = {"scenario": "S6_BUNDLE", "query_spec": {"category": "skincare"}}
+        await kwargs["on_route"](정해진)
+        return {**(initial or {}), **정해진, "clarify_question": "예산이 얼마인가요?"}
+
+    monkeypatch.setattr(agent.builder, "run_query", 가짜)
+    await agent._실행(_요청)
+
+    assert 기록.호출[0]["scenario"] == "S6_BUNDLE"
+    assert 기록.마지막["status"] == "NEEDS_CLARIFICATION"
+
+
+@pytest.mark.asyncio
+async def test_완료_때_스냅샷을_먼저_남기고_완료로_바꾼다(기록, 실행대역):
+    """완료를 먼저 적으면 BE 가 스냅샷이 빈 완료 job 을 읽을 수 있다."""
+    실행대역({
+        "scenario": "S7_REFINE",
+        "query_spec": {"category": "base", "conditions": ["무향"]},
+        "result": {"items": []},
+    })
+    await agent._실행(_요청)
+
+    assert 기록.순서[-2:] == ["snapshot", "COMPLETED"]
+    # 조건 수정은 경로 중에 질의가 바뀌므로 완료 때 한 번 더 적는다
+    assert 기록.마지막["scenario"] == "S7_REFINE"
+    assert 기록.마지막["query_spec"] == {"category": "base", "conditions": ["무향"]}
+
+
+@pytest.mark.asyncio
+async def test_완료_스냅샷에_필요한_값만_줄여_담는다(기록, 실행대역):
+    후보들 = [
+        {"product_id": f"p{i}", "source": "vector", "similarity": 0.9, "extra": "버림"}
+        for i in range(70)
+    ]
+    후보들[0]["slot_key"] = "toner"
+    실행대역({
+        "scenario": "S2_SEARCH",
+        "basis": "SELF",
+        "query_spec": {"category": "base"},
+        "candidates": 후보들,
+        "scored": [{"product_id": "p0", "total": 80, "breakdown": [{"key": "review"}]}],
+        "bundle_slots": [{"slotKey": "toner", "label": "토너", "candidates": []}],
+        "intent_vector": [0.1] * 1024,
+        "product_meta": {"p0": {"name": "쿠션"}},
+        "trace": ["normalize", "router", "retrieve"],
+        "result": {"items": []},
+    })
+    await agent._실행(_요청)
+
+    스냅샷 = 기록.스냅샷
+    assert len(스냅샷["candidates"]) == agent.스냅샷_후보_상한
+    assert 스냅샷["candidates"][0] == {
+        "product_id": "p0", "source": "vector", "similarity": 0.9, "slot_key": "toner",
+    }
+    assert 스냅샷["candidates"][1] == {"product_id": "p1", "source": "vector", "similarity": 0.9}
+    assert 스냅샷["scored"] == [{"product_id": "p0", "total": 80}]
+    assert 스냅샷["bundle_slots"] == [{"slotKey": "toner", "label": "토너", "candidates": []}]
+    assert 스냅샷["raw_query"] == "여름 쿠션"
+    assert 스냅샷["basis"] == "SELF"
+    assert 스냅샷["trace"] == ["normalize", "router", "retrieve"]
+    # 크기만 크고 다시 만들 수 있는 값은 넣지 않는다
+    assert "intent_vector" not in 스냅샷
+    assert "product_meta" not in 스냅샷
+    json.dumps(스냅샷)
+
+
+@pytest.mark.asyncio
+async def test_대체_후보를_뺀_수가_없으면_0으로_남긴다(기록, 실행대역):
+    """BE 가 이 값을 그대로 읽는다. 키가 없으면 BE 쪽에서 따로 처리해야 한다."""
+    실행대역({"result": {}})
+    await agent._실행(_요청)
+
+    assert 기록.스냅샷["alternatives_dropped_count"] == 0
+    assert 기록.스냅샷["candidates"] == []
+    assert 기록.스냅샷["scored"] == []
+
+
+@pytest.mark.asyncio
+async def test_대체_후보를_뺀_수를_남긴다(기록, 실행대역):
+    실행대역({"alternatives_dropped_count": 3, "result": {}})
+    await agent._실행(_요청)
+    assert 기록.스냅샷["alternatives_dropped_count"] == 3

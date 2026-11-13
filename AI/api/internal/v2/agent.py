@@ -33,6 +33,16 @@ _남길_키 = (
     "clarify_question", "clarify_count",
 )
 
+# 끝난 job 에 남기는 값. 그대로 옮기는 것과 줄여서 옮기는 것이 있다.
+# intent_vector 와 product_meta 는 넣지 않는다. 크기만 크고 다시 만들 수 있다.
+_완료_그대로_키 = (
+    "scenario", "query_spec", "user_id", "basis", "target_profile",
+    "parent_job_id", "raw_query", "bundle_slots", "trace",
+)
+# 조건 수정이 부모의 후보를 다시 정렬할 때 쓰는 개수. 결과 10개를 고르기에 넉넉하다.
+스냅샷_후보_상한 = 60
+_후보_키 = ("product_id", "source", "similarity", "slot_key")
+
 
 def _결과를_만들_수_있나() -> bool:
     """결과를 조립하는 단계가 실제로 있는지 본다.
@@ -69,6 +79,25 @@ def _되묻는_결과(상태: dict, 질문: str) -> dict:
     ).model_dump(mode="json", by_alias=True)
 
 
+def _완료_스냅샷(상태: dict) -> dict:
+    """끝난 job 의 state_snapshot.
+
+    BE 는 대체 후보를 뺀 수와 세트 칸을 여기서 읽고, 조건 수정은 부모의
+    후보와 질의를 여기서 꺼낸다. JSON 으로 옮길 수 있는 값만 담는다.
+    """
+    스냅샷 = {키: 상태[키] for 키 in _완료_그대로_키 if 상태.get(키) is not None}
+    스냅샷["candidates"] = [
+        {키: 후보[키] for 키 in _후보_키 if 후보.get(키) is not None}
+        for 후보 in (상태.get("candidates") or [])[:스냅샷_후보_상한]
+    ]
+    스냅샷["scored"] = [
+        {"product_id": 항목["product_id"], "total": 항목["total"]}
+        for 항목 in 상태.get("scored") or []
+    ]
+    스냅샷["alternatives_dropped_count"] = 상태.get("alternatives_dropped_count") or 0
+    return 스냅샷
+
+
 async def _돌리기(상태: dict) -> None:
     """관문부터 끝까지 돌리고 결과를 job 에 적는다."""
     from services import job_store, job_updater
@@ -85,8 +114,16 @@ async def _돌리기(상태: dict) -> None:
             job_id, status=JobStatus.FAILED.value, error_msg=str(e)
         )
 
+    async def 경로(정해진: dict) -> None:
+        # 진행 중에도 BE 상태 조회에 시나리오가 보이게 경로가 정해지자마자 적는다.
+        await job_updater.update(
+            job_id, scenario=정해진.get("scenario"), query_spec=정해진.get("query_spec")
+        )
+
     try:
-        결과 = await builder.run_query(상태, on_progress=진행, on_fail=실패)
+        결과 = await builder.run_query(
+            상태, on_progress=진행, on_fail=실패, on_route=경로
+        )
     except Exception:
         # 실패 기록은 on_fail 이 이미 남겼다. 배경 작업이라 올려도 받을 곳이 없다.
         return
@@ -106,11 +143,17 @@ async def _돌리기(상태: dict) -> None:
         )
         return
 
+    # 스냅샷을 먼저 남긴다. 완료를 먼저 적으면 BE 가 스냅샷이 비어 있는
+    # 완료 job 을 읽을 수 있다.
+    await job_store.save_snapshot(job_id, _완료_스냅샷(결과))
+    # 조건 수정은 경로 중에 질의가 부모 조건과 합쳐지므로 완료 때 한 번 더 적는다.
     await job_updater.update(
         job_id,
         status=JobStatus.COMPLETED.value,
         progress=100,
         result=결과.get("result") or {},
+        scenario=결과.get("scenario"),
+        query_spec=결과.get("query_spec"),
     )
 
 

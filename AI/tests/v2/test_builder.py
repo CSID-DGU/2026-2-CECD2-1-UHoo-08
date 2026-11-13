@@ -298,3 +298,98 @@ async def test_실패하면_실패한_단계가_지금_단계로_남는다(monke
     with pytest.raises(RuntimeError):
         await run_scenario("S2_SEARCH", on_progress=hook)
     assert _상태들(기록[-1])[:2] == [("retrieve", "DONE"), ("inventory", "NOW")]
+
+
+@pytest.mark.asyncio
+async def test_관문이_끝나면_경로를_알린다(monkeypatch):
+    async def router(state):
+        return {"scenario": "S6_BUNDLE", "query_spec": {"category": "skincare"}}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+    알림: list[dict] = []
+
+    async def on_route(상태):
+        # 경로를 돌기 전에 알려야 진행 중에도 시나리오가 보인다
+        알림.append({"scenario": 상태["scenario"], "trace": list(상태["trace"])})
+
+    await builder.run_query({"raw_query": "세트"}, on_route=on_route)
+    assert 알림 == [{"scenario": "S6_BUNDLE", "trace": ["normalize(stub)", "router"]}]
+
+
+@pytest.mark.asyncio
+async def test_되묻는_경우에도_경로를_알린다(monkeypatch):
+    async def router(state):
+        return {"scenario": "S6_BUNDLE", "clarify_question": "예산이 얼마인가요?"}
+
+    monkeypatch.setattr(builder, "_load", lambda name: router if name == "router" else None)
+    알림: list[str] = []
+
+    async def on_route(상태):
+        알림.append(상태["scenario"])
+
+    결과 = await builder.run_query({"raw_query": "세트"}, on_route=on_route)
+    assert 결과["clarify_question"]
+    assert 알림 == ["S6_BUNDLE"]
+
+
+@pytest.mark.asyncio
+async def test_라우터가_시나리오를_정하지_않으면_기본_경로를_알린다(monkeypatch):
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+    알림: list[str] = []
+
+    async def on_route(상태):
+        알림.append(상태["scenario"])
+
+    결과 = await builder.run_query({"raw_query": "쿠션"}, on_route=on_route)
+    assert 알림 == [builder.기본_시나리오()]
+    assert 결과["scenario"] == builder.기본_시나리오()
+
+
+@pytest.mark.asyncio
+async def test_기준_상품_경로도_알린다(monkeypatch):
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+    알림: list[dict] = []
+
+    async def on_route(상태):
+        알림.append(dict(상태))
+
+    await builder.run_query({"base_product_id": "p1", "basis": "SELF"}, on_route=on_route)
+    assert 알림[0]["scenario"] == "S1_EVALUATE"
+    assert 알림[0]["query_spec"]["base_product_ref"] == "p1"
+
+
+@pytest.mark.asyncio
+async def test_화면에서_고른_추천_기준이_문장에서_읽은_기준을_이긴다(monkeypatch):
+    """'엄마 선물'이라고 써도 내 기준 탭이면 내 기준으로 찾는다."""
+    async def normalize(state):
+        return {"query_spec": {"category": "base", "target": "OTHER"}}
+
+    monkeypatch.setattr(
+        builder, "_load", lambda name: normalize if name == "normalize" else None
+    )
+    알림: list[str] = []
+
+    async def on_route(상태):
+        알림.append(상태["query_spec"]["target"])
+
+    결과 = await builder.run_query(
+        {"raw_query": "엄마 선물 쿠션", "basis": "SELF"}, on_route=on_route
+    )
+    assert 알림 == ["SELF"]
+    assert 결과["query_spec"]["target"] == "SELF"
+
+
+@pytest.mark.asyncio
+async def test_경로_알림이_실패하면_실패를_알리고_올린다(monkeypatch):
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+    받은: list[Exception] = []
+
+    async def on_route(상태):
+        raise RuntimeError("기록 실패")
+
+    async def on_fail(e):
+        받은.append(e)
+
+    with pytest.raises(RuntimeError):
+        await builder.run_query({"raw_query": "쿠션"}, on_route=on_route, on_fail=on_fail)
+    assert len(받은) == 1
