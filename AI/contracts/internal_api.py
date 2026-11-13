@@ -85,6 +85,14 @@ class AgentRunV2Request(WireModel):
             raise ValueError("rawQuery 와 baseProductId 중 하나는 있어야 한다")
         return self
 
+    @model_validator(mode="after")
+    def _기준_상품과_이전_job_은_함께_오지_않는다(self) -> "AgentRunV2Request":
+        # 기준 상품이 있으면 관문을 건너뛰어 조건 수정 경로로 갈 수 없다.
+        # 이전 job 의 조건이 조용히 버려지지 않게 요청에서 막는다.
+        if self.base_product_id is not None and self.parent_job_id is not None:
+            raise ValueError("baseProductId 와 parentJobId 는 함께 보낼 수 없다")
+        return self
+
 
 # ── POST /internal/agent/clarify ──────────────────────────────
 class AgentClarifyRequest(WireModel):

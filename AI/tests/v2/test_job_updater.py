@@ -46,7 +46,10 @@ def 갱신(monkeypatch):
     # 새로 불러오면 패키지 속성이 바뀐다. 끝나면 원래대로 돌려놓는다.
     monkeypatch.setattr(services, "job_updater", None, raising=False)
     모듈 = importlib.import_module("services.job_updater")
-    return 모듈.update, 기록
+    yield 모듈.update, 기록
+    # 가짜 클라이언트를 잡은 모듈을 남기면 뒤 테스트가 그 모듈을 가져다 쓴다.
+    # 처음에 있던 모듈은 monkeypatch 가 이어서 되돌린다.
+    sys.modules.pop("services.job_updater", None)
 
 
 @pytest.mark.asyncio

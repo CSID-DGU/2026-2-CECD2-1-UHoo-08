@@ -75,6 +75,17 @@ async def test_호수_표기는_비교에서_뺀다(상품들):
 
 
 @pytest.mark.asyncio
+async def test_호수_표기처럼_보여도_상품명에_있으면_그_상품을_고른다(상품들):
+    """B5 를 먼저 빼면 세럼 B3 와 세럼 B5 를 구분하지 못한다."""
+    상품들([
+        _상품("p3", "세럼 B3", "브랜드"),
+        _상품("p5", "세럼 B5", "브랜드"),
+    ])
+    assert await product_resolver.resolve("세럼 B5") == "p5"
+    assert await product_resolver.resolve("세럼 B3") == "p3"
+
+
+@pytest.mark.asyncio
 async def test_여러_개가_맞으면_덧붙은_말이_가장_적은_상품을_고른다(상품들):
     상품들([
         _상품("p3", "네오 쿠션 글로우 리필", "라네즈"),

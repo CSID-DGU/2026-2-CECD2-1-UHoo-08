@@ -7,9 +7,10 @@
 상품을 평가하게 된다. 그보다는 되묻는 편이 낫다.
 
 이름 비교는 이렇게 한다.
-    1. 공백으로 나눈 단어에서 호수, 색상 번호("21호", "#13", "N20")는 뺀다
-    2. 상품의 브랜드에 들어 있는 단어도 뺀다. 상품명에는 브랜드가 없는 경우가 많다
-    3. 남은 단어가 모두 상품명에 들어 있으면 같은 상품으로 본다
+    1. 상품의 브랜드에 들어 있는 단어는 뺀다. 상품명에는 브랜드가 없는 경우가 많다
+    2. 남은 단어가 모두 상품명에 들어 있으면 같은 상품으로 본다
+    3. 맞는 상품이 없으면 호수, 색상 번호("21호", "#13", "N20")를 빼고 다시 비교한다.
+       "세럼 B5" 처럼 호수 표기처럼 보이는 단어가 상품명의 일부일 수 있어 처음부터 빼지 않는다
 비교할 때는 공백과 대소문자를 무시한다. "네오쿠션" 과 "네오 쿠션" 은 같다.
 후보는 단어 하나로 상품명, 브랜드 부분 일치 검색을 해서 모은다.
 
@@ -35,9 +36,14 @@ def _다듬기(글: str) -> str:
     return re.sub(r"\s+", "", 글).lower()
 
 
-def _단어들(ref: str) -> list[str]:
-    """비교에 쓸 단어. 호수, 색상 번호는 뺀다."""
-    return [w for w in ref.split() if w and not _호수_표기.match(w)]
+def _비교할_단어들(ref: str) -> list[list[str]]:
+    """비교에 쓸 단어 묶음. 전체 단어를 먼저, 호수, 색상 번호를 뺀 단어를 다음에 둔다."""
+    전체 = [w for w in ref.split() if w]
+    핵심 = [w for w in 전체 if not _호수_표기.match(w)]
+    # 호수만 말한 경우는 어떤 상품인지 모른다
+    if not 핵심:
+        return []
+    return [전체, 핵심] if 핵심 != 전체 else [전체]
 
 
 def _uuid_인가(ref: str) -> bool:
@@ -66,17 +72,26 @@ async def _id_로_찾기(ref: str) -> str | None:
 async def _이름으로_찾기(ref: str) -> str | None:
     from db.product_reader import search_products_by_name
 
-    단어들 = _단어들(ref)
-    # 긴 단어일수록 상품명일 가능성이 높고 후보가 적다. 먼저 찾아 본다.
-    for 단어 in sorted(단어들, key=len, reverse=True):
-        # 이름 검색은 부분 일치라 "네오쿠션" 으로는 "네오 쿠션" 을 못 찾는다.
-        # 그대로 찾아 없으면 글자 사이에 와일드카드를 넣어 띄어쓰기를 무시한다.
-        for 검색어 in dict.fromkeys((단어, "%".join(단어))):
-            후보 = await asyncio.to_thread(search_products_by_name, 검색어, 검색_상한)
-            맞는 = [p for p in 후보 if _같은_상품인가(단어들, p)]
-            if 맞는:
-                # 같은 결과가 나오도록 덧붙은 말이 가장 적은 이름, 그다음 id 순으로 고른다
-                return min(맞는, key=lambda p: (len(p.get("name") or ""), p["id"]))["id"]
+    # 같은 단어로 두 번 검색하지 않게 결과를 남겨 둔다
+    검색_결과: dict[str, list[dict]] = {}
+
+    async def 검색(검색어: str) -> list[dict]:
+        if 검색어 not in 검색_결과:
+            검색_결과[검색어] = await asyncio.to_thread(
+                search_products_by_name, 검색어, 검색_상한
+            )
+        return 검색_결과[검색어]
+
+    for 단어들 in _비교할_단어들(ref):
+        # 긴 단어일수록 상품명일 가능성이 높고 후보가 적다. 먼저 찾아 본다.
+        for 단어 in sorted(단어들, key=len, reverse=True):
+            # 이름 검색은 부분 일치라 "네오쿠션" 으로는 "네오 쿠션" 을 못 찾는다.
+            # 그대로 찾아 없으면 글자 사이에 와일드카드를 넣어 띄어쓰기를 무시한다.
+            for 검색어 in dict.fromkeys((단어, "%".join(단어))):
+                맞는 = [p for p in await 검색(검색어) if _같은_상품인가(단어들, p)]
+                if 맞는:
+                    # 같은 결과가 나오도록 덧붙은 말이 가장 적은 이름, 그다음 id 순으로 고른다
+                    return min(맞는, key=lambda p: (len(p.get("name") or ""), p["id"]))["id"]
     return None
 
 

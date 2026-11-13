@@ -139,13 +139,25 @@ async def _돌리기(상태: dict) -> None:
         # 실패 기록은 on_fail 이 이미 남겼다. 배경 작업이라 올려도 받을 곳이 없다.
         return
 
+    async def 스냅샷_남기기(스냅샷: dict) -> bool:
+        # 스냅샷을 못 남기면 이어 돌리기도, 조건 수정도 할 수 없다.
+        # 진행 중으로 남겨 두지 않고 바로 실패로 적는다.
+        try:
+            await job_store.save_snapshot(job_id, 스냅샷)
+        except Exception as e:
+            logger.exception("스냅샷을 남기지 못했다 job=%s", job_id)
+            await 실패(e)
+            return False
+        return True
+
     질문 = 결과.get("clarify_question")
     if 질문:
         # 되묻는 중은 실패가 아니다. job 을 멈춘 채로 두고 답을 기다린다.
         # 답이 오면 남긴 상태를 꺼내 이어서 돈다.
-        await job_store.save_snapshot(
-            job_id, {키: 결과.get(키) for 키 in _남길_키 if 결과.get(키) is not None}
-        )
+        if not await 스냅샷_남기기(
+            {키: 결과.get(키) for 키 in _남길_키 if 결과.get(키) is not None}
+        ):
+            return
         await job_updater.update(
             job_id,
             status=JobStatus.NEEDS_CLARIFICATION.value,
@@ -156,7 +168,8 @@ async def _돌리기(상태: dict) -> None:
 
     # 스냅샷을 먼저 남긴다. 완료를 먼저 적으면 BE 가 스냅샷이 비어 있는
     # 완료 job 을 읽을 수 있다.
-    await job_store.save_snapshot(job_id, _완료_스냅샷(결과))
+    if not await 스냅샷_남기기(_완료_스냅샷(결과)):
+        return
     # 조건 수정은 경로 중에 질의가 부모 조건과 합쳐지므로 완료 때 한 번 더 적는다.
     await job_updater.update(
         job_id,

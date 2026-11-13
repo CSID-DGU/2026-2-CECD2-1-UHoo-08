@@ -230,6 +230,25 @@ async def test_완료_때_스냅샷을_먼저_남기고_완료로_바꾼다(기�
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("반환", [
+    {"result": {"items": []}},
+    {"clarify_question": "예산이 얼마인가요?"},
+])
+async def test_스냅샷을_못_남기면_FAILED로_남긴다(기록, 실행대역, monkeypatch, 반환):
+    """진행 중으로 남으면 정리 배치가 돌 때까지 job 이 진행 중으로 보인다."""
+    async def 저장_실패(job_id, snapshot):
+        raise RuntimeError("스냅샷 저장 실패")
+
+    monkeypatch.setattr(sys.modules["services.job_store"], "save_snapshot", 저장_실패)
+    실행대역(반환)
+    await agent._실행(_요청)
+
+    assert 기록.마지막["status"] == "FAILED"
+    assert "스냅샷 저장 실패" in 기록.마지막["error_msg"]
+    assert all(c.get("status") not in ("COMPLETED", "NEEDS_CLARIFICATION") for c in 기록.호출)
+
+
+@pytest.mark.asyncio
 async def test_완료_스냅샷에_필요한_값만_줄여_담는다(기록, 실행대역):
     후보들 = [
         {"product_id": f"p{i}", "source": "vector", "similarity": 0.9, "extra": "버림"}
