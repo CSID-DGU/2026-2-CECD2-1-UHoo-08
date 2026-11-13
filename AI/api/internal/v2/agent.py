@@ -99,10 +99,21 @@ def _완료_스냅샷(상태: dict) -> dict:
 
 
 async def _돌리기(상태: dict) -> None:
-    """관문부터 끝까지 돌리고 결과를 job 에 적는다."""
-    from services import job_store, job_updater
+    """사용자 맥락을 채우고, 관문부터 끝까지 돌리고, 결과를 job 에 적는다."""
+    from services import job_store, job_updater, user_context
 
     job_id = 상태["job_id"]
+
+    # 프로필은 스냅샷에 남기지 않고 돌릴 때마다 읽는다. 되묻기 답변으로
+    # 이어 돌릴 때도 남긴 추천 기준으로 다시 읽는다.
+    try:
+        상태.update(await user_context.load(
+            상태["user_id"], 상태.get("basis") or Target.SELF.value, 상태.get("target_profile"),
+        ))
+    except Exception as e:
+        logger.exception("사용자 맥락을 읽지 못했다 job=%s", job_id)
+        await job_updater.update(job_id, status=JobStatus.FAILED.value, error_msg=str(e))
+        return
 
     async def 진행(문구: str, 비율: int, 단계들: list[dict]) -> None:
         await job_updater.update(

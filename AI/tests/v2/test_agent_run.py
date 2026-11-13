@@ -50,6 +50,17 @@ def 기록(monkeypatch):
     저장소 = types.SimpleNamespace(save_snapshot=저장)
     monkeypatch.setitem(sys.modules, "services.job_store", 저장소)
     monkeypatch.setattr(services, "job_store", 저장소, raising=False)
+
+    # 사용자 맥락도 DB 에서 읽는다. 받은 인자를 남겨 두고 고정 값을 돌려준다.
+    from services import user_context
+
+    가짜.맥락_인자 = None
+
+    async def 맥락(user_id, basis, target_profile):
+        가짜.맥락_인자 = (user_id, basis, target_profile)
+        return {"user_profile": {"skin_type": "DRY"}, "weight_prior": {"review": 0.5}}
+
+    monkeypatch.setattr(user_context, "load", 맥락)
     return 가짜
 
 
@@ -272,3 +283,34 @@ async def test_대체_후보를_뺀_수를_남긴다(기록, 실행대역):
     실행대역({"alternatives_dropped_count": 3, "result": {}})
     await agent._실행(_요청)
     assert 기록.스냅샷["alternatives_dropped_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_돌리기_전에_사용자_맥락을_채운다(기록, 실행대역):
+    받은 = 실행대역({"result": {}})
+    await agent._실행(AgentRunV2Request(
+        job_id="j1", user_id="u1", raw_query="엄마 선물 쿠션",
+        basis="OTHER", target_profile={"skinType": "OILY"},
+    ))
+
+    assert 기록.맥락_인자 == ("u1", "OTHER", {"skinType": "OILY"})
+    assert 받은["user_profile"] == {"skin_type": "DRY"}
+    assert 받은["weight_prior"] == {"review": 0.5}
+
+
+@pytest.mark.asyncio
+async def test_사용자_맥락을_못_읽으면_돌리지_않고_FAILED로_남긴다(기록, monkeypatch):
+    from services import user_context
+
+    async def 터짐(*args):
+        raise RuntimeError("users 조회 실패")
+
+    async def 돌면_안_됨(*args, **kwargs):
+        raise AssertionError("맥락 없이 돌았다")
+
+    monkeypatch.setattr(user_context, "load", 터짐)
+    monkeypatch.setattr(agent.builder, "run_query", 돌면_안_됨)
+    await agent._실행(_요청)
+
+    assert 기록.마지막["status"] == "FAILED"
+    assert "users 조회 실패" in 기록.마지막["error_msg"]
