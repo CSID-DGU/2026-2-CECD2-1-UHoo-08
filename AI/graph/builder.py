@@ -219,6 +219,45 @@ def _기준을_맞춘다(상태: dict) -> None:
         상태["query_spec"] = {**spec, "target": 기준}
 
 
+# 평가할 상품을 찾지 못했을 때 되묻는 문장. 라우터가 같은 경우에 묻는 문장과 같다.
+상품_되묻기 = "어떤 제품을 말씀하시는지 알려주세요."
+
+
+async def _기준_상품을_찾는다(상태: dict) -> None:
+    """평가 경로인데 상품 id 가 없으면 질의 속 상품 이름으로 찾는다.
+
+    못 찾았으면 처음에는 되묻는다. 이미 한 번 물었는데도 못 찾으면 그 이름을
+    조건으로 넣어 조건 탐색으로 바꾼다. 결과를 아예 안 주는 것보다 낫다.
+
+    라우터가 이미 되묻기로 정했으면 건드리지 않는다. 답을 받아 다시 돌 때 찾는다.
+    """
+    if 상태.get("scenario") != ROUTE[RequestType.EVALUATE]:
+        return
+    if 상태.get("base_product_id") or 상태.get("clarify_question"):
+        return
+
+    from services import product_resolver
+
+    spec = dict(상태.get("query_spec") or {})
+    이름 = (spec.get("base_product_ref") or "").strip()
+    찾은 = await product_resolver.resolve(이름)
+    if 찾은:
+        상태["base_product_id"] = 찾은
+        return
+
+    if (상태.get("clarify_count") or 0) == 0:
+        상태["clarify_question"] = 상품_되묻기
+        상태["clarify_missing_fields"] = ["base_product_ref"]
+        return
+
+    logger.info("평가할 상품 '%s' 를 끝내 찾지 못했다. 조건 탐색으로 바꾼다.", 이름)
+    조건 = list(spec.get("conditions") or [])
+    if 이름 and 이름 not in 조건:
+        조건.append(이름)
+    상태["query_spec"] = {**spec, "request_type": RequestType.SEARCH.value, "conditions": 조건}
+    상태["scenario"] = ROUTE[RequestType.SEARCH]
+
+
 async def _경로를_알린다(상태: dict, on_route: RouteHook | None) -> None:
     if on_route is not None:
         await on_route(상태)
@@ -246,6 +285,7 @@ async def run_query(
     멈춘 상태로 남기고 사용자의 답을 기다린다.
 
     기준 상품이 있으면 해석할 것이 없으므로 관문 없이 평가 경로를 돈다.
+    관문이 평가 경로를 골랐는데 기준 상품이 없으면 질의 속 상품 이름으로 찾는다.
 
     경로가 정해지면 on_route 를 부른다. 되묻느라 멈추는 경우도 부른다.
     끝날 때까지 기다리면 진행 중인 job 의 시나리오가 화면에 보이지 않는다.
@@ -279,6 +319,7 @@ async def run_query(
             상태.update(await 단계(상태))
         if not 상태.get("scenario"):
             상태["scenario"] = 기본_시나리오()
+        await _기준_상품을_찾는다(상태)
         _기준을_맞춘다(상태)
         await _경로를_알린다(상태, on_route)
     except Exception as e:

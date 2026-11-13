@@ -393,3 +393,131 @@ async def test_경로_알림이_실패하면_실패를_알리고_올린다(monke
     with pytest.raises(RuntimeError):
         await builder.run_query({"raw_query": "쿠션"}, on_route=on_route, on_fail=on_fail)
     assert len(받은) == 1
+
+
+@pytest.fixture
+def 상품_해석(monkeypatch):
+    """상품 이름 해석을 가짜로 둔다. 받은 이름을 남긴다."""
+    from services import product_resolver
+
+    def 세우기(찾을: dict):
+        받은: list = []
+
+        async def resolve(ref):
+            받은.append(ref)
+            return 찾을.get(ref)
+
+        monkeypatch.setattr(product_resolver, "resolve", resolve)
+        return 받은
+
+    return 세우기
+
+
+def _평가_라우터(이름="라네즈 네오쿠션", **더):
+    async def router(state):
+        return {
+            "scenario": "S1_EVALUATE",
+            "query_spec": {"request_type": "EVALUATE", "base_product_ref": 이름,
+                           "conditions": ["촉촉"]},
+            "clarify_question": None, "clarify_missing_fields": [], **더,
+        }
+    return router
+
+
+@pytest.mark.asyncio
+async def test_평가할_상품_이름을_id로_찾아_진행한다(monkeypatch, 상품_해석):
+    받은 = 상품_해석({"라네즈 네오쿠션": "p1"})
+    라우터 = _평가_라우터()
+    monkeypatch.setattr(builder, "_load", lambda name: 라우터 if name == "router" else None)
+    알림: list[dict] = []
+
+    async def on_route(상태):
+        알림.append(dict(상태))
+
+    결과 = await builder.run_query({"raw_query": "라네즈 네오쿠션 어때?"}, on_route=on_route)
+    assert 받은 == ["라네즈 네오쿠션"]
+    # 경로를 알리기 전에 찾아 둔다
+    assert 알림[0]["base_product_id"] == "p1"
+    assert 결과["scenario"] == "S1_EVALUATE"
+    assert 결과["base_product_id"] == "p1"
+    assert not 결과.get("clarify_question")
+    assert "discovery(stub)" in 결과["trace"]
+
+
+@pytest.mark.asyncio
+async def test_상품을_처음_못_찾으면_되묻는다(monkeypatch, 상품_해석):
+    상품_해석({})
+    라우터 = _평가_라우터()
+    monkeypatch.setattr(builder, "_load", lambda name: 라우터 if name == "router" else None)
+    알림: list[dict] = []
+
+    async def on_route(상태):
+        알림.append(dict(상태))
+
+    결과 = await builder.run_query({"raw_query": "라네즈 네오쿠션 어때?"}, on_route=on_route)
+    assert 결과["clarify_question"] == "어떤 제품을 말씀하시는지 알려주세요."
+    assert 결과["clarify_missing_fields"] == ["base_product_ref"]
+    assert 결과["trace"] == ["normalize(stub)", "router"]
+    assert 알림[0]["clarify_question"] == 결과["clarify_question"]
+
+
+@pytest.mark.asyncio
+async def test_한_번_물은_뒤에도_못_찾으면_이름을_조건으로_검색한다(monkeypatch, 상품_해석):
+    상품_해석({})
+    라우터 = _평가_라우터()
+    monkeypatch.setattr(builder, "_load", lambda name: 라우터 if name == "router" else None)
+    알림: list[str] = []
+
+    async def on_route(상태):
+        알림.append(상태["scenario"])
+
+    결과 = await builder.run_query(
+        {"raw_query": "라네즈 네오쿠션 어때?", "clarify_count": 1}, on_route=on_route,
+    )
+    assert 알림 == ["S2_SEARCH"]
+    assert 결과["scenario"] == "S2_SEARCH"
+    assert not 결과.get("clarify_question")
+    assert 결과["query_spec"]["request_type"] == "SEARCH"
+    assert 결과["query_spec"]["conditions"] == ["촉촉", "라네즈 네오쿠션"]
+    assert "retrieve(stub)" in 결과["trace"]
+
+
+@pytest.mark.asyncio
+async def test_라우터가_이미_되물으면_상품을_찾지_않는다(monkeypatch, 상품_해석):
+    받은 = 상품_해석({})
+    라우터 = _평가_라우터(이름=None, clarify_question="어떤 제품을 말씀하시는지 알려주세요.",
+                         clarify_missing_fields=["base_product_ref"])
+    monkeypatch.setattr(builder, "_load", lambda name: 라우터 if name == "router" else None)
+
+    결과 = await builder.run_query({"raw_query": "이거 어때?"})
+    assert 받은 == []
+    assert 결과["clarify_missing_fields"] == ["base_product_ref"]
+
+
+@pytest.mark.asyncio
+async def test_평가_경로가_아니면_상품을_찾지_않는다(monkeypatch, 상품_해석):
+    받은 = 상품_해석({})
+    monkeypatch.setattr(builder, "_load", lambda name: None)
+
+    await builder.run_query({"raw_query": "쿠션 추천"})
+    assert 받은 == []
+
+
+@pytest.mark.asyncio
+async def test_상품_찾기가_터지면_실패를_알리고_올린다(monkeypatch):
+    from services import product_resolver
+
+    async def resolve(ref):
+        raise RuntimeError("DB 끊김")
+
+    monkeypatch.setattr(product_resolver, "resolve", resolve)
+    라우터 = _평가_라우터()
+    monkeypatch.setattr(builder, "_load", lambda name: 라우터 if name == "router" else None)
+    받은: list[Exception] = []
+
+    async def on_fail(e):
+        받은.append(e)
+
+    with pytest.raises(RuntimeError):
+        await builder.run_query({"raw_query": "라네즈 네오쿠션 어때?"}, on_fail=on_fail)
+    assert len(받은) == 1
