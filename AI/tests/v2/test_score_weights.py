@@ -50,6 +50,13 @@ def test_특징_조건이_있으면_조건_일치를_켠다():
     assert 결과["query_fit"] == 0.3
 
 
+@pytest.mark.parametrize("선호값, 기대", [(0.0, 0.3), (0.8, 0.8)])
+def test_특징_조건은_조건_일치_가중치를_최소값까지_올린다(선호값, 기대):
+    결과 = decide({**DEFAULT_WEIGHTS, "query_fit": 선호값},
+                 _스펙(features={"texture": "가벼운"}), "SELF", _모두)
+    assert 결과["query_fit"] == 기대
+
+
 @pytest.mark.parametrize("선호값, 기대", [(0.0, 0.25), (0.4, 0.4)])
 def test_환경_요청은_환경_가중치를_최소값까지_올린다(선호값, 기대):
     결과 = decide({**DEFAULT_WEIGHTS, "env_fit": 선호값}, _스펙(use_env=True), "SELF", _모두)
@@ -72,6 +79,11 @@ def test_전체_인기_기준이면_개인화를_끄고_인기를_켠다():
     결과 = decide({**DEFAULT_WEIGHTS, "personalization": 0.6}, _스펙(), "POPULAR", _모두)
     assert 결과["personalization"] == 0.0
     assert 결과["popularity"] == 0.35
+
+
+def test_전체_인기_기준이어도_피드백으로_올라간_인기_가중치는_남는다():
+    결과 = decide({**DEFAULT_WEIGHTS, "popularity": 0.5}, _스펙(), "POPULAR", _모두)
+    assert 결과["popularity"] == 0.5
 
 
 def test_불러오지_못한_항목은_0이다():

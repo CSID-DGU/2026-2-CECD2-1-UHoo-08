@@ -26,7 +26,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "popularity": 0.0,
 }
 
-# 요청 플래그가 켜는 항목의 가중치
+# 요청 플래그가 켜는 항목의 최소 가중치. 선호 가중치가 더 크면 선호 가중치를 쓴다.
 조건_일치_가중치 = 0.3
 환경_최소_가중치 = 0.25
 가성비_최소_가중치 = 0.3
@@ -55,7 +55,7 @@ def decide(
     }
 
     if spec.features:
-        가중치["query_fit"] = 조건_일치_가중치
+        가중치["query_fit"] = max(가중치.get("query_fit", 0.0), 조건_일치_가중치)
     if spec.use_env:
         가중치["env_fit"] = max(가중치.get("env_fit", 0.0), 환경_최소_가중치)
     if spec.value_seeking:
@@ -63,7 +63,7 @@ def decide(
     if basis == Target.POPULAR:
         # 전체 인기 기준이면 개인 프로필을 따지지 않는다
         가중치["personalization"] = 0.0
-        가중치["popularity"] = 인기_가중치
+        가중치["popularity"] = max(가중치.get("popularity", 0.0), 인기_가중치)
 
     return {
         키: (min(1.0, max(0.0, 가중치.get(키, 0.0))) if 키 in active else 0.0)
