@@ -180,6 +180,31 @@ async def test_선호_가중치로_비중을_정한다(항목들):
 
 
 @pytest.mark.asyncio
+async def test_가중치가_0인_항목은_계산하지_않는다(항목들):
+    """총점에 들어가지 않는 항목이 실패해서 채점 전체가 실패하면 안 된다."""
+    async def 후기_조회_실패(products, ctx):
+        raise RuntimeError("후기 DB 조회 실패")
+
+    항목들(budget_fit=_항목({"p1": 70}), review=후기_조회_실패)
+    결과 = await scoring.score_products(
+        [_상품("p1")], _맥락(), {"budget_fit": 1.0, "review": 0.0}, lite=True,
+    )
+    assert 결과[0]["total"] == 70
+
+
+@pytest.mark.asyncio
+async def test_가중치가_있는_항목의_예외는_그대로_올린다(항목들):
+    async def 후기_조회_실패(products, ctx):
+        raise RuntimeError("후기 DB 조회 실패")
+
+    항목들(budget_fit=_항목({"p1": 70}), review=후기_조회_실패)
+    with pytest.raises(RuntimeError, match="후기 DB 조회 실패"):
+        await scoring.score_products(
+            [_상품("p1")], _맥락(), {"budget_fit": 1.0, "review": 0.5}, lite=True,
+        )
+
+
+@pytest.mark.asyncio
 async def test_lite면_LLM을_부르지_않는다(항목들, LLM):
     불린 = LLM({"review": 2.0})
     항목들(review=_항목({"p1": 80}))

@@ -5,10 +5,13 @@
 
 순서는 이렇다.
     1. 카테고리별 가격 중앙값을 낸다. 이번 후보와 보유 제품 가격을 함께 쓴다
-    2. 모든 항목을 동시에 계산한다. 항목 안의 예외는 삼키지 않는다
-    3. 가중치를 정한다. full 모드면 LLM 배수 보정을 한 번 더 한다
-    4. 점수를 낼 수 없는 상품을 빼고 총점을 합친다
-    5. 총점, 같으면 검색 유사도 순으로 정렬한다
+    2. 기본 가중치를 정한다
+    3. 가중치가 있는 항목만 동시에 계산한다. 항목 안의 예외는 삼키지 않는다.
+       가중치가 0인 항목은 총점에 들어가지 않으므로, 그 항목이 실패해서 채점
+       전체가 실패하면 안 된다
+    4. full 모드면 LLM 배수 보정을 한 번 더 한다. 배수는 0인 가중치를 켜지 않는다
+    5. 점수를 낼 수 없는 상품을 빼고 총점을 합친다
+    6. 총점, 같으면 검색 유사도 순으로 정렬한다
 
 점수를 낼 수 없는 상품은 데이터가 비어 있는 상품이라 빼고 개수만 남긴다. 모든
 상품이 그렇다면 상품이 아니라 설정이 잘못된 것이므로 예외를 올린다.
@@ -115,10 +118,7 @@ async def _llm_배수(가중치: dict[str, float], ctx: ScoreContext) -> dict[st
     return validate_multipliers(원본, 켜진)
 
 
-async def _가중치(
-    ctx: ScoreContext, prior: dict | None, 항목_키: set[str], lite: bool,
-) -> dict[str, float]:
-    가중치 = decide(prior, ctx.query_spec, ctx.query_spec.target.value, 항목_키)
+async def _보정(ctx: ScoreContext, 가중치: dict[str, float], lite: bool) -> dict[str, float]:
     if lite:
         return 가중치
     배수 = await _llm_배수(가중치, ctx)
@@ -143,9 +143,12 @@ async def score_products(
     항목들 = load_scorers()
     ctx = ctx.model_copy(update={"category_stats": category_stats(products, ctx.inventory)})
 
-    결과들 = await asyncio.gather(*(함수(products, ctx) for 함수 in 항목들.values()))
-    항목별 = dict(zip(항목들, 결과들))
-    가중치 = await _가중치(ctx, prior, set(항목들), lite)
+    기본_가중치 = decide(prior, ctx.query_spec, ctx.query_spec.target.value, set(항목들))
+    쓸_항목 = {키: 함수 for 키, 함수 in 항목들.items() if 기본_가중치.get(키, 0) > 0}
+
+    결과들 = await asyncio.gather(*(함수(products, ctx) for 함수 in 쓸_항목.values()))
+    항목별 = dict(zip(쓸_항목, 결과들))
+    가중치 = await _보정(ctx, 기본_가중치, lite)
 
     매긴: list[tuple[dict, float]] = []
     뺀 = 0
