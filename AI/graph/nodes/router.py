@@ -13,6 +13,13 @@ LLM 을 부르지 않는다. 같은 값이면 언제나 같은 경로로 가야 
 물을 것이 없으면 clarify_question 에 None 을 적는다. 비워 두면 앞서 물었던
 질문이 상태에 남아, 답을 받아 다시 돌 때 같은 자리에서 또 멈춘다.
 clarify_missing_fields 도 같은 이유로 매번 새로 적는다.
+
+이전 job(parent_job_id)이 있으면 요청 유형과 상관없이 조건 수정(S7)으로
+보내고 되묻지 않는다. 화면의 조건 추가는 이전 결과 위에서 하는 일이다.
+Normalize 가 "무향 제품으로" 를 조건 탐색으로 읽어도 이전 결과와 이어져야
+한다. 부족한 조건은 조건 수정 단계가 이전 질의에서 채운다.
+
+이전 job 없이 조건 수정으로 읽히면 수정할 대상이 없으므로 새 검색으로 본다.
 """
 from __future__ import annotations
 
@@ -33,6 +40,8 @@ logger = logging.getLogger(__name__)
 
 # 조건이 하나도 없을 때 갈 곳. 조건 탐색은 빈손으로도 돌아간다.
 기본_시나리오 = ROUTE[RequestType.SEARCH]
+# 이전 job 이 있는 요청이 가는 곳
+조건_수정_시나리오 = ROUTE[RequestType.REFINE]
 
 # 비어 있는 필드별로 무엇을 되물을지. 문장이 코드에 있으므로 같은 상황에서
 # 항상 같은 것을 묻는다.
@@ -45,6 +54,14 @@ _막연할_때 = "어떤 제품을 찾으시는지 조금 더 알려주세요. �
 
 
 async def router(state: GraphState) -> dict:
+    if state.get("parent_job_id"):
+        # 스펙이 깨져 있어도 이전 질의가 있으므로 되묻지 않는다.
+        return {
+            "scenario": 조건_수정_시나리오,
+            "clarify_question": None,
+            "clarify_missing_fields": [],
+        }
+
     try:
         spec = QuerySpec.model_validate(state.get("query_spec") or {})
     except ValidationError:
@@ -59,9 +76,9 @@ async def router(state: GraphState) -> dict:
 
     시나리오 = ROUTE[spec.request_type]
 
-    # 조건 수정은 직전 job 의 스냅샷에서 후보와 조건을 꺼내 쓴다. 그게 없으면
-    # 수정할 대상이 없으므로 새 검색으로 본다. 사용자에게 물어볼 일은 아니다.
-    if spec.request_type is RequestType.REFINE and not state.get("parent_job_id"):
+    # 조건 수정은 직전 job 의 스냅샷에서 후보와 조건을 꺼내 쓴다. 여기까지 오면
+    # 직전 job 이 없으므로 새 검색으로 본다. 사용자에게 물어볼 일은 아니다.
+    if spec.request_type is RequestType.REFINE:
         logger.info("router: 수정할 직전 결과가 없다. 새 검색으로 돈다.")
         시나리오 = 기본_시나리오
 

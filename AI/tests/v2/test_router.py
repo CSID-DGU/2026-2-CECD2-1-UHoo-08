@@ -28,8 +28,10 @@ async def test_요청_유형이_경로를_정한다(유형, 기대):
         RequestType.BUNDLE: {"budget": Budget(total=100_000),
                              "bundle_steps": [BundleStep(label="토너")]},
     }.get(유형, {})
-    나옴 = await router({"query_spec": _스펙(request_type=유형, **채움),
-                        "parent_job_id": "j0"})
+    상태 = {"query_spec": _스펙(request_type=유형, **채움)}
+    if 유형 is RequestType.REFINE:
+        상태["parent_job_id"] = "j0"
+    나옴 = await router(상태)
     assert 나옴["scenario"] == 기대
     assert 나옴["clarify_question"] is None
 
@@ -130,3 +132,35 @@ async def test_한_번_물은_뒤에는_빠진_항목을_남기지_않는다():
     })
     assert 나옴["clarify_question"] is None
     assert 나옴["clarify_missing_fields"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("유형", [RequestType.SEARCH, RequestType.EVALUATE, RequestType.BUNDLE])
+async def test_이전_job이_있으면_유형과_상관없이_조건_수정으로_간다(유형):
+    """화면의 조건 추가는 "무향 제품으로" 처럼 조건 탐색으로 읽히는 문장을 보낸다.
+    그래도 이전 결과와 이어져야 한다."""
+    나옴 = await router({"query_spec": _스펙(request_type=유형), "parent_job_id": "j0"})
+    assert 나옴 == {
+        "scenario": "S7_REFINE", "clarify_question": None, "clarify_missing_fields": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_이전_job이_있으면_막연해도_되묻지_않는다():
+    """부족한 조건은 조건 수정 단계가 이전 질의에서 채운다."""
+    나옴 = await router({
+        "query_spec": _스펙(confidence=0.1),
+        "parent_job_id": "j0",
+        "clarify_question": "어떤 제품을 찾으시는지 조금 더 알려주세요.",
+        "clarify_missing_fields": ["base_product_ref"],
+    })
+    assert 나옴["scenario"] == "S7_REFINE"
+    assert 나옴["clarify_question"] is None
+    assert 나옴["clarify_missing_fields"] == []
+
+
+@pytest.mark.asyncio
+async def test_이전_job이_있으면_스펙이_깨져도_되묻지_않는다():
+    나옴 = await router({"query_spec": {"request_type": "NOPE"}, "parent_job_id": "j0"})
+    assert 나옴["scenario"] == "S7_REFINE"
+    assert 나옴["clarify_question"] is None
