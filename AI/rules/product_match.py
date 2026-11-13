@@ -42,6 +42,14 @@ _피부_고민 = {
 }
 
 
+def has_comparable_features(query_feat: dict[str, Any], product_feat: dict[str, Any]) -> bool:
+    """조건 특징 중 상품에도 값이 있는 항목이 하나라도 있는지."""
+    return any(
+        qval is not None and product_feat.get(key) is not None
+        for key, qval in query_feat.items()
+    )
+
+
 def feature_match_ratio(query_feat: dict[str, Any], product_feat: dict[str, Any]) -> float:
     """조건 특징과 상품 특징이 맞는 정도 0~1. 비교할 항목이 없으면 0."""
     total = matched = 0.0

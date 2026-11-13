@@ -171,6 +171,20 @@ async def test_질의_특징과_맞는_비율로_점수를_낸다():
 
 
 @pytest.mark.asyncio
+async def test_비교할_특징이_없는_상품은_None이고_맞지_않는_상품은_0이다():
+    """특징이 없는 상품을 0 으로 두면 맞지 않는 상품과 구분되지 않는다."""
+    맥락 = _맥락(spec={"features": {"finish": "매트"}})
+    상품들 = [
+        _상품("빈", feature_json={}),
+        _상품("없음", feature_json=None),
+        _상품("다른_항목만", feature_json={"texture": "가벼운"}),
+        _상품("불일치", feature_json={"finish": "글로우"}),
+    ]
+    결과 = await query_fit(상품들, 맥락)
+    assert 결과 == {"빈": None, "없음": None, "다른_항목만": None, "불일치": 0}
+
+
+@pytest.mark.asyncio
 async def test_질의에_특징이_없으면_조건_일치는_None이다():
     결과 = await query_fit([_상품(feature_json={"texture": "가벼운"})], _맥락())
     assert 결과 == {"p1": None}
