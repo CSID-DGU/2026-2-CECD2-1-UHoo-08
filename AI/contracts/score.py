@@ -20,6 +20,9 @@ SCORE_LABELS: dict[str, str] = {
     "personalization": "내 피부 적합",
     "env_fit": "환경 적합",
     "value_signal": "가성비",
+    "query_fit": "조건 일치",
+    "popularity": "인기",
+    "similarity": "비슷한 정도",
 }
 
 
@@ -63,6 +66,8 @@ class ScoreContext(BaseModel):
     env_summary: dict[str, Any] | None = None
     # 카테고리 평균가처럼 후보 하나만 봐서는 알 수 없는 값.
     category_stats: dict[str, Any] = Field(default_factory=dict)
+    # 질의 문장의 임베딩. 리뷰 점수가 리뷰와 비교한다. 없으면 리뷰 점수는 None 이다.
+    intent_vector: list[float] | None = None
 
 
 class Scorer(Protocol):

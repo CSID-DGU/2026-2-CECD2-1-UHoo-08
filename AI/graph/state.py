@@ -65,7 +65,7 @@ class GraphState(TypedDict, total=False):
     # slot_key 는 예산 세트에서 칸별로 찾은 후보에만 있다.
     candidates: list[dict]
     # 후보의 상품 정보. Retrieve, Discovery, Alternative, Collaborative 가 채우고
-    # 이후 모든 노드가 읽는다. 같은 상품을 노드마다 다시 조회하지 않으려는 것이다.
+    # (Score 는 빠진 상품만 채운다) 이후 모든 노드가 읽는다. 같은 상품을 노드마다 다시 조회하지 않으려는 것이다.
     # {product_id: {name, brand, category, image_url, price, original_price,
     #               lowest_price, feature_json, ingredients, average_score, review_count}}
     product_meta: dict
