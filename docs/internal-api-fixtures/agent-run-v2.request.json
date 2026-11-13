@@ -2,7 +2,7 @@
   "jobId": "9d20f0a1-7c3e-4b52-8a11-2f6d9c0e4b10",
   "userId": "3b1e8c2a-51d4-4e77-9f02-6a7c8d9e0f11",
   "rawQuery": "여름 가벼운 매트 쿠션",
-  "baseProductId": "7c2f4a90-3d1e-4b68-9a25-1e8f6d0b7c33",
+  "baseProductId": null,
   "basis": "OTHER",
   "targetProfile": {
     "relation": "MOM",

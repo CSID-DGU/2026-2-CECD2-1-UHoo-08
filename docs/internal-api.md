@@ -22,6 +22,7 @@ AI 는 `AI/tests/v2/test_internal_api_fixtures.py`, BE 는 `AiContractTest` 로 
 
 `baseProductId` 가 있으면 문장을 해석하지 않고 평가 경로(S1)로 바로 간다. 되묻지도 않는다.
 `rawQuery` 가 함께 와도 조건으로 읽지 않는다.
+`baseProductId` 와 `parentJobId` 는 함께 보낼 수 없다(422). 조건 수정은 기준 상품 없이 보낸다.
 
 기존 `/internal/agent/run`(ReAct)과 `/internal/search` 는 그대로 둔다. v2 가 그 역할을
 대신할 때까지 현재 서비스가 돌아야 한다.

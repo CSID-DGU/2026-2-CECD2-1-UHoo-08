@@ -32,6 +32,8 @@ Node = Callable[[GraphState], Awaitable[dict]]
 # (화면에 보일 문구, 0~100, 단계 목록)
 ProgressHook = Callable[[str, int, list[dict]], Awaitable[None]]
 FailHook = Callable[[Exception], Awaitable[None]]
+# 경로가 정해진 직후의 상태를 받는다. 부른 쪽이 시나리오와 질의 해석을 job 에 적는다.
+RouteHook = Callable[[dict], Awaitable[None]]
 
 
 async def _pass_through(state: GraphState) -> dict:
@@ -205,6 +207,62 @@ def _기준_상품_스펙(상태: dict) -> dict:
     ).model_dump(mode="json")
 
 
+def _기준을_맞춘다(상태: dict) -> None:
+    """화면에서 고른 추천 기준 탭이 문장에서 읽은 기준보다 우선한다.
+
+    "엄마 선물" 이라고 써도 사용자가 '내 기준' 탭에 있으면 내 기준으로 찾는다.
+    뒤 단계는 query_spec.target 만 보므로 여기서 한 번 맞춰 둔다.
+    """
+    기준 = 상태.get("basis")
+    spec = 상태.get("query_spec")
+    if 기준 and isinstance(spec, dict):
+        상태["query_spec"] = {**spec, "target": 기준}
+
+
+# 평가할 상품을 찾지 못했을 때 되묻는 문장. 라우터가 같은 경우에 묻는 문장과 같다.
+상품_되묻기 = "어떤 제품을 말씀하시는지 알려주세요."
+
+
+async def _기준_상품을_찾는다(상태: dict) -> None:
+    """평가 경로인데 상품 id 가 없으면 질의 속 상품 이름으로 찾는다.
+
+    못 찾았으면 처음에는 되묻는다. 이미 한 번 물었는데도 못 찾으면 그 이름을
+    조건으로 넣어 조건 탐색으로 바꾼다. 결과를 아예 안 주는 것보다 낫다.
+
+    라우터가 이미 되묻기로 정했으면 건드리지 않는다. 답을 받아 다시 돌 때 찾는다.
+    """
+    if 상태.get("scenario") != ROUTE[RequestType.EVALUATE]:
+        return
+    if 상태.get("base_product_id") or 상태.get("clarify_question"):
+        return
+
+    from services import product_resolver
+
+    spec = dict(상태.get("query_spec") or {})
+    이름 = (spec.get("base_product_ref") or "").strip()
+    찾은 = await product_resolver.resolve(이름)
+    if 찾은:
+        상태["base_product_id"] = 찾은
+        return
+
+    if (상태.get("clarify_count") or 0) == 0:
+        상태["clarify_question"] = 상품_되묻기
+        상태["clarify_missing_fields"] = ["base_product_ref"]
+        return
+
+    logger.info("평가할 상품 '%s' 를 끝내 찾지 못했다. 조건 탐색으로 바꾼다.", 이름)
+    조건 = list(spec.get("conditions") or [])
+    if 이름 and 이름 not in 조건:
+        조건.append(이름)
+    상태["query_spec"] = {**spec, "request_type": RequestType.SEARCH.value, "conditions": 조건}
+    상태["scenario"] = ROUTE[RequestType.SEARCH]
+
+
+async def _경로를_알린다(상태: dict, on_route: RouteHook | None) -> None:
+    if on_route is not None:
+        await on_route(상태)
+
+
 # 관문이 차지하는 진행률. 질의 해석은 전체에서 짧은 부분이라 앞쪽 10%만 쓴다.
 관문_구간 = 10
 
@@ -214,6 +272,7 @@ async def run_query(
     *,
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
+    on_route: RouteHook | None = None,
 ) -> GraphState:
     """질의를 해석하고, 그 결과가 가리키는 경로를 돈다.
 
@@ -226,12 +285,24 @@ async def run_query(
     멈춘 상태로 남기고 사용자의 답을 기다린다.
 
     기준 상품이 있으면 해석할 것이 없으므로 관문 없이 평가 경로를 돈다.
+    관문이 평가 경로를 골랐는데 기준 상품이 없으면 질의 속 상품 이름으로 찾는다.
+
+    경로가 정해지면 on_route 를 부른다. 되묻느라 멈추는 경우도 부른다.
+    끝날 때까지 기다리면 진행 중인 job 의 시나리오가 화면에 보이지 않는다.
     """
     상태: dict = dict(initial or {})
     상태.setdefault("trace", [])
 
     if 상태.get("base_product_id"):
         상태["query_spec"] = _기준_상품_스펙(상태)
+        상태["scenario"] = ROUTE[RequestType.EVALUATE]
+        try:
+            await _경로를_알린다(상태, on_route)
+        except Exception as e:
+            logger.exception("경로 기록 실패")
+            if on_fail is not None:
+                await on_fail(e)
+            raise
         return await run_scenario(
             ROUTE[RequestType.EVALUATE], 상태, on_progress=on_progress, on_fail=on_fail,
         )
@@ -246,6 +317,11 @@ async def run_query(
                 이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간), (), SEARCH_ENTRY,
             )
             상태.update(await 단계(상태))
+        if not 상태.get("scenario"):
+            상태["scenario"] = 기본_시나리오()
+        await _기준_상품을_찾는다(상태)
+        _기준을_맞춘다(상태)
+        await _경로를_알린다(상태, on_route)
     except Exception as e:
         logger.exception("관문 실행 실패")
         if on_fail is not None:
@@ -255,7 +331,7 @@ async def run_query(
     if 상태.get("clarify_question"):
         return 상태
 
-    시나리오 = 상태.get("scenario") or 기본_시나리오()
+    시나리오 = 상태["scenario"]
     return await run_scenario(
         시나리오,
         상태,

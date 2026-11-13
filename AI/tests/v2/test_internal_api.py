@@ -108,6 +108,18 @@ def test_질의와_기준_상품이_모두_없거나_빈_값이면_거부한다(
         AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
 
 
+def test_기준_상품과_이전_job이_함께_오면_거부한다():
+    """기준 상품이 있으면 조건 수정 경로로 가지 않아 이전 job 의 조건이 버려진다."""
+    AgentRunV2Request.model_validate(
+        {"jobId": "j1", "userId": "u1", "rawQuery": "무향으로", "parentJobId": "j0"}
+    )
+    with pytest.raises(ValidationError):
+        AgentRunV2Request.model_validate({
+            "jobId": "j1", "userId": "u1", "rawQuery": "무향으로",
+            "baseProductId": "p1", "parentJobId": "j0",
+        })
+
+
 def test_궁합_요청은_camelCase로_받는다():
     요청 = CompatibilityCheckRequest.model_validate({"userId": "u1", "productId": "p1"})
     assert 요청.model_dump(by_alias=True) == {"userId": "u1", "productId": "p1"}

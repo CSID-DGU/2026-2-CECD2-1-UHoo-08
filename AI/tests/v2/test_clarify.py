@@ -42,6 +42,14 @@ def 대역(monkeypatch):
         monkeypatch.setitem(sys.modules, "services.job_updater", 기록)
         monkeypatch.setattr(services, "job_updater", 기록, raising=False)
         monkeypatch.setattr(agent.builder, "run_query", run_query)
+
+        from services import user_context
+
+        async def 맥락(user_id, basis, target_profile):
+            본["맥락_인자"] = (user_id, basis, target_profile)
+            return {"user_profile": {}, "weight_prior": {}}
+
+        monkeypatch.setattr(user_context, "load", 맥락)
         return 본
 
     return 세우기
@@ -125,3 +133,17 @@ async def test_또_물어야_하면_다시_멈춘다(대역, monkeypatch):
 
     assert 본["갱신"][-1]["status"] == "NEEDS_CLARIFICATION"
     assert 본["스냅샷"]["clarify_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_남긴_추천_기준으로_사용자_맥락을_다시_읽는다(대역):
+    """프로필은 스냅샷에 남기지 않는다. 이어 돌릴 때 남긴 기준으로 다시 읽는다."""
+    본 = 대역({
+        **_멈춘_job,
+        "state_snapshot": {
+            **_멈춘_job["state_snapshot"],
+            "basis": "OTHER", "target_profile": {"skinType": "DRY"},
+        },
+    })
+    await agent._이어_돌리기(_답)
+    assert 본["맥락_인자"] == ("u1", "OTHER", {"skinType": "DRY"})
