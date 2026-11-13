@@ -3,10 +3,25 @@
 노드가 아직 하나도 없는 상태에서도 경로가 끝까지 돌아야 한다. 그래야 각
 파트가 자기 노드만 채워 넣으면서 진행 상황을 볼 수 있다.
 """
+import sys
+import types
+
 import pytest
 
 from graph import builder
 from graph.builder import build, run_scenario
+
+
+@pytest.fixture(autouse=True)
+def _협업_추천_대역(monkeypatch):
+    """경로를 끝까지 돌리면 비슷한 사용자 추천이 공유 DB 를 읽는다. 빈 결과로 막는다."""
+    async def run_collaborative(*args, **kwargs):
+        return []
+
+    import agents
+    모듈 = types.SimpleNamespace(run_collaborative=run_collaborative)
+    monkeypatch.setitem(sys.modules, "agents.collaborative_agent", 모듈)
+    monkeypatch.setattr(agents, "collaborative_agent", 모듈, raising=False)
 
 
 @pytest.mark.asyncio
