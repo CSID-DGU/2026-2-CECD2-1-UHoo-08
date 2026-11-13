@@ -20,7 +20,7 @@ from services import preference_store
 logger = logging.getLogger(__name__)
 
 # build_score 가 합을 1로 다시 맞추므로 합이 1일 필요는 없다.
-# env_fit, value_signal 은 요청에 따라 켜는 항목이라 기본값이 0 이다.
+# env_fit, value_signal, query_fit, popularity 는 요청에 따라 켜는 항목이라 기본값이 0 이다.
 기본_가중치: dict[str, float] = {
     "budget_fit": 0.25,
     "price_value": 0.25,
@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
     "personalization": 0.25,
     "env_fit": 0.0,
     "value_signal": 0.0,
+    "query_fit": 0.0,
+    "popularity": 0.0,
 }
 
 # 항목을 고르지 않은 반응은 이유를 고른 피드백보다 약한 신호로 본다.

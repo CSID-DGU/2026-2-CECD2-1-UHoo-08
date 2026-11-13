@@ -10,41 +10,7 @@ import json
 from typing import Any, Dict, List
 
 from db.supabase_client import get_supabase
-
-# 순서형 필드 → 점수 매핑 (거리가 멀수록 페널티)
-_ORDINAL: Dict[str, Dict[str, int]] = {
-    "coverage":      {"가벼운": 1, "중간": 2, "높음": 3},
-    "lasting_power": {"낮음": 1, "중간": 2, "높음": 3},
-    "texture":       {"가벼운": 1, "중간": 2, "진한": 3},
-}
-
-
-def _score(query_feat: Dict[str, Any], product_feat: Dict[str, Any]) -> float:
-    """feature_json 유사도 0~1 반환."""
-    total = matched = 0.0
-
-    for key, qval in query_feat.items():
-        if qval is None:
-            continue
-        pval = product_feat.get(key)
-        if pval is None:
-            continue
-        total += 1
-
-        if key in _ORDINAL:
-            q = _ORDINAL[key].get(str(qval), 0)
-            p = _ORDINAL[key].get(str(pval), 0)
-            if q and p:
-                matched += max(0.0, 1.0 - abs(q - p) * 0.4)
-        elif isinstance(qval, list) and isinstance(pval, list):
-            overlap = len(set(qval) & set(pval))
-            matched += overlap / max(len(qval), 1)
-        elif isinstance(qval, bool) or isinstance(pval, bool):
-            matched += 1.0 if qval == pval else 0.0
-        else:
-            matched += 1.0 if str(qval) == str(pval) else 0.0
-
-    return matched / total if total > 0 else 0.0
+from rules.product_match import feature_match_ratio
 
 
 def _parse_feature_json(raw: Any) -> Dict[str, Any]:
@@ -80,7 +46,7 @@ def search_by_features(
     for p in products:
         pid = p["product_id"]
         feat = _parse_feature_json(p.get("feature_json"))
-        score = _score(query_features, feat) if query_features else 0.0
+        score = feature_match_ratio(query_features, feat) if query_features else 0.0
         results.append({
             "productId": pid,
             "name": p["name"],
