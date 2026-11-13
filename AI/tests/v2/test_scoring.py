@@ -37,15 +37,21 @@ def 항목들(monkeypatch):
     return 세우기
 
 
+# 가짜 LLM 이 마지막으로 받은 호출 옵션
+받은_옵션: list[dict] = []
+
+
 @pytest.fixture
 def LLM(monkeypatch):
     """가중치 보정 LLM 을 가짜로 둔다. 부른 횟수를 남긴다."""
     def 세우기(응답=None, 예외=None):
         불린: list[str] = []
+        받은_옵션.clear()
 
         class 가짜:
-            async def chat_json(self, system, user, **_):
+            async def chat_json(self, system, user, **옵션):
                 불린.append(user)
+                받은_옵션.append(옵션)
                 if 예외:
                     raise 예외
                 return 응답
@@ -191,6 +197,15 @@ async def test_full이면_LLM_배수를_곱한다(항목들, LLM):
     assert len(불린) == 1
     # 0.5 : 0.125 → review 비중 0.8
     assert 결과[0]["total"] == 80
+
+
+@pytest.mark.asyncio
+async def test_LLM_응답을_정해진_시간만_기다린다(항목들, LLM):
+    """SDK 기본값(10분)에 맡기면 보정 단계가 추천 전체를 붙잡는다."""
+    LLM({"review": 1.0})
+    항목들(review=_항목({"p1": 100}))
+    await scoring.score_products([_상품("p1")], _맥락(), {"review": 1.0}, lite=False)
+    assert 받은_옵션 == [{"timeout": scoring.LLM_TIMEOUT_S}]
 
 
 @pytest.mark.asyncio

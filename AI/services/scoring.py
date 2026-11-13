@@ -31,6 +31,10 @@ logger = logging.getLogger(__name__)
 _기본_폴더 = Path(__file__).resolve().parent.parent / "scorers"
 _기본_패키지 = "scorers"
 
+# 가중치 보정 LLM 응답을 기다리는 최대 시간(초). SDK 기본값(10분)에 맡기지 않는다.
+# 보정은 덤이라, 넘기면 보정 없이 진행한다.
+LLM_TIMEOUT_S = 10.0
+
 # 불러온 점수 항목. 폴더마다 한 번만 읽는다.
 _불러온: dict[tuple[str, str], dict[str, Scorer]] = {}
 
@@ -103,6 +107,7 @@ async def _llm_배수(가중치: dict[str, float], ctx: ScoreContext) -> dict[st
                 가중치, ctx.user_profile.get("search_purpose"),
                 spec.conditions, spec.value_seeking,
             ),
+            timeout=LLM_TIMEOUT_S,
         )
     except Exception:
         logger.warning("가중치 보정 LLM 호출 실패. 보정 없이 진행한다.", exc_info=True)
