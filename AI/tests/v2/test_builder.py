@@ -22,7 +22,9 @@ async def test_아직_없는_노드임을_trace에_표시한다():
     """전부 돌았다는 것과 전부 비어 있다는 것은 다르다. 표시가 없으면
     빈 결과를 정상으로 읽게 된다."""
     결과 = await run_scenario("S2_SEARCH")
-    assert all(단계.endswith("(stub)") for 단계 in 결과["trace"])
+    for 단계 in 결과["trace"]:
+        이름 = 단계.removesuffix("(stub)")
+        assert 단계.endswith("(stub)") == (builder._load(이름) is None)
 
 
 @pytest.mark.asyncio
