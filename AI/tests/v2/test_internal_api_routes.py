@@ -61,9 +61,13 @@ def test_피드백_반영은_stub이_아니다():
     assert not 응답.json().get("stub")
 
 
+# 실제로 실행되는 경로. 추천 실행은 결과 조립 단계가 생기면서 열렸다.
+_실행되는_경로 = {"/internal/feedback/apply", "/internal/agent/run/v2", "/internal/agent/clarify"}
+
+
 @pytest.mark.parametrize(
     "경로, 본문, _",
-    [경로 for 경로 in POST_경로 if 경로[0] != "/internal/feedback/apply"],
+    [경로 for 경로 in POST_경로 if 경로[0] not in _실행되는_경로],
     ids=lambda v: v if isinstance(v, str) else "",
 )
 def test_아직_stub임을_알린다(경로, 본문, _):
@@ -154,3 +158,8 @@ def test_결과를_만들_수_있으면_실행을_건다(경로, 본문, 실행,
 
     assert client.post(경로, json=본문).json()["stub"] is False
     assert 실행_기록 == [실행]
+
+
+def test_결과_조립_단계가_있으면_추천을_실행한다():
+    assert agent._결과를_만들_수_있나() is True
+    assert client.post("/internal/agent/run/v2", json=POST_경로[0][1]).json()["stub"] is False
