@@ -2,8 +2,7 @@ package com.capstone.backend.domain.auth.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.capstone.backend.domain.auth.dto.OAuthUserInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +21,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OAuthService {
+public class KakaoOAuthService {
 
     private final WebClient webClient;
 
@@ -38,7 +37,7 @@ public class OAuthService {
     /**
      * 인가 코드(code) → access_token 교환 → 사용자 정보 조회
      */
-    public OAuthUserInfo getKakaoUserInfo(String code) {
+    public OAuthUserInfo getUserInfo(String code) {
         String accessToken = exchangeCodeForToken(code);
         return fetchUserInfo(accessToken);
     }
@@ -146,13 +145,5 @@ public class OAuthService {
             log.error("[Kakao] user/me 예외: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.INVALID_OAUTH_TOKEN);
         }
-    }
-
-    @Getter
-    @AllArgsConstructor
-    public static class OAuthUserInfo {
-        private String providerId;
-        private String name;
-        private String email;
     }
 }

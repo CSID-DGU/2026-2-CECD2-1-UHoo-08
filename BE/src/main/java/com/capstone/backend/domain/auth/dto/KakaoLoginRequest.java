@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class SocialLoginRequest {
+public class KakaoLoginRequest {
 
     @NotBlank(message = "code는 필수입니다.")
     private String code;      // 카카오 인가 코드 (authorization code)

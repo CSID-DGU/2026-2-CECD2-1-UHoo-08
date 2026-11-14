@@ -64,6 +64,12 @@ kakao:
   client-secret: ${KAKAO_CLIENT_SECRET:}
   redirect-uri: ${KAKAO_REDIRECT_URI}
 
+# 값이 비어 있어도 서버는 뜬다. 구글 로그인 요청만 실패한다
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
+  client-secret: ${GOOGLE_CLIENT_SECRET:}
+  redirect-uri: ${GOOGLE_REDIRECT_URI:}   # FE 콜백 주소. 구글 콘솔의 승인된 리디렉션 URI 와 같아야 한다
+
 naver:
   client-id: ${NAVER_CLIENT_ID}
   client-secret: ${NAVER_CLIENT_SECRET}
