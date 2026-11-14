@@ -33,6 +33,13 @@ _피부_타입 = {
     "SENSITIVE": "민감",
 }
 _피부_고민 = {
+    # BE 가 보내는 값. 상품 feature_json 의 skin_concern 에 있는 말로 바꾼다
+    "SENSITIVE": "진정",
+    "DEHYDRATED": "보습",
+    "WRINKLE": "주름",
+    "BRIGHTENING": "미백",
+    "PORE": "모공",
+    # 예전 값. 이미 저장된 프로필을 위해 남긴다
     "SENSITIVITY": "민감",
     "ACNE": "트러블",
     "ATOPY": "진정",
