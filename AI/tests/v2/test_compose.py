@@ -218,6 +218,14 @@ async def test_꼭_필요한_단계가_없으면_결과를_만들지_않는다(�
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("시나리오", ["HOME_ENV", "HOME_ROUTINE"])
+async def test_홈_결과는_분석_칸_없이_내보내지_않는다(시나리오):
+    """분석 칸이 비어 있으면 BE 가 카드를 계속 분석 전으로 내려보낸다."""
+    with pytest.raises(노드.부품_없음):
+        await 노드.compose(_상태(scenario=시나리오, trace=["env_history", "compatibility"]))
+
+
+@pytest.mark.asyncio
 async def test_보유_제품_단계가_없으면_경고만_남긴다(caplog):
     결과 = await 노드.compose(_상태(trace=["retrieve", "inventory(stub)", "prefilter"]))
     assert 결과["result"]["items"]

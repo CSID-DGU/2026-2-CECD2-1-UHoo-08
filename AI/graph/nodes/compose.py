@@ -17,7 +17,8 @@ WRITES: result
     비슷한 사람들   만족도를 점수 자리에 둔다
 
 상품 평가, 조건 수정, 홈 결과는 각 작업에서 분기를 더한다. 그 전까지 상품 평가와
-조건 수정은 조건 탐색과 같은 모양으로 나간다.
+조건 수정은 조건 탐색과 같은 모양으로 나간다. 홈 결과는 분석 칸 없이 나가면 카드가
+계속 분석 전으로 보이므로, 분기를 더하기 전에는 실패로 남긴다.
 """
 from __future__ import annotations
 
@@ -66,6 +67,8 @@ _홈_칸 = frozenset({
     "conditions", "counts", "pairs", "replacement", "schedule",
     "uncompared_count", "checked_user_product_ids",
 })
+# 분석 칸(conditions, counts, pairs 등)을 채우는 분기가 아직 없는 경로
+_홈_경로 = frozenset({"HOME_ENV", "HOME_ROUTINE"})
 _가성비_모듈 = "scorers.value_signal"
 
 
@@ -77,6 +80,8 @@ def _부품을_확인한다(시나리오: str, 자취: list[str]) -> None:
     빠진 = [이름 for 이름 in _필수_부품.get(시나리오, ()) if f"{이름}(stub)" in 자취]
     if 빠진:
         raise 부품_없음(f"{시나리오}: 아직 없는 단계가 있어 결과를 만들 수 없다 {빠진}")
+    if 시나리오 in _홈_경로:
+        raise 부품_없음(f"{시나리오}: 홈 결과를 조립하는 단계가 아직 없다")
     if "inventory(stub)" in 자취:
         logger.warning("compose: 보유 제품 단계가 아직 없다. 보유 제품을 거르지 못한 결과다.")
 
