@@ -28,6 +28,37 @@ logger = logging.getLogger(__name__)
 채점_상한 = 30
 
 
+async def products_for(state: GraphState, 후보들: list[dict]) -> tuple[list[dict], dict]:
+    """채점에 넘길 상품(상품 정보 + product_id + similarity)과 채운 상품 정보.
+
+    간단 채점(score_lite)도 쓴다. 상품 정보가 없는 후보는 뺀다.
+    """
+    메타 = await product_meta.ensure(
+        state.get("product_meta") or {}, [후보["product_id"] for 후보 in 후보들],
+    )
+    상품들 = [
+        {**메타[후보["product_id"]], "product_id": 후보["product_id"],
+         "similarity": 후보.get("similarity")}
+        for 후보 in 후보들 if 후보["product_id"] in 메타
+    ]
+    if len(상품들) < len(후보들):
+        logger.warning("채점: 상품 정보가 없는 후보 %d개를 뺐다.", len(후보들) - len(상품들))
+    return 상품들, 메타
+
+
+def score_context(state: GraphState) -> ScoreContext:
+    """점수 항목이 받는 맥락. 간단 채점(score_lite)도 쓴다."""
+    return ScoreContext(
+        job_id=state["job_id"],
+        user_id=state["user_id"],
+        query_spec=QuerySpec.model_validate(state.get("query_spec") or {}),
+        user_profile=state.get("user_profile") or {},
+        inventory=state.get("inventory") or [],
+        env_summary=state.get("env_summary"),
+        intent_vector=state.get("intent_vector") or None,
+    )
+
+
 async def score(state: GraphState) -> dict:
     후보들 = sorted(
         state.get("candidates") or [],
@@ -38,25 +69,8 @@ async def score(state: GraphState) -> dict:
         logger.info("score: 채점할 후보가 없다.")
         return {"scored": []}
 
-    메타 = await product_meta.ensure(
-        state.get("product_meta") or {}, [후보["product_id"] for 후보 in 후보들],
+    상품들, 메타 = await products_for(state, 후보들)
+    매긴 = await scoring.score_products(
+        상품들, score_context(state), state.get("weight_prior"), lite=False,
     )
-    상품들 = [
-        {**메타[후보["product_id"]], "product_id": 후보["product_id"],
-         "similarity": 후보.get("similarity")}
-        for 후보 in 후보들 if 후보["product_id"] in 메타
-    ]
-    if len(상품들) < len(후보들):
-        logger.warning("score: 상품 정보가 없는 후보 %d개를 뺐다.", len(후보들) - len(상품들))
-
-    ctx = ScoreContext(
-        job_id=state["job_id"],
-        user_id=state["user_id"],
-        query_spec=QuerySpec.model_validate(state.get("query_spec") or {}),
-        user_profile=state.get("user_profile") or {},
-        inventory=state.get("inventory") or [],
-        env_summary=state.get("env_summary"),
-        intent_vector=state.get("intent_vector") or None,
-    )
-    매긴 = await scoring.score_products(상품들, ctx, state.get("weight_prior"), lite=False)
     return {"scored": 매긴, "product_meta": 메타}
