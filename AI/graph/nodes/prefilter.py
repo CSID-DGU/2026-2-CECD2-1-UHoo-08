@@ -58,10 +58,13 @@ def _성분_부품() -> tuple[ModuleType, ModuleType] | None:
     return 성분, 궁합
 
 
-async def _충돌_쌍(
+async def conflict_pairs(
     상품_ids: list[str], 보유: list[dict], 메타: dict,
 ) -> tuple[dict[str, list[dict]], dict]:
-    """상품마다 보유 제품과 걸린 성분 쌍, 그리고 성분을 채운 상품 정보."""
+    """상품마다 보유 제품과 걸린 성분 쌍, 그리고 성분을 채운 상품 정보.
+
+    대체 후보 노드도 같은 판정을 쓴다.
+    """
     부품 = _성분_부품()
     if 부품 is None:
         return {}, 메타
@@ -107,7 +110,7 @@ async def prefilter(state: GraphState) -> dict:
 
     상품_ids = list(dict.fromkeys(후보["product_id"] for 후보 in 후보들))
     메타 = state.get("product_meta") or {}
-    쌍들, 메타 = await _충돌_쌍(상품_ids, 판정_보유, 메타)
+    쌍들, 메타 = await conflict_pairs(상품_ids, 판정_보유, 메타)
 
     기준_id = state.get("base_product_id")
     결과 = 규칙.apply(
