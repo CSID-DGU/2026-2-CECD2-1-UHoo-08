@@ -1,7 +1,8 @@
 """그래프 상태로 화면에 보낼 추천 결과를 만든다.
 
 READS:  scenario, job_id, user_id, raw_query, query_spec, user_profile, inventory, scored,
-        product_meta, excluded, conflict_marks, env_summary, collaborative, bundles, trace
+        product_meta, excluded, conflict_marks, env_summary, collaborative, bundles, trace,
+        base_product_id, base_conflicts, alternatives
 WRITES: result
 
 결과 모양은 contracts.result.RecommendationResult 다. BE 가 그대로 저장하고 FE 가 그린다.
@@ -16,8 +17,12 @@ WRITES: result
     제외 목록       거른 후보와 이유
     비슷한 사람들   만족도를 점수 자리에 둔다
 
-상품 평가, 조건 수정, 홈 결과는 각 작업에서 분기를 더한다. 그 전까지 상품 평가와
-조건 수정은 조건 탐색과 같은 모양으로 나간다. 홈 결과는 분석 칸 없이 나가면 카드가
+상품 평가는 결과 카드가 기준 상품 하나다. 이미 쓰고 있거나 함께 쓰면 안 되는 보유
+제품이 있으면 그 내용을 이유 문장 앞에 둔다. 시간대만 나누면 되는 충돌은 배지로 단다.
+대체 후보는 간단 채점(score_lite)이 매긴 점수 그대로 카드로 만든다.
+
+조건 수정, 홈 결과는 각 작업에서 분기를 더한다. 그 전까지 조건 수정은 조건 탐색과 같은
+모양으로 나간다. 홈 결과는 분석 칸 없이 나가면 카드가
 계속 분석 전으로 보이므로, 분기를 더하기 전에는 실패로 남긴다.
 """
 from __future__ import annotations
@@ -41,6 +46,7 @@ from graph.state import GraphState
 from rules.condition_labels import summarize
 from rules.env_match import meets
 from rules.guard_rules import fallback_reason
+from rules.prefilter import 보유_문구, 시간대_나눔, 함께_쓰지_않음
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +67,8 @@ _필수_부품: dict[str, tuple[str, ...]] = {
     "HOME_ROUTINE": ("compatibility",),
 }
 _세트_경로 = "S6_BUNDLE"
+_상품_평가 = "S1_EVALUATE"
+_조건_탐색 = "S2_SEARCH"
 # 홈 카드에서만 채우는 칸. 비어 있으면 싣지 않는다. 검색 결과에 홈 칸이 null 로
 # 실려 있으면 BE 의 예시 결과와 모양이 달라진다.
 _홈_칸 = frozenset({
@@ -276,6 +284,56 @@ async def _결과_카드(state: GraphState, spec: QuerySpec, 조건: list[str]) 
     ]
 
 
+def _기준_앞_문장(판정: dict) -> str | None:
+    """기준 상품의 이유 문장 앞에 둘 말. 보유가 충돌보다 먼저다."""
+    if 판정.get("owned"):
+        return 보유_문구
+    for 표시 in 판정.get("conflicts") or []:
+        if 표시.get("level") == 함께_쓰지_않음 and 표시.get("advice"):
+            return 표시["advice"]
+    return None
+
+
+async def _기준_카드(state: GraphState, spec: QuerySpec, 조건: list[str]) -> list[ResultItem]:
+    """상품 평가의 결과 카드. 기준 상품 하나다."""
+    기준 = state.get("base_product_id")
+    판정 = (state.get("base_conflicts") or {}).get(기준) or {}
+    나눌 = [표시 for 표시 in 판정.get("conflicts") or [] if 표시.get("level") == 시간대_나눔]
+    기준_상태: dict = {
+        **state,
+        "scored": [s for s in state.get("scored") or [] if s["product_id"] == 기준][:1],
+    }
+    if 나눌:
+        기준_상태["conflict_marks"] = {**(state.get("conflict_marks") or {}), 기준: 나눌}
+
+    카드들 = await _결과_카드(기준_상태, spec, 조건)
+    앞 = _기준_앞_문장(판정)
+    if not 앞:
+        return 카드들
+    return [
+        카드.model_copy(update={"reason": f"{앞}. {카드.reason}" if 카드.reason else 앞})
+        for 카드 in 카드들
+    ]
+
+
+def _대체_카드(state: GraphState) -> list[ResultItem]:
+    """대체 후보 카드. 시간대를 나눠 쓸 보유 제품이 있으면 배지를 단다."""
+    메타 = state.get("product_meta") or {}
+    충돌 = state.get("conflict_marks") or {}
+    카드들: list[ResultItem] = []
+    for a in state.get("alternatives") or []:
+        pid = a["product_id"]
+        if pid not in 메타:
+            logger.warning("compose: 대체 후보 %s 의 상품 정보가 없어 뺀다.", pid)
+            continue
+        배지 = [
+            Badge(type=BadgeType.CONFLICT_SEPARATE, text=표시["advice"])
+            for 표시 in 충돌.get(pid) or [] if 표시.get("advice")
+        ][:1]
+        카드들.append(_카드(pid, 메타[pid], a["total"], breakdown=a.get("breakdown") or [], badges=배지))
+    return 카드들
+
+
 def _제외(state: GraphState) -> list[ExcludedItem]:
     메타 = state.get("product_meta") or {}
     return [
@@ -311,6 +369,14 @@ async def compose(state: GraphState) -> dict:
             bundles=[BundleOption.model_validate(b) for b in state.get("bundles") or []],
             excluded=_제외(state),
         )
+    elif 시나리오 == _상품_평가:
+        결과 = RecommendationResult(
+            job_id=state["job_id"], scenario=시나리오, query=요약,
+            items=await _기준_카드(state, spec, 요약.conditions),
+            alternatives=_대체_카드(state),
+            similar_user_products=_비슷한_사람들(state),
+            excluded=_제외(state),
+        )
     else:
         결과 = RecommendationResult(
             job_id=state["job_id"], scenario=시나리오, query=요약,
@@ -319,4 +385,7 @@ async def compose(state: GraphState) -> dict:
             excluded=_제외(state),
         )
     비운_칸 = {칸 for 칸 in _홈_칸 if getattr(결과, 칸) is None}
+    # 되묻기 칸은 조건 탐색 예시에만 null 로 실려 있다. 다른 경로는 비어 있으면 싣지 않는다
+    if 시나리오 != _조건_탐색 and 결과.clarify is None:
+        비운_칸.add("clarify")
     return {"result": 결과.model_dump(mode="json", by_alias=True, exclude=비운_칸)}
