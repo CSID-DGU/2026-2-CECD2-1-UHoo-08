@@ -3,6 +3,7 @@ package com.capstone.backend.domain.auth.service;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JwtUtil;
+import com.capstone.backend.domain.auth.dto.GoogleLoginRequest;
 import com.capstone.backend.domain.auth.dto.SocialLoginRequest;
 import com.capstone.backend.domain.auth.dto.TokenResponse;
 import com.capstone.backend.domain.user.entity.User;
@@ -11,15 +12,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String GOOGLE = "GOOGLE";
+
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final OAuthService oAuthService;
+    private final GoogleOAuthService googleOAuthService;
 
     @Transactional
     public TokenResponse socialLogin(SocialLoginRequest request) {
@@ -45,6 +50,33 @@ public class AuthService {
         }
 
         return buildTokenResponse(user, isNewUser[0]);
+    }
+
+    /**
+     * 구글 인가 코드로 로그인한다. 처음 오는 구글 계정이면 사용자를 만든다.
+     *
+     * 같은 이메일로 다른 방식(카카오 등)으로 가입한 계정이 있으면 EMAIL_ALREADY_EXISTS 를 낸다.
+     */
+    @Transactional
+    public TokenResponse googleLogin(GoogleLoginRequest request) {
+        OAuthService.OAuthUserInfo info = googleOAuthService.getUserInfo(request.getCode());
+
+        Optional<User> existing = userRepository.findByProviderAndProviderId(GOOGLE, info.getProviderId());
+        if (existing.isPresent()) {
+            return buildTokenResponse(existing.get(), false);
+        }
+
+        if (info.getEmail() != null && userRepository.existsByEmail(info.getEmail())) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        User user = userRepository.save(User.builder()
+                .email(info.getEmail())
+                .name(info.getName())
+                .provider(GOOGLE)
+                .providerId(info.getProviderId())
+                .build());
+        return buildTokenResponse(user, true);
     }
 
     @Transactional(readOnly = true)
