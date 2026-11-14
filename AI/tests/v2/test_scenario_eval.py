@@ -79,6 +79,25 @@ async def test_성질별_시나리오별로_모으고_실패와_오류를_남긴
     assert "DB 끊김" in 결과["실패"][1]["error"]
 
 
+@pytest.mark.asyncio
+async def test_판정이_터져도_그_레코드만_오류로_남기고_나머지를_잰다():
+    """등록된 키라도 값 모양이 틀리면 판정 함수 안에서 터진다."""
+    망가진 = _레코드("scenario-g-0001")
+    망가진["expected"] = {"must_exclude_reason": []}
+
+    async def 한_건(rec):
+        return {"items": [_카드("p1")]}, {}
+
+    결과 = await 러너.evaluate([망가진, _레코드("scenario-g-0002")], 한_건)
+
+    assert 결과["성질"] == {"must_exclude": (1, 1), "non_empty": (1, 1)}
+    assert 결과["경로"] == {"S2_SEARCH": (1, 2)}
+    assert [s["id"] for s in 결과["실패"]] == ["scenario-g-0001"]
+    assert 결과["실패"][0]["stage"] == "판정"
+    assert "AttributeError" in 결과["실패"][0]["error"]
+    assert "판정 중 오류" in 러너.to_markdown(결과, "test", [])
+
+
 def test_리포트는_양식의_네_항목을_갖는다():
     결과 = {
         "총건수": 2,

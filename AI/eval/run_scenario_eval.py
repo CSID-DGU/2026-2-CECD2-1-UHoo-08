@@ -115,14 +115,17 @@ async def evaluate(기록: list[dict], 한_건: OneRun) -> dict[str, Any]:
     for rec in 기록:
         시나리오 = rec["input"]["scenario"]
         경로_전체[시나리오] += 1
+        단계 = "실행"
         try:
             결과, 메타 = await 한_건(rec)
+            # 기대 값 모양이 틀려도(예: dict 자리에 빈 목록) 이 레코드만 오류로 남긴다
+            단계 = "판정"
+            판정 = judge(rec["expected"], 결과, 메타)
         except Exception as e:
             실패.append({"id": rec["id"], "scenario": 시나리오, "tags": rec.get("tags") or [],
-                         "error": repr(e)})
+                         "stage": 단계, "error": repr(e)})
             continue
 
-        판정 = judge(rec["expected"], 결과, 메타)
         for 키, (통과, _) in 판정.items():
             성질_전체[키] += 1
             성질_통과[키] += int(통과)
@@ -178,7 +181,7 @@ def to_markdown(결과: dict, split: str, 파일들: list[str]) -> str:
         질의 = f" {사례['query']}" if 사례.get("query") else ""
         줄.append(f"- **{사례['id']}** `{사례['scenario']}`{태그}{질의}")
         if "error" in 사례:
-            줄.append(f"  - 실행 중 오류: {사례['error']}")
+            줄.append(f"  - {사례.get('stage', '실행')} 중 오류: {사례['error']}")
             continue
         for 키, 설명 in 사례["틀린_성질"].items():
             줄.append(f"  - `{키}`: {설명}")
