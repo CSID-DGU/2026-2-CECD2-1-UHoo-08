@@ -287,6 +287,19 @@ async def test_완료_스냅샷에_필요한_값만_줄여_담는다(기록, 실
 
 
 @pytest.mark.asyncio
+async def test_상품_평가의_기준_상품_id를_스냅샷에_남긴다(기록, 실행대역):
+    """질의 해석에는 상품 이름이 남아 조건 수정이 기준 상품을 이 값으로 찾는다."""
+    실행대역({
+        "scenario": "S1_EVALUATE",
+        "query_spec": {"request_type": "EVALUATE", "base_product_ref": "라네즈 네오쿠션"},
+        "base_product_id": "p1",
+        "result": {"items": []},
+    })
+    await agent._실행(_요청)
+    assert 기록.스냅샷["base_product_id"] == "p1"
+
+
+@pytest.mark.asyncio
 async def test_대체_후보를_뺀_수가_없으면_0으로_남긴다(기록, 실행대역):
     """BE 가 이 값을 그대로 읽는다. 키가 없으면 BE 쪽에서 따로 처리해야 한다."""
     실행대역({"result": {}})

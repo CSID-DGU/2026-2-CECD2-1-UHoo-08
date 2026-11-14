@@ -14,6 +14,10 @@
        질의 해석 단계(Normalize, Router)는 거치지 않는다. 라우터는 따로 잰다
     3. 결과를 기대 성질에 대어 본다(eval/scenario_checks.py)
 
+조건 수정 레코드는 input.parent 에 이전 검색의 질의를 적는다. 이전 검색을 먼저 돌리고,
+그 결과를 메모리의 이전 job 으로 두고 조건 수정을 돈다. 조건 수정 노드가 job 을 읽는
+함수를 이 동안만 메모리에서 읽는 것으로 바꾼다.
+
 job 을 DB 에 쓰지 않는다. 진행률, 완료 기록 콜백을 넘기지 않으므로 노드는 읽기만 한다.
 
 수치는 test 로 낸다. 규칙과 프롬프트는 dev 를 보고만 고친다.
@@ -24,6 +28,7 @@ import argparse
 import asyncio
 import json
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 from typing import Any, Awaitable, Callable
@@ -39,6 +44,7 @@ REPORT_DIR = Path(__file__).resolve().parent / "reports"
 # 시나리오 → 질의 해석에 요청 유형이 없을 때 채울 값
 _요청_유형 = {"S1_EVALUATE": "EVALUATE", "S2_SEARCH": "SEARCH", "S6_BUNDLE": "BUNDLE",
               "S7_REFINE": "REFINE"}
+_이전_검색 = "S2_SEARCH"
 
 # (결과 dict, 상품 정보) 를 돌려준다
 OneRun = Callable[[dict], Awaitable[tuple[dict, dict]]]
@@ -90,17 +96,77 @@ def initial_state(rec: dict, user_id: str) -> dict:
     }
     if 입력.get("base_product_id"):
         상태["base_product_id"] = 입력["base_product_id"]
+    if 입력.get("parent"):
+        상태["parent_job_id"] = parent_job_id(rec)
     return 상태
 
 
-async def _한_건_실제(rec: dict) -> tuple[dict, dict]:
+def parent_job_id(rec: dict) -> str:
+    return f"eval-{rec['id']}-parent"
+
+
+def parent_record(rec: dict) -> dict:
+    """조건 수정 레코드의 이전 검색을 레코드 하나로 만든다."""
+    이전 = rec["input"]["parent"]
+    return {
+        "id": f"{rec['id']}-parent",
+        "input": {
+            "persona_id": rec["input"]["persona_id"], "scenario": _이전_검색,
+            "raw_query": 이전.get("raw_query"), "query_spec": 이전.get("query_spec"),
+        },
+    }
+
+
+def memory_jobs(rec: dict, 이전_상태: dict) -> dict[str, dict]:
+    """조건 수정 노드가 읽을 이전 job 과 이번 job. 실제 완료 스냅샷과 같은 모양으로 둔다."""
+    from api.internal.v2.agent import _완료_스냅샷
+
+    return {
+        parent_job_id(rec): {
+            "id": parent_job_id(rec), "scenario": _이전_검색,
+            "result": 이전_상태.get("result") or {},
+            "query_spec": 이전_상태.get("query_spec"),
+            "state_snapshot": _완료_스냅샷(이전_상태),
+        },
+        f"eval-{rec['id']}": {
+            "id": f"eval-{rec['id']}", "refine_presets": rec["input"].get("refine_presets") or [],
+        },
+    }
+
+
+@contextmanager
+def _메모리에서_job_읽기(job들: dict[str, dict]):
+    from services import job_store
+
+    원래 = job_store.load_job
+
+    async def load_job(job_id: str, columns: str = job_store.기본_컬럼):
+        return job들.get(job_id)
+
+    job_store.load_job = load_job
+    try:
+        yield
+    finally:
+        job_store.load_job = 원래
+
+
+async def _돌리기(rec: dict) -> dict:
     from eval.load_synthetic import synthetic_user_id
     from graph.builder import run_scenario
     from services import user_context
 
     상태 = initial_state(rec, synthetic_user_id(rec["input"]["persona_id"]))
     상태.update(await user_context.load(상태["user_id"], 상태["basis"], 상태["target_profile"]))
-    결과 = await run_scenario(상태["scenario"], 상태)
+    return await run_scenario(상태["scenario"], 상태)
+
+
+async def _한_건_실제(rec: dict) -> tuple[dict, dict]:
+    if rec["input"].get("parent"):
+        이전_상태 = await _돌리기(parent_record(rec))
+        with _메모리에서_job_읽기(memory_jobs(rec, 이전_상태)):
+            결과 = await _돌리기(rec)
+    else:
+        결과 = await _돌리기(rec)
     return 결과.get("result") or {}, 결과.get("product_meta") or {}
 
 

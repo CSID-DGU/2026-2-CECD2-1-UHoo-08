@@ -2,7 +2,7 @@
 
 READS:  scenario, job_id, user_id, raw_query, query_spec, user_profile, inventory, scored,
         product_meta, excluded, conflict_marks, env_summary, collaborative, bundles, trace,
-        base_product_id, base_conflicts, alternatives
+        base_product_id, base_conflicts, alternatives, rank_changes
 WRITES: result
 
 결과 모양은 contracts.result.RecommendationResult 다. BE 가 그대로 저장하고 FE 가 그린다.
@@ -21,8 +21,10 @@ WRITES: result
 제품이 있으면 그 내용을 이유 문장 앞에 둔다. 시간대만 나누면 되는 충돌은 배지로 단다.
 대체 후보는 간단 채점(score_lite)이 매긴 점수 그대로 카드로 만든다.
 
-조건 수정, 홈 결과는 각 작업에서 분기를 더한다. 그 전까지 조건 수정은 조건 탐색과 같은
-모양으로 나간다. 홈 결과는 분석 칸 없이 나가면 카드가
+조건 수정은 조건 탐색과 같은 모양에 카드마다 이전 결과와 비교한 순위 변화를 싣는다.
+질의 요약은 합친 질의로 만들고, 원문은 이번에 보낸 문장이다.
+
+홈 결과는 각 작업에서 분기를 더한다. 홈 결과는 분석 칸 없이 나가면 카드가
 계속 분석 전으로 보이므로, 분기를 더하기 전에는 실패로 남긴다.
 """
 from __future__ import annotations
@@ -38,6 +40,7 @@ from contracts.result import (
     BadgeType,
     BundleOption,
     ExcludedItem,
+    RankChange,
     RecommendationResult,
     ResultItem,
 )
@@ -69,6 +72,7 @@ _필수_부품: dict[str, tuple[str, ...]] = {
 _세트_경로 = "S6_BUNDLE"
 _상품_평가 = "S1_EVALUATE"
 _조건_탐색 = "S2_SEARCH"
+_조건_수정 = "S7_REFINE"
 # 홈 카드에서만 채우는 칸. 비어 있으면 싣지 않는다. 검색 결과에 홈 칸이 null 로
 # 실려 있으면 BE 의 예시 결과와 모양이 달라진다.
 _홈_칸 = frozenset({
@@ -334,6 +338,18 @@ def _대체_카드(state: GraphState) -> list[ResultItem]:
     return 카드들
 
 
+def _순위_변화(카드들: list[ResultItem], 변화: dict[str, dict]) -> list[ResultItem]:
+    """조건 수정 카드에 순위 변화를 싣는다. 변화를 모르는 카드는 비워 둔다."""
+    나감 = []
+    for 카드 in 카드들:
+        값 = 변화.get(카드.product_id) or {}
+        나감.append(카드.model_copy(update={
+            "change": RankChange(값["change"]) if 값.get("change") else None,
+            "rank_delta": 값.get("rank_delta"),
+        }))
+    return 나감
+
+
 def _제외(state: GraphState) -> list[ExcludedItem]:
     메타 = state.get("product_meta") or {}
     return [
@@ -378,9 +394,12 @@ async def compose(state: GraphState) -> dict:
             excluded=_제외(state),
         )
     else:
+        카드들 = await _결과_카드(state, spec, 요약.conditions)
+        if 시나리오 == _조건_수정:
+            카드들 = _순위_변화(카드들, state.get("rank_changes") or {})
         결과 = RecommendationResult(
             job_id=state["job_id"], scenario=시나리오, query=요약,
-            items=await _결과_카드(state, spec, 요약.conditions),
+            items=카드들,
             similar_user_products=_비슷한_사람들(state),
             excluded=_제외(state),
         )

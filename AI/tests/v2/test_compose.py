@@ -363,3 +363,29 @@ async def test_상품_정보가_없는_대체_후보는_뺀다():
     del 상태["product_meta"]["a2"]
     대체 = (await 노드.compose(상태))["result"]["alternatives"]
     assert [a["productId"] for a in 대체] == ["a1"]
+
+
+# 조건 수정
+
+_S7_예시 = _BE_예시.with_name("S7_REFINE.json")
+
+
+@pytest.mark.asyncio
+async def test_조건_수정은_카드에_순위_변화를_싣고_BE_예시와_키가_같다():
+    상태 = _상태(
+        scenario="S7_REFINE", raw_query="더 저렴한 제품으로",
+        query_spec={"request_type": "REFINE", "category": "base", "budget": {"max": 20000},
+                    "features": {"finish": "매트"}},
+        rank_changes={"p1": {"change": "UP", "rank_delta": 3}},
+    )
+    결과 = (await 노드.compose(상태))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_S7_예시.read_text())
+    assert set(결과) == set(예시)
+    assert set(결과["items"][0]) >= set(예시["items"][0])
+    assert (결과["items"][0]["change"], 결과["items"][0]["rankDelta"]) == ("UP", 3)
+    # 변화를 모르는 카드는 비워 둔다
+    assert (결과["items"][1]["change"], 결과["items"][1]["rankDelta"]) == (None, None)
+    assert 결과["query"]["raw"] == "더 저렴한 제품으로"
+    assert 결과["query"]["budgetMax"] == 20000

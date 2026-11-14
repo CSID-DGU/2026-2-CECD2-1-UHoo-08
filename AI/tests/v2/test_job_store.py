@@ -76,3 +76,12 @@ async def test_없는_job은_None이다(DB):
     """없는 job 에 빈 dict 을 돌려주면 부른 쪽이 정상으로 읽고 진행한다."""
     DB([])
     assert await job_store.load_job("없음") is None
+
+
+@pytest.mark.asyncio
+async def test_읽을_컬럼을_고를_수_있다(DB):
+    기록 = DB([{"id": "j1", "result": {}}])
+    await job_store.load_job("j1")
+    assert 기록["select"] == job_store.기본_컬럼
+    await job_store.load_job("j1", columns="id, result")
+    assert 기록["select"] == "id, result"

@@ -58,6 +58,8 @@ class GraphState(TypedDict, total=False):
     refine_mode: str
     # Refine 이 꺼낸 부모 job 의 result. Rerank 가 순위 변화를 계산할 때 읽는다.
     parent_result: dict
+    # Rerank 가 쓰고 Compose 가 읽는다. {product_id: {change: NEW|SAME|UP|DOWN, rank_delta}}
+    rank_changes: dict
 
     # ── 후보 흐름 ─────────────────────────────────────────
     intent_vector: list[float]
