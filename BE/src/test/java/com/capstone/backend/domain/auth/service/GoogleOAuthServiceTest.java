@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ class GoogleOAuthServiceTest {
 
     private final List<ClientRequest> requests = new ArrayList<>();
 
+    private boolean googleHangs = false;
     private HttpStatus tokenStatus = HttpStatus.OK;
     private String tokenBody = "{\"access_token\":\"google-access\",\"token_type\":\"Bearer\"}";
     private HttpStatus userInfoStatus = HttpStatus.OK;
@@ -47,6 +49,9 @@ class GoogleOAuthServiceTest {
     private final WebClient webClient = WebClient.builder()
             .exchangeFunction(request -> {
                 requests.add(request);
+                if (googleHangs) {
+                    return Mono.never();
+                }
                 boolean isToken = request.url().toString().equals(GoogleOAuthService.TOKEN_URL);
                 return Mono.just(ClientResponse.create(isToken ? tokenStatus : userInfoStatus)
                         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -56,7 +61,7 @@ class GoogleOAuthServiceTest {
             .build();
 
     private GoogleOAuthService service(String clientId, String clientSecret, String redirectUri) {
-        return new GoogleOAuthService(webClient, clientId, clientSecret, redirectUri);
+        return new GoogleOAuthService(webClient, clientId, clientSecret, redirectUri, Duration.ofMillis(100));
     }
 
     private final GoogleOAuthService googleOAuthService = service("client-id", "client-secret", REDIRECT_URI);
@@ -137,6 +142,17 @@ class GoogleOAuthServiceTest {
         userInfoBody = "{\"name\":\"김화담\"}";
 
         assertOAuthError(() -> googleOAuthService.getUserInfo("code"));
+    }
+
+    @Test
+    void 구글이_제한_시간_안에_응답하지_않으면_외부_API_오류를_낸다() {
+        googleHangs = true;
+
+        assertThatThrownBy(() -> googleOAuthService.getUserInfo("code"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.EXTERNAL_API_ERROR);
+        assertThat(requests).hasSize(1);
     }
 
     @Test

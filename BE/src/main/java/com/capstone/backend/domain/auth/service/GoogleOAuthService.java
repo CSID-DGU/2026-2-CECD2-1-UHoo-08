@@ -4,6 +4,7 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.domain.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -14,8 +15,11 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.Exceptions;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * 구글 인가 코드로 구글 사용자 정보를 가져온다.
@@ -30,21 +34,31 @@ public class GoogleOAuthService {
     static final String USER_INFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
     static final String DEFAULT_NAME = "구글 사용자";
 
+    /** 구글 호출 한 번의 응답 제한 시간. 공용 WebClient 에는 제한이 없어 여기서 따로 건다 */
+    static final Duration TIMEOUT = Duration.ofSeconds(5);
+
     private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE = new ParameterizedTypeReference<>() {};
 
     private final WebClient webClient;
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
+    private final Duration timeout;
 
+    @Autowired
     public GoogleOAuthService(WebClient webClient,
                               @Value("${google.client-id:}") String clientId,
                               @Value("${google.client-secret:}") String clientSecret,
                               @Value("${google.redirect-uri:}") String redirectUri) {
+        this(webClient, clientId, clientSecret, redirectUri, TIMEOUT);
+    }
+
+    GoogleOAuthService(WebClient webClient, String clientId, String clientSecret, String redirectUri, Duration timeout) {
         this.webClient = webClient;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
+        this.timeout = timeout;
     }
 
     public OAuthUserInfo getUserInfo(String code) {
@@ -99,10 +113,10 @@ public class GoogleOAuthService {
         return new OAuthUserInfo(providerId, name, email);
     }
 
-    /** 구글 API 를 부르고 JSON 응답을 돌려준다. 응답이 실패나 빈 값이면 INVALID_OAUTH_TOKEN */
+    /** 구글 API 를 부르고 JSON 응답을 돌려준다. 응답이 실패나 빈 값이면 INVALID_OAUTH_TOKEN, 제한 시간을 넘기면 EXTERNAL_API_ERROR */
     private Map<String, Object> call(String step, WebClient.RequestHeadersSpec<?> request) {
         try {
-            Map<String, Object> response = request.retrieve().bodyToMono(MAP_TYPE).block();
+            Map<String, Object> response = request.retrieve().bodyToMono(MAP_TYPE).timeout(timeout).block();
             if (response == null) {
                 log.error("[Google] {} 응답이 비어 있습니다", step);
                 throw new BusinessException(ErrorCode.INVALID_OAUTH_TOKEN);
@@ -114,6 +128,10 @@ public class GoogleOAuthService {
             log.error("[Google] {} 실패: status={}, body={}", step, e.getStatusCode(), e.getResponseBodyAsString());
             throw new BusinessException(ErrorCode.INVALID_OAUTH_TOKEN);
         } catch (Exception e) {
+            if (Exceptions.unwrap(e) instanceof TimeoutException) {
+                log.error("[Google] {} 응답이 {} 안에 오지 않았습니다", step, timeout);
+                throw new BusinessException(ErrorCode.EXTERNAL_API_ERROR);
+            }
             log.error("[Google] {} 예외: {}", step, e.getMessage(), e);
             throw new BusinessException(ErrorCode.INVALID_OAUTH_TOKEN);
         }
