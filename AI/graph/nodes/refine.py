@@ -30,7 +30,7 @@ from typing import Any
 from contracts.query_spec import QuerySpec, RequestType
 from graph.state import GraphState
 from rules import refine_presets
-from services import product_meta
+from services import product_meta, product_resolver
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +84,26 @@ def _합치기(바탕: QuerySpec, 새: QuerySpec | None) -> QuerySpec:
     return QuerySpec.model_validate(값)
 
 
+async def _기준_상품_id(spec: QuerySpec, 이전: dict) -> str | None:
+    """이전 상품 평가의 기준 상품 id.
+
+    질의 해석의 base_product_ref 는 사용자가 쓴 상품 이름일 수 있어 그대로 쓰지 않는다.
+    해석한 id 를 남긴 스냅샷을 먼저 보고, 없으면(스냅샷에 남기기 전 job) 결과 카드를 본다.
+    상품 평가의 결과 카드는 기준 상품 하나뿐이다(대체 후보는 alternatives 에 있다).
+    둘 다 없으면 이름을 평가 경로와 같은 방식으로 다시 찾는다.
+    """
+    남긴 = (이전.get("state_snapshot") or {}).get("base_product_id")
+    if 남긴:
+        return 남긴
+    카드 = next(iter((이전.get("result") or {}).get("items") or []), None)
+    if 카드 and 카드.get("productId"):
+        return 카드["productId"]
+    return await product_resolver.resolve(spec.base_product_ref)
+
+
 async def _평가를_검색으로(spec: QuerySpec, 이전: dict) -> QuerySpec:
     """이전이 상품 평가였으면 기준 상품의 카테고리와 제품 종류를 조건으로 옮긴다."""
-    기준 = spec.base_product_ref or next(
-        (카드.get("productId") for 카드 in (이전.get("result") or {}).get("items") or []), None,
-    )
+    기준 = await _기준_상품_id(spec, 이전)
     if not 기준:
         return spec
     정보 = (await product_meta.ensure({}, [기준])).get(기준) or {}

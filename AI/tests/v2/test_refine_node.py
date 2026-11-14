@@ -123,10 +123,52 @@ async def test_이전_후보가_없으면_재탐색이다(대역):
     assert 나옴["refine_mode"] == 노드.재탐색
 
 
+def _평가_이전(ref="라네즈 네오쿠션", 남긴_id=None, 카드_id=None):
+    """상품 이름으로 평가한 이전 job. 질의 해석에는 이름이 그대로 남는다."""
+    이전 = _이전(scenario="S1_EVALUATE")
+    이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": ref, "target": "SELF"}
+    이전["result"] = {"items": [{"productId": 카드_id}] if 카드_id else []}
+    이전["state_snapshot"] = {"base_product_id": 남긴_id} if 남긴_id else {}
+    return 이전
+
+
+@pytest.fixture
+def 이름_찾기(monkeypatch):
+    """상품 이름 해석을 가짜로 둔다. 불린 이름을 남긴다."""
+    불린: list = []
+
+    async def resolve(ref):
+        불린.append(ref)
+        return "b1" if ref == "라네즈 네오쿠션" else None
+
+    from services import product_resolver
+    monkeypatch.setattr(product_resolver, "resolve", resolve)
+    return 불린
+
+
+_쿠션_메타 = {"b1": {"category": "base", "feature_json": {"product_type": "쿠션"}}}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("남긴_id, 카드_id, 이름을_찾는다", [
+    ("b1", None, False),   # 스냅샷에 남긴 id
+    (None, "b1", False),   # 스냅샷에 남기기 전 job 은 결과 카드
+    (None, None, True),    # 둘 다 없으면 이름을 다시 찾는다
+])
+async def test_상품_이름으로_평가한_job도_기준_상품의_종류로_검색한다(
+        대역, 이름_찾기, 남긴_id, 카드_id, 이름을_찾는다):
+    """이름으로 상품 정보를 찾으면 늘 비어 카테고리와 제품 종류가 빠진다."""
+    대역(_평가_이전(남긴_id=남긴_id, 카드_id=카드_id), 선택지=["CHEAPER"], 메타=_쿠션_메타)
+    스펙 = (await 노드.refine(_상태()))["query_spec"]
+    assert 스펙["category"] == "base" and 스펙["features"] == {"product_type": "쿠션"}
+    assert bool(이름_찾기) is 이름을_찾는다
+
+
 @pytest.mark.asyncio
 async def test_상품_평가였으면_기준_상품의_종류로_검색한다(대역):
     이전 = _이전(scenario="S1_EVALUATE")
     이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": "b1", "target": "SELF"}
+    이전["state_snapshot"] = {"base_product_id": "b1"}
     대역(이전, 선택지=["CHEAPER"],
          메타={"b1": {"category": "base", "feature_json": {"product_type": "쿠션"}}})
     나옴 = await 노드.refine(_상태())

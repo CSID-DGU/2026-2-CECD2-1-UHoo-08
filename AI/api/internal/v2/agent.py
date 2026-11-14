@@ -38,6 +38,9 @@ _남길_키 = (
 _완료_그대로_키 = (
     "scenario", "query_spec", "user_id", "basis", "target_profile",
     "parent_job_id", "raw_query", "bundle_slots", "trace",
+    # 상품 평가에서 해석한 기준 상품 id. query_spec 에는 상품 이름이 남을 수 있어
+    # 조건 수정이 기준 상품을 찾을 때 이 값을 쓴다.
+    "base_product_id",
 )
 # 조건 수정이 부모의 후보를 다시 정렬할 때 쓰는 개수. 결과 10개를 고르기에 넉넉하다.
 스냅샷_후보_상한 = 60
