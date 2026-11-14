@@ -125,7 +125,6 @@ async def _llm_이유(
         build_reason_compose_user_prompt,
         이유_최대_글자,
     )
-    from services.llm import LLMRole, get_llm
 
     카드들 = [
         _이유_입력(s, 메타[s["product_id"]], 배지.get(s["product_id"], []))
@@ -133,6 +132,9 @@ async def _llm_이유(
     ]
     if not 카드들:
         return {}
+    # 쓸 카드가 있을 때만 LLM 모듈을 불러온다. 결과가 비었는데 LLM SDK 까지
+    # 불러오면 SDK 가 없는 환경(가벼운 CI)에서 빈 결과 조립이 실패한다.
+    from services.llm import LLMRole, get_llm
     try:
         원본 = await get_llm(LLMRole.COMPOSE).chat_json(
             system=REASON_COMPOSE_SYSTEM,
