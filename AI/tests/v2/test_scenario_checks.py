@@ -138,3 +138,14 @@ def test_아는_성질만_쓰면_통과하고_상품_id를_모은다(가짜루�
     문제, 상품 = validate.collect((가짜루트 / "data/synthetic", 가짜루트 / "eval/golden"))
     assert 문제 == []
     assert 상품 == {보유, 충돌, 기준}
+
+
+def test_순위_변화가_모든_카드에_있어야_한다():
+    있음 = _결과([{**_카드("p1"), "change": "NEW"}, {**_카드("p2"), "change": "UP"}])
+    하나_빔 = _결과([{**_카드("p1"), "change": "NEW"}, {**_카드("p2"), "change": None}])
+    assert 판정.change_present(True, 있음, _메타)[0]
+    통과, 설명 = 판정.change_present(True, 하나_빔, _메타)
+    assert not 통과 and "p2" in 설명
+    assert 판정.change_present(False, _결과([_카드("p1")]), _메타)[0]
+    assert not 판정.change_present(False, 있음, _메타)[0]
+    assert not 판정.change_present(True, _결과(), _메타)[0]

@@ -106,6 +106,18 @@ def alternatives_min_score(기대: int, 결과: dict, 메타: dict) -> Judgement
     return (not 낮은, f"하한보다 낮다: {낮은}" if 낮은 else "")
 
 
+def change_present(기대: bool, 결과: dict, 메타: dict) -> Judgement:
+    """조건 수정 결과 카드에 순위 변화가 있다(true) 또는 없다(false). 결과가 비면 실패다."""
+    카드들 = _카드들(결과)
+    if not 카드들:
+        return False, "결과 카드가 없다"
+    빈 = [카드["productId"] for 카드 in 카드들 if not 카드.get("change")]
+    if 기대:
+        return (not 빈, f"순위 변화가 없는 카드: {빈}" if 빈 else "")
+    있는 = [카드["productId"] for 카드 in 카드들 if 카드.get("change")]
+    return (not 있는, f"순위 변화가 있는 카드: {있는}" if 있는 else "")
+
+
 CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "must_exclude": must_exclude,
     "must_exclude_reason": must_exclude_reason,
@@ -115,6 +127,7 @@ CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "badge_any": badge_any,
     "non_empty": non_empty,
     "alternatives_min_score": alternatives_min_score,
+    "change_present": change_present,
 }
 PROPERTY_KEYS: frozenset[str] = frozenset(CHECKS)
 

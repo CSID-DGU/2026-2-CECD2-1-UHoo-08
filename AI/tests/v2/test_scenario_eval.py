@@ -125,3 +125,51 @@ def test_골든셋을_split과_id로_고른다(tmp_path, monkeypatch):
     assert [r["id"] for r in 기록] == ["scenario-g-0002", "scenario-g-0003"]
     assert 파일들 == ["s2_search_v1.jsonl"]
     assert [r["id"] for r in 러너.read_golden(None, "scenario-g-0001")[0]] == ["scenario-g-0001"]
+
+
+def _수정_레코드():
+    return {
+        "id": "scenario-g-0081", "split": "dev", "source": "claude",
+        "input": {"persona_id": "persona-0001", "scenario": "S7_REFINE",
+                  "raw_query": "더 저렴한 제품으로", "refine_presets": ["CHEAPER"],
+                  "parent": {"raw_query": "4만원 이하 쿠션",
+                             "query_spec": {"request_type": "SEARCH", "category": "base",
+                                            "budget": {"max": 40000}}}},
+        "expected": {"change_present": True}, "check": "property",
+    }
+
+
+def test_조건_수정은_이전_검색을_레코드로_만들고_이전_job을_가리킨다():
+    rec = _수정_레코드()
+    상태 = 러너.initial_state(rec, "user-1")
+    assert 상태["parent_job_id"] == "eval-scenario-g-0081-parent"
+    assert 상태["query_spec"]["request_type"] == "REFINE"
+
+    이전 = 러너.parent_record(rec)
+    assert 이전["input"]["scenario"] == "S2_SEARCH"
+    assert 이전["input"]["query_spec"]["budget"] == {"max": 40000}
+    assert 러너.initial_state(이전, "user-1")["job_id"] == "eval-scenario-g-0081-parent"
+
+
+def test_이전_job과_이번_job을_메모리에_둔다():
+    rec = _수정_레코드()
+    이전_상태 = {"scenario": "S2_SEARCH", "query_spec": {"request_type": "SEARCH"},
+                 "result": {"items": [{"productId": "p1"}]},
+                 "candidates": [{"product_id": "p1", "source": "retrieve", "similarity": 0.9}]}
+    job들 = 러너.memory_jobs(rec, 이전_상태)
+
+    이전 = job들["eval-scenario-g-0081-parent"]
+    assert 이전["scenario"] == "S2_SEARCH" and 이전["result"]["items"][0]["productId"] == "p1"
+    assert 이전["state_snapshot"]["candidates"][0]["product_id"] == "p1"
+    assert job들["eval-scenario-g-0081"]["refine_presets"] == ["CHEAPER"]
+
+
+@pytest.mark.asyncio
+async def test_조건_수정을_도는_동안만_job을_메모리에서_읽는다():
+    from services import job_store
+
+    원래 = job_store.load_job
+    with 러너._메모리에서_job_읽기({"j1": {"id": "j1"}}):
+        assert await job_store.load_job("j1", columns="id") == {"id": "j1"}
+        assert await job_store.load_job("없음") is None
+    assert job_store.load_job is 원래
