@@ -139,6 +139,17 @@ async def test_BE의_수분부족지성은_복합으로_본다():
     assert 결과["p1"] == 100
 
 
+@pytest.mark.parametrize("고민, 상품_고민", [
+    ("SENSITIVE", "진정"), ("DEHYDRATED", "보습"), ("WRINKLE", "주름"),
+    ("BRIGHTENING", "미백"), ("PORE", "모공"),
+])
+@pytest.mark.asyncio
+async def test_BE의_피부_고민_값을_상품_고민과_비교한다(고민, 상품_고민):
+    맥락 = _맥락(user_profile={"skin_concerns": [고민]})
+    결과 = await personalization([_상품(feature_json={"skin_concern": [상품_고민]})], 맥락)
+    assert 결과["p1"] == 100
+
+
 @pytest.mark.asyncio
 async def test_전체_인기_기준이면_개인화는_None이다():
     맥락 = _맥락(spec={"target": Target.POPULAR}, user_profile={"skin_type": "DRY"})
