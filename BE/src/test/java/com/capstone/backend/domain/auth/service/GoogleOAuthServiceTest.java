@@ -2,6 +2,7 @@ package com.capstone.backend.domain.auth.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.domain.auth.dto.OAuthUserInfo;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -62,7 +63,7 @@ class GoogleOAuthServiceTest {
 
     @Test
     void 인가_코드로_토큰을_받고_사용자_정보를_돌려준다() {
-        OAuthService.OAuthUserInfo info = googleOAuthService.getUserInfo("4/auth-code");
+        OAuthUserInfo info = googleOAuthService.getUserInfo("4/auth-code");
 
         assertThat(info.getProviderId()).isEqualTo("1234567890");
         assertThat(info.getName()).isEqualTo("김화담");
@@ -100,7 +101,7 @@ class GoogleOAuthServiceTest {
     void 이름이_없으면_기본_이름을_쓴다() {
         userInfoBody = "{\"sub\":\"1234567890\"}";
 
-        OAuthService.OAuthUserInfo info = googleOAuthService.getUserInfo("code");
+        OAuthUserInfo info = googleOAuthService.getUserInfo("code");
 
         assertThat(info.getName()).isEqualTo(GoogleOAuthService.DEFAULT_NAME);
         assertThat(info.getEmail()).isNull();

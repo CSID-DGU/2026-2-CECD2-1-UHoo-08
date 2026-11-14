@@ -2,7 +2,7 @@ package com.capstone.backend.domain.auth.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.auth.dto.GoogleLoginRequest;
-import com.capstone.backend.domain.auth.dto.SocialLoginRequest;
+import com.capstone.backend.domain.auth.dto.KakaoLoginRequest;
 import com.capstone.backend.domain.auth.dto.TokenRefreshRequest;
 import com.capstone.backend.domain.auth.dto.TokenResponse;
 import com.capstone.backend.domain.auth.service.AuthService;
@@ -23,8 +23,8 @@ public class AuthController {
 
     @Operation(summary = "카카오 소셜 로그인")
     @PostMapping("/social")
-    public ResponseEntity<ApiResponse<TokenResponse>> socialLogin(@Valid @RequestBody SocialLoginRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.socialLogin(request)));
+    public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@Valid @RequestBody KakaoLoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.kakaoLogin(request)));
     }
 
     @Operation(summary = "구글 소셜 로그인",

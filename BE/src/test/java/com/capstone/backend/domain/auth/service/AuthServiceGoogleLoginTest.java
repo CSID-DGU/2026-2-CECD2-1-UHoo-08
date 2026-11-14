@@ -4,6 +4,7 @@ import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JwtUtil;
 import com.capstone.backend.domain.auth.dto.GoogleLoginRequest;
+import com.capstone.backend.domain.auth.dto.OAuthUserInfo;
 import com.capstone.backend.domain.auth.dto.TokenResponse;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
@@ -33,7 +34,7 @@ class AuthServiceGoogleLoginTest {
     @Mock
     JwtUtil jwtUtil;
     @Mock
-    OAuthService oAuthService;
+    KakaoOAuthService kakaoOAuthService;
     @Mock
     GoogleOAuthService googleOAuthService;
     @InjectMocks
@@ -44,7 +45,7 @@ class AuthServiceGoogleLoginTest {
 
     private void googleReturns(String email) {
         given(googleOAuthService.getUserInfo("google-code"))
-                .willReturn(new OAuthService.OAuthUserInfo("google-sub", "김화담", email));
+                .willReturn(new OAuthUserInfo("google-sub", "김화담", email));
     }
 
     private void tokensIssued() {

@@ -2,6 +2,7 @@ package com.capstone.backend.domain.auth.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.domain.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -46,7 +47,7 @@ public class GoogleOAuthService {
         this.redirectUri = redirectUri;
     }
 
-    public OAuthService.OAuthUserInfo getUserInfo(String code) {
+    public OAuthUserInfo getUserInfo(String code) {
         if (isBlank(clientId) || isBlank(clientSecret) || isBlank(redirectUri)) {
             log.error("[Google] OAuth 설정이 비어 있습니다. GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI 를 확인하세요");
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
@@ -76,7 +77,7 @@ public class GoogleOAuthService {
         return token;
     }
 
-    private OAuthService.OAuthUserInfo fetchUserInfo(String accessToken) {
+    private OAuthUserInfo fetchUserInfo(String accessToken) {
         Map<String, Object> response = call("userinfo", webClient.get()
                 .uri(USER_INFO_URL)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken));
@@ -95,7 +96,7 @@ public class GoogleOAuthService {
                 : null;
 
         log.info("[Google] userinfo 성공: providerId={}", providerId);
-        return new OAuthService.OAuthUserInfo(providerId, name, email);
+        return new OAuthUserInfo(providerId, name, email);
     }
 
     /** 구글 API 를 부르고 JSON 응답을 돌려준다. 응답이 실패나 빈 값이면 INVALID_OAUTH_TOKEN */
