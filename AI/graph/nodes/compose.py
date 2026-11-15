@@ -2,7 +2,7 @@
 
 READS:  scenario, job_id, user_id, raw_query, query_spec, user_profile, inventory, scored,
         product_meta, excluded, conflict_marks, env_summary, collaborative, bundles, trace,
-        base_product_id, base_conflicts, alternatives, rank_changes
+        base_product_id, base_conflicts, alternatives, rank_changes, env_conditions, candidates
 WRITES: result
 
 결과 모양은 contracts.result.RecommendationResult 다. BE 가 그대로 저장하고 FE 가 그린다.
@@ -24,8 +24,14 @@ WRITES: result
 조건 수정은 조건 탐색과 같은 모양에 카드마다 이전 결과와 비교한 순위 변화를 싣는다.
 질의 요약은 합친 질의로 만들고, 원문은 이번에 보낸 문장이다.
 
-홈 결과는 각 작업에서 분기를 더한다. 홈 결과는 분석 칸 없이 나가면 카드가
-계속 분석 전으로 보이므로, 분기를 더하기 전에는 실패로 남긴다.
+홈 환경 카드는 요즘 환경에 필요한 기능마다 보유 제품이 채웠는지를 싣고, 덮이지 않은
+기능마다 그 기능을 채우라고 찾은 상품 중 점수 상위 3개를 기능 순서대로 묶어 싣는다.
+카드마다 그 기능의 문구를 환경 배지로 달아, 어느 기능의 추천인지 알 수 있게 한다.
+필요한 기능이 없으면 조건은 빈 목록이다. 모든 기능이 덮였으면 카드가 없고, BE 가
+"모두 갖췄어요" 로 보여 준다.
+
+홈 루틴 카드는 분석 칸 없이 나가면 카드가 계속 분석 전으로 보이므로, 분기를 더하기
+전에는 실패로 남긴다.
 """
 from __future__ import annotations
 
@@ -39,6 +45,7 @@ from contracts.result import (
     Badge,
     BadgeType,
     BundleOption,
+    EnvCondition,
     ExcludedItem,
     RankChange,
     RecommendationResult,
@@ -55,6 +62,8 @@ logger = logging.getLogger(__name__)
 
 # 결과 카드 수
 카드_수 = 10
+# 홈 환경 카드에서 덮이지 않은 기능 하나에 싣는 상품 수
+기능별_카드_수 = 3
 # 카드 하나에 다는 배지 수
 배지_상한 = 2
 # 환경, 가성비 배지를 다는 항목 점수
@@ -64,7 +73,7 @@ logger = logging.getLogger(__name__)
 이유_LLM_제한_초 = 15.0
 
 # 이 단계가 아직 없으면(stub) 결과를 만들 수 없는 경로
-_필수_부품: dict[str, tuple[str, ...]] = {
+REQUIRED_NODES: dict[str, tuple[str, ...]] = {
     "S6_BUNDLE": ("budget", "bundle"),
     "HOME_ENV": ("env_history",),
     "HOME_ROUTINE": ("compatibility",),
@@ -73,14 +82,15 @@ _세트_경로 = "S6_BUNDLE"
 _상품_평가 = "S1_EVALUATE"
 _조건_탐색 = "S2_SEARCH"
 _조건_수정 = "S7_REFINE"
+_홈_환경 = "HOME_ENV"
 # 홈 카드에서만 채우는 칸. 비어 있으면 싣지 않는다. 검색 결과에 홈 칸이 null 로
 # 실려 있으면 BE 의 예시 결과와 모양이 달라진다.
 _홈_칸 = frozenset({
     "conditions", "counts", "pairs", "replacement", "schedule",
     "uncompared_count", "checked_user_product_ids",
 })
-# 분석 칸(conditions, counts, pairs 등)을 채우는 분기가 아직 없는 경로
-_홈_경로 = frozenset({"HOME_ENV", "HOME_ROUTINE"})
+# 분석 칸(counts, pairs 등)을 채우는 분기가 아직 없는 경로
+_홈_경로 = frozenset({"HOME_ROUTINE"})
 _가성비_모듈 = "scorers.value_signal"
 
 
@@ -89,7 +99,7 @@ class 부품_없음(RuntimeError):
 
 
 def _부품을_확인한다(시나리오: str, 자취: list[str]) -> None:
-    빠진 = [이름 for 이름 in _필수_부품.get(시나리오, ()) if f"{이름}(stub)" in 자취]
+    빠진 = [이름 for 이름 in REQUIRED_NODES.get(시나리오, ()) if f"{이름}(stub)" in 자취]
     if 빠진:
         raise 부품_없음(f"{시나리오}: 아직 없는 단계가 있어 결과를 만들 수 없다 {빠진}")
     if 시나리오 in _홈_경로:
@@ -211,16 +221,69 @@ async def _가성비_문구(state: GraphState, spec: QuerySpec, 상품들: list[
     return await 설명(상품들, ctx) or {}
 
 
-def _환경_문구(state: GraphState, 메타: dict) -> str | None:
-    for 필요 in (state.get("env_summary") or {}).get("needs") or []:
+def _환경_문구(필요들: list[dict], 메타: dict) -> str | None:
+    for 필요 in 필요들:
         if 필요.get("reason_text") and meets(필요, 메타):
             return 필요["reason_text"]
     return None
 
 
+def _덮이지_않은_필요(state: GraphState) -> list[dict]:
+    덮인 = {조건["key"] for 조건 in state.get("env_conditions") or [] if 조건.get("covered")}
+    return [
+        필요 for 필요 in (state.get("env_summary") or {}).get("needs") or []
+        if 필요.get("key") not in 덮인
+    ]
+
+
+def _찾은_기능(state: GraphState) -> dict[str, list[dict]]:
+    """홈 환경 후보마다 그 후보를 찾은 덮이지 않은 기능들. retrieve 홈 모드가 env_keys 에 적는다.
+
+    env_keys 가 없으면(이전 모양의 후보) 출처(env:<key>) 하나로 본다.
+    """
+    필요들 = {필요["key"]: 필요 for 필요 in _덮이지_않은_필요(state)}
+    찾은: dict[str, list[dict]] = {}
+    for 후보 in state.get("candidates") or []:
+        출처 = 후보.get("source") or ""
+        키들 = 후보.get("env_keys") or ([출처[len("env:"):]] if 출처.startswith("env:") else [])
+        걸린 = [필요들[키] for 키 in 키들 if 키 in 필요들]
+        if 걸린:
+            찾은[후보["product_id"]] = 걸린
+    return 찾은
+
+
+def _기능별_상위(state: GraphState) -> tuple[list[dict], dict[str, dict]]:
+    """덮이지 않은 기능 순서대로, 기능마다 점수 상위 몇 개를 이어 붙인다.
+
+    기능마다 그 기능으로 찾은 상품 중에서 고른다. 앞 기능의 카드에 이미 실린 상품은
+    건너뛰고 다음 상품을 고른다. 상품마다 어느 기능의 카드로 실렸는지도 돌려준다.
+    """
+    찾은 = _찾은_기능(state)
+    메타 = state.get("product_meta") or {}
+    상위: list[dict] = []
+    실린: dict[str, dict] = {}
+    for 필요 in _덮이지_않은_필요(state):
+        고른 = [
+            s for s in state.get("scored") or []
+            if s["product_id"] in 메타 and s["product_id"] not in 실린
+            and any(걸린 is 필요 for 걸린 in 찾은.get(s["product_id"]) or [])
+        ][:기능별_카드_수]
+        for s in 고른:
+            실린[s["product_id"]] = 필요
+        상위 += 고른
+    return 상위, 실린
+
+
 async def _배지들(
     state: GraphState, spec: QuerySpec, 상위: list[dict], 메타: dict,
+    실린_기능: dict[str, dict] | None = None,
 ) -> dict[str, list[Badge]]:
+    # 홈 환경 카드는 덮이지 않은 기능을 채우라고 찾은 상품이라 환경 점수와 상관없이
+    # 그 카드가 실린 기능의 문구를 단다. 조건 탐색은 환경 점수가 높은 상품에만 요즘 필요한
+    # 기능 문구를 단다.
+    홈_환경 = state.get("scenario") == _홈_환경
+    찾은 = 실린_기능 or {}
+    환경_필요들 = (state.get("env_summary") or {}).get("needs") or []
     상품_ids = [s["product_id"] for s in 상위]
     가성비_대상 = [
         {**메타[s["product_id"]], "product_id": s["product_id"]} for s in 상위
@@ -239,8 +302,11 @@ async def _배지들(
             if 표시.get("advice"):
                 후보.append(Badge(type=BadgeType.CONFLICT_SEPARATE, text=표시["advice"]))
                 break
-        if (_점수(s, "env_fit") or 0) >= 배지_점수_기준:
-            문구 = _환경_문구(state, 메타[pid])
+        if 홈_환경 or (_점수(s, "env_fit") or 0) >= 배지_점수_기준:
+            문구 = (
+                (찾은.get(pid) or {}).get("reason_text") if 홈_환경
+                else _환경_문구(환경_필요들, 메타[pid])
+            )
             if 문구:
                 후보.append(Badge(type=BadgeType.ENV, text=문구))
         if 가성비.get(pid):
@@ -263,7 +329,10 @@ def _카드(pid: str, 메타: dict, total: int, **값: Any) -> ResultItem:
     )
 
 
-async def _결과_카드(state: GraphState, spec: QuerySpec, 조건: list[str]) -> list[ResultItem]:
+async def _결과_카드(
+    state: GraphState, spec: QuerySpec, 조건: list[str], 개수: int = 카드_수,
+    실린_기능: dict[str, dict] | None = None,
+) -> list[ResultItem]:
     메타 = state.get("product_meta") or {}
     상위 = []
     for s in state.get("scored") or []:
@@ -271,10 +340,10 @@ async def _결과_카드(state: GraphState, spec: QuerySpec, 조건: list[str]) 
             logger.warning("compose: %s 의 상품 정보가 없어 카드에서 뺀다.", s["product_id"])
             continue
         상위.append(s)
-        if len(상위) == 카드_수:
+        if len(상위) == 개수:
             break
 
-    배지 = await _배지들(state, spec, 상위, 메타)
+    배지 = await _배지들(state, spec, 상위, 메타, 실린_기능)
     # 배지 문구를 이유 문장의 재료로 쓰므로 배지를 먼저 단다
     이유 = await _llm_이유(조건, 상위, 메타, 배지)
     return [
@@ -384,6 +453,16 @@ async def compose(state: GraphState) -> dict:
             job_id=state["job_id"], scenario=시나리오, query=요약,
             bundles=[BundleOption.model_validate(b) for b in state.get("bundles") or []],
             excluded=_제외(state),
+        )
+    elif 시나리오 == _홈_환경:
+        상위, 실린 = _기능별_상위(state)
+        결과 = RecommendationResult(
+            job_id=state["job_id"], scenario=시나리오, query=요약,
+            items=await _결과_카드(
+                {**state, "scored": 상위}, spec, 요약.conditions, len(상위), 실린,
+            ),
+            excluded=_제외(state),
+            conditions=[EnvCondition.model_validate(c) for c in state.get("env_conditions") or []],
         )
     elif 시나리오 == _상품_평가:
         결과 = RecommendationResult(

@@ -118,6 +118,28 @@ def change_present(기대: bool, 결과: dict, 메타: dict) -> Judgement:
     return (not 있는, f"순위 변화가 있는 카드: {있는}" if 있는 else "")
 
 
+def conditions_cover(기대: dict[str, bool], 결과: dict, 메타: dict) -> Judgement:
+    """홈 환경 결과의 필요한 기능마다 보유 제품이 채웠는지(covered). 기능 목록도 같아야 한다.
+
+    conditions 가 없거나 null 이면 실패다. null 은 분석 전이고 빈 목록은 분석했지만 필요한
+    기능이 없다는 뜻이라, 둘을 같게 보면 분석 전 결과가 "필요한 기능 없음"으로 통과한다.
+    """
+    조건들 = 결과.get("conditions")
+    if not isinstance(조건들, list):
+        return False, f"conditions 가 목록이 아니다: {조건들!r}"
+    실제 = {c["key"]: c.get("covered") for c in 조건들}
+    if set(실제) != set(기대):
+        return False, f"기능 목록이 다르다: 기대 {sorted(기대)} / 실제 {sorted(실제)}"
+    틀린 = {키: 실제[키] for 키, 값 in 기대.items() if 실제[키] is not 값}
+    return (not 틀린, f"덮였는지가 다르다(실제 값): {틀린}" if 틀린 else "")
+
+
+def items_empty(기대: bool, 결과: dict, 메타: dict) -> Judgement:
+    """결과 카드가 비어 있다(true) 또는 있다(false). 홈 환경에서 모두 덮였을 때 쓴다."""
+    수 = len(_카드들(결과))
+    return ((수 == 0) is 기대, f"결과 카드 {수}개")
+
+
 CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "must_exclude": must_exclude,
     "must_exclude_reason": must_exclude_reason,
@@ -128,6 +150,8 @@ CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "non_empty": non_empty,
     "alternatives_min_score": alternatives_min_score,
     "change_present": change_present,
+    "conditions_cover": conditions_cover,
+    "items_empty": items_empty,
 }
 PROPERTY_KEYS: frozenset[str] = frozenset(CHECKS)
 

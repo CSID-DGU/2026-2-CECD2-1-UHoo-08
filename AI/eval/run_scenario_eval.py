@@ -14,6 +14,10 @@
        질의 해석 단계(Normalize, Router)는 거치지 않는다. 라우터는 따로 잰다
     3. 결과를 기대 성질에 대어 본다(eval/scenario_checks.py)
 
+홈 환경 레코드는 질의 대신 input.env_summary 에 환경 요약을 적는다. 그 레코드를 도는
+동안 환경 집계 단계를 이 값을 내는 단계로 바꾼다. 같은 입력으로 다시 잴 수 있게 하려는
+것이라, 환경 집계(B)가 들어온 뒤에도 바꾼다. 질의 해석은 홈 실행과 같은 값을 쓴다.
+
 조건 수정 레코드는 input.parent 에 이전 검색의 질의를 적는다. 이전 검색을 먼저 돌리고,
 그 결과를 메모리의 이전 job 으로 두고 조건 수정을 돈다. 조건 수정 노드가 job 을 읽는
 함수를 이 동안만 메모리에서 읽는 것으로 바꾼다.
@@ -27,6 +31,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import sys
+import types
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import date
@@ -45,6 +51,9 @@ REPORT_DIR = Path(__file__).resolve().parent / "reports"
 _요청_유형 = {"S1_EVALUATE": "EVALUATE", "S2_SEARCH": "SEARCH", "S6_BUNDLE": "BUNDLE",
               "S7_REFINE": "REFINE"}
 _이전_검색 = "S2_SEARCH"
+# 홈 시나리오 → 홈 실행의 종류
+_홈_종류 = {"HOME_ENV": "ENV", "HOME_ROUTINE": "ROUTINE"}
+_환경_단계 = "graph.nodes.env_history"
 
 # (결과 dict, 상품 정보) 를 돌려준다
 OneRun = Callable[[dict], Awaitable[tuple[dict, dict]]]
@@ -81,6 +90,11 @@ def initial_state(rec: dict, user_id: str) -> dict:
     입력 = rec["input"]
     시나리오 = 입력["scenario"]
     스펙 = dict(입력.get("query_spec") or {})
+    if 시나리오 in _홈_종류 and not 스펙:
+        from contracts.internal_api import HomeKind
+        from services.home_runner import initial_state as 홈_처음_상태
+
+        스펙 = 홈_처음_상태(user_id, HomeKind(_홈_종류[시나리오]), {})["query_spec"]
     스펙.setdefault("request_type", _요청_유형.get(시나리오, "SEARCH"))
     기준 = 입력.get("basis") or 스펙.get("target") or "SELF"
     스펙["target"] = 기준
@@ -153,6 +167,23 @@ def _메모리에서_job_읽기(job들: dict[str, dict]):
         job_store.load_job = 원래
 
 
+@contextmanager
+def _환경_고정(env_summary: dict):
+    """환경 집계 단계를 이 환경 요약을 내는 단계로 잠시 바꾼다."""
+    async def env_history(state: dict) -> dict:
+        return {"env_summary": env_summary}
+
+    원래 = sys.modules.get(_환경_단계)
+    sys.modules[_환경_단계] = types.SimpleNamespace(env_history=env_history)
+    try:
+        yield
+    finally:
+        if 원래 is None:
+            sys.modules.pop(_환경_단계, None)
+        else:
+            sys.modules[_환경_단계] = 원래
+
+
 async def _돌리기(rec: dict) -> dict:
     from eval.load_synthetic import synthetic_user_id
     from graph.builder import run_scenario
@@ -167,6 +198,9 @@ async def _한_건_실제(rec: dict) -> tuple[dict, dict]:
     if rec["input"].get("parent"):
         이전_상태 = await _돌리기(parent_record(rec))
         with _메모리에서_job_읽기(memory_jobs(rec, 이전_상태)):
+            결과 = await _돌리기(rec)
+    elif rec["input"].get("env_summary") is not None:
+        with _환경_고정(rec["input"]["env_summary"]):
             결과 = await _돌리기(rec)
     else:
         결과 = await _돌리기(rec)

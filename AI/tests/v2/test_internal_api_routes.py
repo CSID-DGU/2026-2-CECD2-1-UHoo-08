@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.internal.v2 import agent, feedback, router
+from services import home_runner
 from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse
 
 app = FastAPI()
@@ -32,6 +33,11 @@ def _실행하지_않는다(monkeypatch):
     monkeypatch.setattr(agent, "_실행", 아무것도)
     monkeypatch.setattr(agent, "_이어_돌리기", 아무것도)
     monkeypatch.setattr(feedback, "_반영", 아무것도)
+
+    async def 홈_아무것도(user_id, kind):
+        return None
+
+    monkeypatch.setattr(home_runner, "run", 홈_아무것도)
 
 # docs/internal-api.md 와 같은 목록이다.
 POST_경로 = [
@@ -62,6 +68,7 @@ def test_피드백_반영은_stub이_아니다():
 
 
 # 실제로 실행되는 경로. 추천 실행은 결과 조립 단계가 생기면서 열렸다.
+# 홈 실행은 그 경로의 필수 단계(B)가 들어오기 전까지 stub 이다(test_home_runner.py).
 _실행되는_경로 = {"/internal/feedback/apply", "/internal/agent/run/v2", "/internal/agent/clarify"}
 
 

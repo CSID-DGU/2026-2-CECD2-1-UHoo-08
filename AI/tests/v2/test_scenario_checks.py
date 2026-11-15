@@ -149,3 +149,31 @@ def test_순위_변화가_모든_카드에_있어야_한다():
     assert 판정.change_present(False, _결과([_카드("p1")]), _메타)[0]
     assert not 판정.change_present(False, 있음, _메타)[0]
     assert not 판정.change_present(True, _결과(), _메타)[0]
+
+
+def _조건(key, covered):
+    return {"key": key, "label": key, "basis": None, "covered": covered, "coveredBy": None}
+
+
+def test_기능마다_덮였는지가_같아야_한다():
+    결과 = _결과(conditions=[_조건("UV_PROTECT", True), _조건("MOISTURE", False)])
+    assert 판정.conditions_cover({"UV_PROTECT": True, "MOISTURE": False}, 결과, {})[0]
+    통과, 설명 = 판정.conditions_cover({"UV_PROTECT": False, "MOISTURE": False}, 결과, {})
+    assert not 통과 and "UV_PROTECT" in 설명
+    # 기능 목록이 다르면 실패다
+    assert not 판정.conditions_cover({"UV_PROTECT": True}, 결과, {})[0]
+    # 필요한 기능이 없으면 빈 목록끼리 같다
+    assert 판정.conditions_cover({}, _결과(conditions=[]), {})[0]
+
+
+@pytest.mark.parametrize("결과", [{"items": []}, {"items": [], "conditions": None}])
+def test_기능_목록이_없거나_null이면_필요한_기능이_없는_것과_다르다(결과):
+    """null 은 분석 전이다. 빈 목록으로 보면 분석 전 결과가 "필요한 기능 없음"으로 통과한다."""
+    통과, 설명 = 판정.conditions_cover({}, 결과, {})
+    assert not 통과 and "목록이 아니다" in 설명
+
+
+def test_결과_카드가_비었는지_본다():
+    assert 판정.items_empty(True, _결과(), {})[0]
+    assert not 판정.items_empty(True, _결과([_카드("p1")]), {})[0]
+    assert 판정.items_empty(False, _결과([_카드("p1")]), {})[0]
