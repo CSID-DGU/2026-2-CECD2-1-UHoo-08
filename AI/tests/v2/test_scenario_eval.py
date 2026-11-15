@@ -173,3 +173,43 @@ async def test_조건_수정을_도는_동안만_job을_메모리에서_읽는�
         assert await job_store.load_job("j1", columns="id") == {"id": "j1"}
         assert await job_store.load_job("없음") is None
     assert job_store.load_job is 원래
+
+
+# 홈 환경
+
+def test_홈_환경은_홈_실행과_같은_질의_해석으로_시작한다():
+    상태 = 러너.initial_state(
+        _레코드("scenario-g-0121", "HOME_ENV", env_summary={"needs": []}), "u1",
+    )
+    assert 상태["scenario"] == "HOME_ENV" and 상태["raw_query"] == ""
+    assert 상태["query_spec"]["request_type"] == "SEARCH"
+    assert 상태["query_spec"]["use_env"] is True and 상태["query_spec"]["target"] == "SELF"
+
+
+@pytest.mark.asyncio
+async def test_홈_환경을_도는_동안만_환경_집계를_레코드의_값으로_바꾼다(monkeypatch):
+    import importlib
+    import sys
+
+    # 환경 집계(B)가 들어온 뒤에도 원래 단계로 되돌리는지 본다
+    async def 원래_단계(state):
+        return {"env_summary": None}
+
+    원래 = type(sys)("graph.nodes.env_history")
+    원래.env_history = 원래_단계
+    monkeypatch.setitem(sys.modules, "graph.nodes.env_history", 원래)
+
+    요약 = {"region": "서울", "needs": [{"key": "UV_PROTECT"}]}
+    with 러너._환경_고정(요약):
+        단계 = importlib.import_module("graph.nodes.env_history").env_history
+        assert await 단계({}) == {"env_summary": 요약}
+    assert sys.modules["graph.nodes.env_history"] is 원래
+
+
+def test_환경_집계가_없으면_바꾼_단계를_치운다(monkeypatch):
+    import sys
+
+    monkeypatch.delitem(sys.modules, "graph.nodes.env_history", raising=False)
+    with 러너._환경_고정({"needs": []}):
+        assert "graph.nodes.env_history" in sys.modules
+    assert "graph.nodes.env_history" not in sys.modules
