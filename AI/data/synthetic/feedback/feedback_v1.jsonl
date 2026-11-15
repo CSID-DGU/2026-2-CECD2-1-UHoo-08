@@ -1,0 +1,20 @@
+{"id": "feedback-0001", "split": "dev", "source": "claude", "tags": ["cheaper_once"], "persona_id": "persona-0001", "events": [{"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0002", "split": "test", "source": "claude", "tags": ["cheaper_repeat"], "persona_id": "persona-0002", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0003", "split": "dev", "source": "claude", "tags": ["cheaper_mixed"], "persona_id": "persona-0003", "events": [{"reasons": ["TOO_EXPENSIVE", "BAD_REVIEWS"]}]}
+{"id": "feedback-0004", "split": "dev", "source": "claude", "tags": ["cheaper_partial"], "persona_id": "persona-0004", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["BAD_REVIEWS"]}, {"revert": 1}]}
+{"id": "feedback-0005", "split": "dev", "source": "claude", "tags": ["cheaper_repeat"], "persona_id": "persona-0005", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0006", "split": "dev", "source": "claude", "tags": ["cheaper_once"], "persona_id": "persona-0006", "events": [{"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0007", "split": "test", "source": "claude", "tags": ["cheaper_repeat"], "persona_id": "persona-0007", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0008", "split": "dev", "source": "claude", "tags": ["cheaper_mixed"], "persona_id": "persona-0008", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["NOT_MY_SKIN"]}]}
+{"id": "feedback-0009", "split": "dev", "source": "claude", "tags": ["cheaper_repeat"], "persona_id": "persona-0009", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0010", "split": "dev", "source": "claude", "tags": ["cheaper_partial"], "persona_id": "persona-0010", "events": [{"reasons": ["BAD_REVIEWS"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"revert": 0}]}
+{"id": "feedback-0011", "split": "test", "source": "claude", "tags": ["cheaper_once"], "persona_id": "persona-0011", "events": [{"reasons": ["TOO_EXPENSIVE"]}]}
+{"id": "feedback-0012", "split": "dev", "source": "claude", "tags": ["cheaper_mixed"], "persona_id": "persona-0012", "events": [{"reasons": ["TOO_EXPENSIVE", "NOT_MY_SKIN"]}]}
+{"id": "feedback-0013", "split": "dev", "source": "claude", "tags": ["revert_one"], "persona_id": "persona-0013", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"revert": 0}]}
+{"id": "feedback-0014", "split": "test", "source": "claude", "tags": ["revert_all"], "persona_id": "persona-0014", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"revert": 0}, {"revert": 1}]}
+{"id": "feedback-0015", "split": "dev", "source": "claude", "tags": ["revert_mixed"], "persona_id": "persona-0015", "events": [{"reasons": ["TOO_EXPENSIVE", "BAD_REVIEWS"]}, {"revert": 0}]}
+{"id": "feedback-0016", "split": "dev", "source": "claude", "tags": ["revert_all"], "persona_id": "persona-0016", "events": [{"reasons": ["BAD_REVIEWS"]}, {"reasons": ["NOT_MY_SKIN"]}, {"revert": 1}, {"revert": 0}]}
+{"id": "feedback-0017", "split": "test", "source": "claude", "tags": ["revert_one"], "persona_id": "persona-0017", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"revert": 0}]}
+{"id": "feedback-0018", "split": "dev", "source": "claude", "tags": ["revert_mixed"], "persona_id": "persona-0018", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["BAD_REVIEWS", "NOT_MY_SKIN"]}, {"revert": 0}, {"revert": 1}]}
+{"id": "feedback-0019", "split": "dev", "source": "claude", "tags": ["revert_one"], "persona_id": "persona-0019", "events": [{"reasons": ["NOT_MY_SKIN"]}, {"revert": 0}]}
+{"id": "feedback-0020", "split": "test", "source": "claude", "tags": ["revert_all"], "persona_id": "persona-0020", "events": [{"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"reasons": ["TOO_EXPENSIVE"]}, {"revert": 0}, {"revert": 1}, {"revert": 2}]}

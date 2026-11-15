@@ -55,6 +55,9 @@ def read_golden(split: str | None = None, only: str | None = None) -> tuple[list
     기록: list[dict] = []
     파일들: list[str] = []
     for path in sorted(GOLDEN_DIR.glob("*.jsonl")):
+        # 피드백 골든셋은 두 결과를 비교하므로 피드백 러너(eval/run_feedback_eval.py)가 돈다
+        if path.name.startswith("feedback_"):
+            continue
         파일들.append(path.name)
         for 줄 in path.read_text(encoding="utf-8").splitlines():
             if not 줄.strip():
