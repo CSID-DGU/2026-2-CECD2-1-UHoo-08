@@ -2,7 +2,8 @@
 
 READS:  scenario, job_id, user_id, raw_query, query_spec, user_profile, inventory, scored,
         product_meta, excluded, conflict_marks, env_summary, collaborative, bundles, trace,
-        base_product_id, base_conflicts, alternatives, rank_changes, env_conditions, candidates
+        base_product_id, base_conflicts, alternatives, rank_changes, env_conditions, candidates,
+        routine_check, replace_target
 WRITES: result
 
 결과 모양은 contracts.result.RecommendationResult 다. BE 가 그대로 저장하고 FE 가 그린다.
@@ -30,8 +31,11 @@ WRITES: result
 필요한 기능이 없으면 조건은 빈 목록이다. 모든 기능이 덮였으면 카드가 없고, BE 가
 "모두 갖췄어요" 로 보여 준다.
 
-홈 루틴 카드는 분석 칸 없이 나가면 카드가 계속 분석 전으로 보이므로, 분기를 더하기
-전에는 실패로 남긴다.
+홈 루틴 카드는 루틴 점검(B)의 결과(쌍 개수, 쌍, 사용 순서, 비교하지 못한 수, 점검한 보유
+제품)를 계약 모델로 검증해 고치지 않고 싣는다. 바꿀 제품이 있으면 대체 후보 점수 상위 3개를
+붙인다. 남은 보유 제품과 모두 괜찮은 후보는 "쓰시는 제품 N개와 모두 괜찮아요", 시간대를
+나눠 쓸 후보는 그 안내를 배지로 단다. 바꿀 제품이 없으면 대체 제안은 null 이다. 바꿀 제품이
+점검한 보유 제품이 아니면 BE 가 카드 전체를 점검 전으로 내리므로 결과를 만들지 않는다.
 """
 from __future__ import annotations
 
@@ -47,9 +51,16 @@ from contracts.result import (
     BundleOption,
     EnvCondition,
     ExcludedItem,
+    QuerySummary,
+    CompatibilityPair,
     RankChange,
     RecommendationResult,
+    Replacement,
+    ReplacementItem,
     ResultItem,
+    RoutineCounts,
+    RoutineSchedule,
+    UserProductRef,
 )
 from contracts.score import SCORE_LABELS, ScoreContext
 from graph.state import GraphState
@@ -83,14 +94,16 @@ _상품_평가 = "S1_EVALUATE"
 _조건_탐색 = "S2_SEARCH"
 _조건_수정 = "S7_REFINE"
 _홈_환경 = "HOME_ENV"
+_홈_루틴 = "HOME_ROUTINE"
+# 홈 루틴 카드에 싣는 대체 후보 수
+대체_제안_수 = 3
+모두_괜찮음_문구 = "쓰시는 제품 {n}개와 모두 괜찮아요"
 # 홈 카드에서만 채우는 칸. 비어 있으면 싣지 않는다. 검색 결과에 홈 칸이 null 로
 # 실려 있으면 BE 의 예시 결과와 모양이 달라진다.
 _홈_칸 = frozenset({
     "conditions", "counts", "pairs", "replacement", "schedule",
     "uncompared_count", "checked_user_product_ids",
 })
-# 분석 칸(counts, pairs 등)을 채우는 분기가 아직 없는 경로
-_홈_경로 = frozenset({"HOME_ROUTINE"})
 _가성비_모듈 = "scorers.value_signal"
 
 
@@ -98,12 +111,14 @@ class 부품_없음(RuntimeError):
     """꼭 필요한 단계가 아직 없어 결과를 만들 수 없다."""
 
 
+class 잘못된_참조(ValueError):
+    """결과가 점검하지 않은 보유 제품을 가리킨다."""
+
+
 def _부품을_확인한다(시나리오: str, 자취: list[str]) -> None:
     빠진 = [이름 for 이름 in REQUIRED_NODES.get(시나리오, ()) if f"{이름}(stub)" in 자취]
     if 빠진:
         raise 부품_없음(f"{시나리오}: 아직 없는 단계가 있어 결과를 만들 수 없다 {빠진}")
-    if 시나리오 in _홈_경로:
-        raise 부품_없음(f"{시나리오}: 홈 결과를 조립하는 단계가 아직 없다")
     if "inventory(stub)" in 자취:
         logger.warning("compose: 보유 제품 단계가 아직 없다. 보유 제품을 거르지 못한 결과다.")
 
@@ -441,6 +456,55 @@ def _비슷한_사람들(state: GraphState) -> list[ResultItem]:
     ]
 
 
+def _대체_제안(state: GraphState, 점검한: list[str]) -> Replacement | None:
+    바꿀 = state.get("replace_target")
+    if not 바꿀:
+        return None
+    if 바꿀["user_product_id"] not in 점검한:
+        raise 잘못된_참조(f"바꿀 제품 {바꿀['user_product_id']} 가 점검한 보유 제품에 없다")
+
+    메타 = state.get("product_meta") or {}
+    충돌 = state.get("conflict_marks") or {}
+    남은_수 = len({
+        항목.get("user_product_id") for 항목 in state.get("inventory") or []
+        if 항목.get("user_product_id") != 바꿀["user_product_id"]
+    })
+    후보들: list[ReplacementItem] = []
+    for s in state.get("scored") or []:
+        pid = s["product_id"]
+        if pid not in 메타:
+            logger.warning("compose: 대체 후보 %s 의 상품 정보가 없어 뺀다.", pid)
+            continue
+        안내 = next((표시["advice"] for 표시 in 충돌.get(pid) or [] if 표시.get("advice")), None)
+        후보들.append(ReplacementItem(
+            product_id=pid, name=메타[pid].get("name") or "", brand=메타[pid].get("brand") or "",
+            price=메타[pid].get("price"), total_score=s["total"],
+            badge=안내 or 모두_괜찮음_문구.format(n=남은_수),
+        ))
+        if len(후보들) == 대체_제안_수:
+            break
+    return Replacement(
+        replace_target=UserProductRef(user_product_id=바꿀["user_product_id"], name=바꿀.get("name") or ""),
+        message=바꿀.get("reason"),
+        items=후보들,
+    )
+
+
+def _홈_루틴_결과(state: GraphState, 요약: QuerySummary) -> RecommendationResult:
+    점검 = state.get("routine_check") or {}
+    점검한 = list(점검.get("checked_user_product_ids") or [])
+    return RecommendationResult(
+        job_id=state["job_id"], scenario=_홈_루틴, query=요약,
+        excluded=_제외(state),
+        counts=RoutineCounts.model_validate(점검.get("counts") or {}),
+        pairs=[CompatibilityPair.model_validate(쌍) for 쌍 in 점검.get("pairs") or []],
+        schedule=RoutineSchedule.model_validate(점검.get("schedule") or {}),
+        uncompared_count=점검.get("uncompared_count") or 0,
+        checked_user_product_ids=점검한,
+        replacement=_대체_제안(state, 점검한),
+    )
+
+
 async def compose(state: GraphState) -> dict:
     시나리오 = state["scenario"]
     _부품을_확인한다(시나리오, state.get("trace") or [])
@@ -464,6 +528,8 @@ async def compose(state: GraphState) -> dict:
             excluded=_제외(state),
             conditions=[EnvCondition.model_validate(c) for c in state.get("env_conditions") or []],
         )
+    elif 시나리오 == _홈_루틴:
+        결과 = _홈_루틴_결과(state, 요약)
     elif 시나리오 == _상품_평가:
         결과 = RecommendationResult(
             job_id=state["job_id"], scenario=시나리오, query=요약,
@@ -483,6 +549,9 @@ async def compose(state: GraphState) -> dict:
             excluded=_제외(state),
         )
     비운_칸 = {칸 for 칸 in _홈_칸 if getattr(결과, 칸) is None}
+    # 홈 루틴의 대체 제안은 바꿀 제품이 없을 때 null 로 싣는다. 분석한 결과라는 뜻이다
+    if 시나리오 == _홈_루틴:
+        비운_칸.discard("replacement")
     # 되묻기 칸은 조건 탐색 예시에만 null 로 실려 있다. 다른 경로는 비어 있으면 싣지 않는다
     if 시나리오 != _조건_탐색 and 결과.clarify is None:
         비운_칸.add("clarify")
