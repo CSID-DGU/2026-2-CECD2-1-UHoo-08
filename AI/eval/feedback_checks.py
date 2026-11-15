@@ -21,10 +21,9 @@ def _순위(결과: dict) -> dict[str, int]:
     return {카드["productId"]: i for i, 카드 in enumerate(_카드들(결과), start=1)}
 
 
-def _평균_순위(결과: dict, 상품들: set[str]) -> float:
-    """결과에 없는 상품은 마지막 다음 순위로 본다. 빠진 것도 내려간 것이다."""
+def _평균_순위(결과: dict, 상품들: set[str], 없음: int) -> float:
+    """결과에 없는 상품은 없음 순위로 본다."""
     순위 = _순위(결과)
-    없음 = len(_카드들(결과)) + 1
     return statistics.mean(순위.get(pid, 없음) for pid in 상품들)
 
 
@@ -35,7 +34,10 @@ def cheaper_rank_up(기대: bool, 기본: dict, 바뀐: dict) -> Judgement:
         return False, "기본 결과에 가격이 있는 카드가 2개보다 적다"
     중앙값 = statistics.median(가격.values())
     싼 = {pid for pid, p in 가격.items() if p <= 중앙값}
-    전, 후 = _평균_순위(기본, 싼), _평균_순위(바뀐, 싼)
+    # 빠진 상품은 두 결과 중 긴 쪽의 마지막 다음 순위로 둔다. 결과마다 따로 두면 결과가
+    # 짧아졌을 때 빠진 상품이 오히려 오른 것으로 보인다. 빠진 것도 내려간 것이다.
+    없음 = max(len(_카드들(기본)), len(_카드들(바뀐))) + 1
+    전, 후 = _평균_순위(기본, 싼, 없음), _평균_순위(바뀐, 싼, 없음)
     올랐다 = 후 < 전
     설명 = f"저렴한 상품 {len(싼)}개의 평균 순위 {전:.2f} → {후:.2f}"
     return (올랐다 == 기대, "" if 올랐다 == 기대 else 설명)
