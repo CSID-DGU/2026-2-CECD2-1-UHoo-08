@@ -166,6 +166,13 @@ def test_기능마다_덮였는지가_같아야_한다():
     assert 판정.conditions_cover({}, _결과(conditions=[]), {})[0]
 
 
+@pytest.mark.parametrize("결과", [{"items": []}, {"items": [], "conditions": None}])
+def test_기능_목록이_없거나_null이면_필요한_기능이_없는_것과_다르다(결과):
+    """null 은 분석 전이다. 빈 목록으로 보면 분석 전 결과가 "필요한 기능 없음"으로 통과한다."""
+    통과, 설명 = 판정.conditions_cover({}, 결과, {})
+    assert not 통과 and "목록이 아니다" in 설명
+
+
 def test_결과_카드가_비었는지_본다():
     assert 판정.items_empty(True, _결과(), {})[0]
     assert not 판정.items_empty(True, _결과([_카드("p1")]), {})[0]
