@@ -63,8 +63,9 @@ class GraphState(TypedDict, total=False):
 
     # ── 후보 흐름 ─────────────────────────────────────────
     intent_vector: list[float]
-    # 모양을 항상 같게 유지한다: {product_id, source, similarity, slot_key?}
+    # 모양을 항상 같게 유지한다: {product_id, source, similarity, slot_key?, env_keys?}
     # slot_key 는 예산 세트에서 칸별로 찾은 후보에만 있다.
+    # env_keys 는 홈 환경에서 그 상품을 찾은 기능 키 전부다. source 는 처음 찾은 기능이다.
     candidates: list[dict]
     # 후보의 상품 정보. Retrieve, Discovery, Alternative, Collaborative 가 채우고
     # (Score 는 빠진 상품만 채운다) 이후 모든 노드가 읽는다. 같은 상품을 노드마다 다시 조회하지 않으려는 것이다.

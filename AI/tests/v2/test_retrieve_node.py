@@ -184,8 +184,31 @@ async def test_홈은_덮이지_않은_기능마다_찾는다(대역):
                            {"key": "HYDRATION", "covered": True}],
     })
     assert 기록["검색"] == [("선크림 제품", "sun", 노드.홈_검색_수)]
-    assert 나옴["candidates"] == [{"product_id": "s1", "source": "env:UV_PROTECT", "similarity": 0.9}]
+    assert 나옴["candidates"] == [{"product_id": "s1", "source": "env:UV_PROTECT",
+                                   "similarity": 0.9, "env_keys": ["UV_PROTECT"]}]
     assert 나옴["intent_vector"] == ["자외선 차단"]
+
+
+@pytest.mark.asyncio
+async def test_홈에서_두_기능이_같은_상품을_찾으면_한_번만_넣고_기능은_모두_남긴다(대역):
+    """먼저 찾은 기능만 남기면 나중 기능의 카드가 그 상품을 받지 못한다."""
+    대역({
+        ("보습 크림", "skincare"): _찾은(("a", 0.9), ("p", 0.7)),
+        ("커버 크림", "skincare"): _찾은(("p", 0.8)),
+    }, _메타("a", "p"))
+    필요 = [
+        {"key": "DRY", "label": "보습", "category": "skincare", "features": {},
+         "conditions": ["보습 크림"]},
+        {"key": "COVER", "label": "커버", "category": "skincare", "features": {},
+         "conditions": ["커버 크림"]},
+    ]
+    나옴 = await 노드.retrieve({
+        "scenario": "HOME_ENV", "user_id": "u1", "env_summary": {"needs": 필요},
+        "env_conditions": [{"key": "DRY", "covered": False}, {"key": "COVER", "covered": False}],
+    })
+    assert [(c["product_id"], c["source"], c["env_keys"]) for c in 나옴["candidates"]] == [
+        ("a", "env:DRY", ["DRY"]), ("p", "env:DRY", ["DRY", "COVER"]),
+    ]
 
 
 @pytest.mark.asyncio

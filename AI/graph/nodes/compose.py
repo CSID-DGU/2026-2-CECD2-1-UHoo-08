@@ -236,35 +236,53 @@ def _덮이지_않은_필요(state: GraphState) -> list[dict]:
     ]
 
 
-def _찾은_기능(state: GraphState) -> dict[str, dict]:
-    """홈 환경 후보마다 그 후보를 찾은 덮이지 않은 기능. retrieve 홈 모드가 출처에 적는다."""
-    필요들 = {f"env:{필요['key']}": 필요 for 필요 in _덮이지_않은_필요(state)}
-    return {
-        후보["product_id"]: 필요들[후보.get("source")]
-        for 후보 in state.get("candidates") or [] if 후보.get("source") in 필요들
-    }
+def _찾은_기능(state: GraphState) -> dict[str, list[dict]]:
+    """홈 환경 후보마다 그 후보를 찾은 덮이지 않은 기능들. retrieve 홈 모드가 env_keys 에 적는다.
+
+    env_keys 가 없으면(이전 모양의 후보) 출처(env:<key>) 하나로 본다.
+    """
+    필요들 = {필요["key"]: 필요 for 필요 in _덮이지_않은_필요(state)}
+    찾은: dict[str, list[dict]] = {}
+    for 후보 in state.get("candidates") or []:
+        출처 = 후보.get("source") or ""
+        키들 = 후보.get("env_keys") or ([출처[len("env:"):]] if 출처.startswith("env:") else [])
+        걸린 = [필요들[키] for 키 in 키들 if 키 in 필요들]
+        if 걸린:
+            찾은[후보["product_id"]] = 걸린
+    return 찾은
 
 
-def _기능별_상위(state: GraphState) -> list[dict]:
-    """덮이지 않은 기능 순서대로, 기능마다 점수 상위 몇 개를 이어 붙인다."""
+def _기능별_상위(state: GraphState) -> tuple[list[dict], dict[str, dict]]:
+    """덮이지 않은 기능 순서대로, 기능마다 점수 상위 몇 개를 이어 붙인다.
+
+    기능마다 그 기능으로 찾은 상품 중에서 고른다. 앞 기능의 카드에 이미 실린 상품은
+    건너뛰고 다음 상품을 고른다. 상품마다 어느 기능의 카드로 실렸는지도 돌려준다.
+    """
     찾은 = _찾은_기능(state)
     메타 = state.get("product_meta") or {}
     상위: list[dict] = []
+    실린: dict[str, dict] = {}
     for 필요 in _덮이지_않은_필요(state):
-        상위 += [
+        고른 = [
             s for s in state.get("scored") or []
-            if s["product_id"] in 메타 and 찾은.get(s["product_id"]) is 필요
+            if s["product_id"] in 메타 and s["product_id"] not in 실린
+            and any(걸린 is 필요 for 걸린 in 찾은.get(s["product_id"]) or [])
         ][:기능별_카드_수]
-    return 상위
+        for s in 고른:
+            실린[s["product_id"]] = 필요
+        상위 += 고른
+    return 상위, 실린
 
 
 async def _배지들(
     state: GraphState, spec: QuerySpec, 상위: list[dict], 메타: dict,
+    실린_기능: dict[str, dict] | None = None,
 ) -> dict[str, list[Badge]]:
     # 홈 환경 카드는 덮이지 않은 기능을 채우라고 찾은 상품이라 환경 점수와 상관없이
-    # 그 기능의 문구를 단다. 조건 탐색은 환경 점수가 높은 상품에만 요즘 필요한 기능 문구를 단다.
+    # 그 카드가 실린 기능의 문구를 단다. 조건 탐색은 환경 점수가 높은 상품에만 요즘 필요한
+    # 기능 문구를 단다.
     홈_환경 = state.get("scenario") == _홈_환경
-    찾은 = _찾은_기능(state) if 홈_환경 else {}
+    찾은 = 실린_기능 or {}
     환경_필요들 = (state.get("env_summary") or {}).get("needs") or []
     상품_ids = [s["product_id"] for s in 상위]
     가성비_대상 = [
@@ -313,6 +331,7 @@ def _카드(pid: str, 메타: dict, total: int, **값: Any) -> ResultItem:
 
 async def _결과_카드(
     state: GraphState, spec: QuerySpec, 조건: list[str], 개수: int = 카드_수,
+    실린_기능: dict[str, dict] | None = None,
 ) -> list[ResultItem]:
     메타 = state.get("product_meta") or {}
     상위 = []
@@ -324,7 +343,7 @@ async def _결과_카드(
         if len(상위) == 개수:
             break
 
-    배지 = await _배지들(state, spec, 상위, 메타)
+    배지 = await _배지들(state, spec, 상위, 메타, 실린_기능)
     # 배지 문구를 이유 문장의 재료로 쓰므로 배지를 먼저 단다
     이유 = await _llm_이유(조건, 상위, 메타, 배지)
     return [
@@ -436,10 +455,12 @@ async def compose(state: GraphState) -> dict:
             excluded=_제외(state),
         )
     elif 시나리오 == _홈_환경:
-        상위 = _기능별_상위(state)
+        상위, 실린 = _기능별_상위(state)
         결과 = RecommendationResult(
             job_id=state["job_id"], scenario=시나리오, query=요약,
-            items=await _결과_카드({**state, "scored": 상위}, spec, 요약.conditions, len(상위)),
+            items=await _결과_카드(
+                {**state, "scored": 상위}, spec, 요약.conditions, len(상위), 실린,
+            ),
             excluded=_제외(state),
             conditions=[EnvCondition.model_validate(c) for c in state.get("env_conditions") or []],
         )

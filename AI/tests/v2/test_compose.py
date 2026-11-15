@@ -301,6 +301,45 @@ async def test_홈_환경_카드는_덮이지_않은_기능마다_상위_3개를
 
 
 @pytest.mark.asyncio
+async def test_홈_환경에서_두_기능이_찾은_상품은_뒤_기능의_카드로도_실린다():
+    """p 를 건조(DRY)로 먼저 찾았지만 건조 상위 3개 밖이면, p 만 찾은 커버(COVER) 카드에 싣는다."""
+    _커버 = {"key": "COVER", "label": "커버", "basis": "자외선 6 이상 20일",
+            "reason_text": "요즘 잡티가 신경 쓰여요", "category": "base",
+            "features": {}, "conditions": ["커버"]}
+    조건 = [*_덮임, {"key": "COVER", "label": "커버", "basis": "자외선 6 이상 20일",
+                   "covered": False, "covered_by": None}]
+    후보 = ([{"product_id": pid, "source": "env:DRY", "env_keys": ["DRY"]} for pid in "abc"]
+            + [{"product_id": "p", "source": "env:DRY", "env_keys": ["DRY", "COVER"]}])
+    점수 = [_점수표(pid, 95 - i, review=60) for i, pid in enumerate("abcp")]
+    메타 = {c["product_id"]: _메타(c["product_id"]) for c in 후보}
+    상태 = _홈_상태(조건, candidates=후보, scored=점수, product_meta=메타)
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _커버]}
+    결과 = (await 노드.compose(상태))["result"]
+
+    assert [i["productId"] for i in 결과["items"]] == ["a", "b", "c", "p"]
+    assert [b["text"] for b in 결과["items"][3]["badges"] if b["type"] == "ENV"] == \
+        ["요즘 잡티가 신경 쓰여요"]
+
+
+@pytest.mark.asyncio
+async def test_홈_환경에서_앞_기능의_카드에_실린_상품은_뒤_기능에_다시_싣지_않는다():
+    조건 = [*_덮임, {"key": "COVER", "label": "커버", "basis": "b", "covered": False,
+                   "covered_by": None}]
+    _커버 = {"key": "COVER", "label": "커버", "reason_text": "커버", "category": "base",
+            "features": {}, "conditions": ["커버"]}
+    후보 = [{"product_id": "p", "source": "env:DRY", "env_keys": ["DRY", "COVER"]},
+            {"product_id": "q", "source": "env:COVER", "env_keys": ["COVER"]}]
+    점수 = [_점수표("p", 90, review=60), _점수표("q", 80, review=60)]
+    상태 = _홈_상태(조건, candidates=후보, scored=점수,
+                   product_meta={"p": _메타("p"), "q": _메타("q")})
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _커버]}
+    결과 = (await 노드.compose(상태))["result"]
+    assert [i["productId"] for i in 결과["items"]] == ["p", "q"]
+
+
+@pytest.mark.asyncio
 async def test_필요한_기능이_없으면_조건은_빈_목록이고_null_이_아니다():
     결과 = (await 노드.compose(_홈_상태([], scored=[])))["result"]
     assert 결과["conditions"] == [] and 결과["items"] == []

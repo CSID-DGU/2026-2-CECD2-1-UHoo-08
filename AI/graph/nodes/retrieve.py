@@ -160,7 +160,7 @@ async def _홈(state: GraphState, spec: QuerySpec) -> dict:
 
     메타 = state.get("product_meta") or {}
     후보들: list[dict] = []
-    본: set[str] = set()
+    본: dict[str, dict] = {}
     for 필요 in 필요들:
         필요_스펙 = QuerySpec(
             request_type=RequestType.SEARCH,
@@ -176,11 +176,15 @@ async def _홈(state: GraphState, spec: QuerySpec) -> dict:
         필요_후보, 메타 = await _거르기(
             _후보(찾은, f"env:{필요['key']}"), 메타, 필요_스펙, 홈_검색_수,
         )
-        # 두 기능에 함께 걸린 상품은 먼저 찾은 기능의 후보로 둔다
+        # 상품은 후보에 한 번만 넣고, 그 상품을 찾은 기능은 모두 env_keys 에 남긴다.
+        # 먼저 찾은 기능만 남기면 나중 기능의 카드가 비거나 줄어든다.
         for 후보 in 필요_후보:
-            if 후보["product_id"] not in 본:
-                본.add(후보["product_id"])
+            있던 = 본.get(후보["product_id"])
+            if 있던 is None:
+                본[후보["product_id"]] = 후보 = {**후보, "env_keys": [필요["key"]]}
                 후보들.append(후보)
+            elif 필요["key"] not in 있던["env_keys"]:
+                있던["env_keys"].append(필요["key"])
 
     이름들 = " ".join(필요.get("label") or 필요["key"] for 필요 in 필요들)
     return {"candidates": 후보들, "product_meta": 메타, "intent_vector": await search_text.embed(이름들)}
