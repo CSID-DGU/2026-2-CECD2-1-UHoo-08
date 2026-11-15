@@ -54,7 +54,7 @@ def _접두어(path: Path) -> str | None:
     return None
 
 
-def _레코드_검사(rec: dict, 접두어: str, 골든: bool) -> list[str]:
+def _레코드_검사(rec: dict, 접두어: str, 골든: bool, 파일: str = "") -> list[str]:
     문제: list[str] = []
 
     아이디 = rec.get("id")
@@ -76,10 +76,13 @@ def _레코드_검사(rec: dict, 접두어: str, 골든: bool) -> list[str]:
             문제.append(f"check 는 exact·contains·property 중 하나다: {rec['check']!r}")
         # 시나리오 골든셋은 평가 러너가 판정할 수 있는 성질만 쓴다. 모르는 키를 쓰면
         # 러너가 그 레코드를 실패로 세어, 데이터 실수가 추천 품질 문제로 보인다.
+        # 피드백 골든셋(feedback_*.jsonl)은 피드백 러너의 성질을 쓴다.
         if 접두어 == "scenario-g" and isinstance(rec.get("expected"), dict):
-            from eval.scenario_checks import PROPERTY_KEYS
+            from eval import feedback_checks, scenario_checks
 
-            모르는 = sorted(set(rec["expected"]) - PROPERTY_KEYS)
+            아는 = (feedback_checks.PROPERTY_KEYS if 파일.startswith("feedback_")
+                    else scenario_checks.PROPERTY_KEYS)
+            모르는 = sorted(set(rec["expected"]) - 아는)
             if 모르는:
                 문제.append(f"시나리오 골든셋에 모르는 성질이 있다: {모르는}")
 
@@ -149,7 +152,7 @@ def collect(roots: tuple[Path, ...] = (SYNTHETIC, GOLDEN)) -> tuple[list[str], s
                     문제.append(f"{위치}: 한 줄에 객체 하나여야 한다")
                     continue
 
-                for 사유 in _레코드_검사(rec, 접두어, 골든):
+                for 사유 in _레코드_검사(rec, 접두어, 골든, path.name):
                     문제.append(f"{위치}: {사유}")
 
                 아이디 = rec.get("id")
