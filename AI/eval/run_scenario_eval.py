@@ -18,6 +18,12 @@
 동안 환경 집계 단계를 이 값을 내는 단계로 바꾼다. 같은 입력으로 다시 잴 수 있게 하려는
 것이라, 환경 집계(B)가 들어온 뒤에도 바꾼다. 질의 해석은 홈 실행과 같은 값을 쓴다.
 
+홈 루틴 레코드는 input.routine_pairs 에 보유 상품 id 로 적은 성분 궁합 쌍을 적는다.
+성분 충돌 규칙(B)이 비어 있어도 바꿀 제품 고르기와 대체 후보를 잴 수 있게 하려는 것이다.
+그 레코드를 도는 동안 루틴 점검 단계를, 실제 보유 제품 단계가 읽은 보유 제품에 이 쌍을
+옮겨 적는 단계로 바꾼다. 보유 제품은 실제 경로의 것을 쓴다. 판정에 쓰도록 보유 제품의
+상품 id 와, 대체 후보가 남은 보유 제품과 함께 쓰지 않는 게 좋은 조합인지를 함께 넘긴다.
+
 조건 수정 레코드는 input.parent 에 이전 검색의 질의를 적는다. 이전 검색을 먼저 돌리고,
 그 결과를 메모리의 이전 job 으로 두고 조건 수정을 돈다. 조건 수정 노드가 job 을 읽는
 함수를 이 동안만 메모리에서 읽는 것으로 바꾼다.
@@ -39,7 +45,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
-from eval.scenario_checks import judge
+from eval.scenario_checks import ROUTINE_KEY, judge
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden" / "scenario"
 REPORT_DIR = Path(__file__).resolve().parent / "reports"
@@ -54,6 +60,7 @@ _이전_검색 = "S2_SEARCH"
 # 홈 시나리오 → 홈 실행의 종류
 _홈_종류 = {"HOME_ENV": "ENV", "HOME_ROUTINE": "ROUTINE"}
 _환경_단계 = "graph.nodes.env_history"
+_루틴_단계 = "graph.nodes.compatibility"
 
 # (결과 dict, 상품 정보) 를 돌려준다
 OneRun = Callable[[dict], Awaitable[tuple[dict, dict]]]
@@ -168,20 +175,88 @@ def _메모리에서_job_읽기(job들: dict[str, dict]):
 
 
 @contextmanager
+def _단계_고정(경로: str, **노드):
+    """그래프 단계 모듈을 잠시 바꾼다. 끝나면 원래 모듈(없었으면 없음)로 되돌린다."""
+    원래 = sys.modules.get(경로)
+    sys.modules[경로] = types.SimpleNamespace(**노드)
+    try:
+        yield
+    finally:
+        if 원래 is None:
+            sys.modules.pop(경로, None)
+        else:
+            sys.modules[경로] = 원래
+
+
+@contextmanager
 def _환경_고정(env_summary: dict):
     """환경 집계 단계를 이 환경 요약을 내는 단계로 잠시 바꾼다."""
     async def env_history(state: dict) -> dict:
         return {"env_summary": env_summary}
 
-    원래 = sys.modules.get(_환경_단계)
-    sys.modules[_환경_단계] = types.SimpleNamespace(env_history=env_history)
-    try:
+    with _단계_고정(_환경_단계, env_history=env_history):
         yield
-    finally:
-        if 원래 is None:
-            sys.modules.pop(_환경_단계, None)
-        else:
-            sys.modules[_환경_단계] = 원래
+
+
+def routine_check_from(pairs: list[dict], inventory: list[dict]) -> dict:
+    """상품 id 로 적은 궁합 쌍을 보유 제품 행(user_product_id)의 루틴 점검 결과로 옮긴다."""
+    if not inventory:
+        raise RuntimeError("보유 제품이 없어 루틴 점검을 만들 수 없다(보유 제품 단계 확인)")
+    행 = {항목["product_id"]: 항목 for 항목 in inventory}
+    쌍들: list[dict] = []
+    for 쌍 in pairs:
+        없는 = [pid for pid in (쌍["a"], 쌍["b"]) if pid not in 행]
+        if 없는:
+            raise RuntimeError(f"보유 제품에 없는 상품이다: {없는}")
+        쌍들.append({
+            **{쪽: {"user_product_id": 행[쌍[쪽]]["user_product_id"], "name": 행[쌍[쪽]].get("name") or ""}
+               for 쪽 in ("a", "b")},
+            "level": 쌍["level"], "title": None, "reason": None,
+        })
+    개수 = {"ok": 0, "separate": 0, "avoid": 0}
+    for 쌍 in 쌍들:
+        개수[쌍["level"].lower()] += 1
+    return {
+        "pairs": 쌍들, "counts": 개수,
+        "schedule": {"morning": [], "evening": [], "tip": None},
+        "uncompared_count": 0,
+        "checked_user_product_ids": [항목["user_product_id"] for 항목 in inventory],
+    }
+
+
+@contextmanager
+def _루틴_고정(pairs: list[dict]):
+    """루틴 점검 단계를 이 궁합 쌍을 지금 보유 제품에 옮겨 적는 단계로 잠시 바꾼다."""
+    async def compatibility(state: dict) -> dict:
+        return {"routine_check": routine_check_from(pairs, state.get("inventory") or [])}
+
+    with _단계_고정(_루틴_단계, compatibility=compatibility):
+        yield
+
+
+async def routine_context(상태: dict) -> dict:
+    """홈 루틴 판정에 쓰는 자료. 보유 제품의 상품 id 와 대체 후보의 AVOID 상대.
+
+    AVOID 상대는 PreFilter 와 같은 함수(성분 부품, B)로 다시 판정한다. 성분 부품이 없으면 None 이다.
+    """
+    from graph.nodes.prefilter import conflict_pairs, ingredient_parts
+
+    보유 = 상태.get("inventory") or []
+    바꿀 = (상태.get("replace_target") or {}).get("user_product_id")
+    대체 = (상태.get("result") or {}).get("replacement") or {}
+    후보_ids = [i["productId"] for i in 대체.get("items") or []]
+    상대: dict[str, list[str]] | None = None
+    if ingredient_parts() is not None:
+        남은 = [항목 for 항목 in 보유 if 항목.get("user_product_id") != 바꿀]
+        쌍들, _ = await conflict_pairs(후보_ids, 남은, 상태.get("product_meta") or {})
+        상대 = {
+            pid: [걸린["user_product_id"] for 걸린 in 쌍들.get(pid) or [] if 걸린.get("level") == "AVOID"]
+            for pid in 후보_ids
+        }
+    return {
+        "product_of": {항목["user_product_id"]: 항목["product_id"] for 항목 in 보유},
+        "avoid_with": 상대,
+    }
 
 
 async def _돌리기(rec: dict) -> dict:
@@ -202,6 +277,11 @@ async def _한_건_실제(rec: dict) -> tuple[dict, dict]:
     elif rec["input"].get("env_summary") is not None:
         with _환경_고정(rec["input"]["env_summary"]):
             결과 = await _돌리기(rec)
+    elif rec["input"].get("routine_pairs") is not None:
+        with _루틴_고정(rec["input"]["routine_pairs"]):
+            결과 = await _돌리기(rec)
+        메타 = {**(결과.get("product_meta") or {}), ROUTINE_KEY: await routine_context(결과)}
+        return 결과.get("result") or {}, 메타
     else:
         결과 = await _돌리기(rec)
     return 결과.get("result") or {}, 결과.get("product_meta") or {}

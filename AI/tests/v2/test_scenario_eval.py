@@ -213,3 +213,85 @@ def test_환경_집계가_없으면_바꾼_단계를_치운다(monkeypatch):
     with 러너._환경_고정({"needs": []}):
         assert "graph.nodes.env_history" in sys.modules
     assert "graph.nodes.env_history" not in sys.modules
+
+
+# 홈 루틴
+
+def _보유행(upid, pid, name):
+    return {"user_product_id": upid, "product_id": pid, "name": name}
+
+
+def test_상품_id_로_적은_궁합_쌍을_보유_제품_행으로_옮긴다():
+    보유 = [_보유행("u1", "p1", "레티놀"), _보유행("u2", "p2", "비타민C"), _보유행("u3", "p3", "크림")]
+    점검 = 러너.routine_check_from(
+        [{"a": "p1", "b": "p2", "level": "AVOID"}, {"a": "p2", "b": "p3", "level": "OK"}], 보유,
+    )
+    assert 점검["pairs"][0]["a"] == {"user_product_id": "u1", "name": "레티놀"}
+    assert 점검["pairs"][0]["b"]["user_product_id"] == "u2" and 점검["pairs"][0]["level"] == "AVOID"
+    assert 점검["counts"] == {"ok": 1, "separate": 0, "avoid": 1}
+    assert 점검["checked_user_product_ids"] == ["u1", "u2", "u3"]
+    from contracts.result import CompatibilityPair, RoutineCounts
+    RoutineCounts.model_validate(점검["counts"])
+    [CompatibilityPair.model_validate(쌍) for 쌍 in 점검["pairs"]]
+
+
+def test_보유_제품이_없거나_쌍의_상품이_보유에_없으면_멈춘다():
+    with pytest.raises(RuntimeError, match="보유 제품이 없어"):
+        러너.routine_check_from([{"a": "p1", "b": "p2", "level": "AVOID"}], [])
+    with pytest.raises(RuntimeError, match="p9"):
+        러너.routine_check_from([{"a": "p1", "b": "p9", "level": "AVOID"}], [_보유행("u1", "p1", "a")])
+
+
+@pytest.mark.asyncio
+async def test_홈_루틴을_도는_동안만_루틴_점검을_바꾼다(monkeypatch):
+    import importlib
+    import sys
+
+    monkeypatch.delitem(sys.modules, "graph.nodes.compatibility", raising=False)
+    with 러너._루틴_고정([{"a": "p1", "b": "p2", "level": "AVOID"}]):
+        단계 = importlib.import_module("graph.nodes.compatibility").compatibility
+        나옴 = await 단계({"inventory": [_보유행("u1", "p1", "a"), _보유행("u2", "p2", "b")]})
+        assert 나옴["routine_check"]["counts"]["avoid"] == 1
+    assert "graph.nodes.compatibility" not in sys.modules
+
+
+@pytest.mark.asyncio
+async def test_판정_자료는_보유_상품과_성분_부품이_없을_때의_AVOID_상대를_담는다(monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "services.ingredient_store", None)
+    상태 = {"inventory": [_보유행("u1", "p1", "a"), _보유행("u2", "p2", "b")],
+            "replace_target": {"user_product_id": "u1"},
+            "result": {"replacement": {"items": [{"productId": "n1"}]}}}
+    자료 = await 러너.routine_context(상태)
+    assert 자료 == {"product_of": {"u1": "p1", "u2": "p2"}, "avoid_with": None}
+
+
+@pytest.mark.asyncio
+async def test_성분_부품이_있으면_바꿀_제품을_뺀_보유_제품과_다시_판정한다(monkeypatch):
+    import sys
+    import types
+
+    받은: list = []
+
+    async def load_product_ingredients(ids):
+        return {pid: ["레티놀"] for pid in ids}
+
+    async def load_rules():
+        return []
+
+    def check_compatibility(inventory, product, rules):
+        받은.append([항목["user_product_id"] for 항목 in inventory])
+        return [{"user_product_id": "u2", "level": "AVOID"}] if product["product_id"] == "n1" else []
+
+    monkeypatch.setitem(sys.modules, "services.ingredient_store", types.SimpleNamespace(
+        load_product_ingredients=load_product_ingredients, load_rules=load_rules))
+    monkeypatch.setitem(sys.modules, "rules.compatibility",
+                        types.SimpleNamespace(check_compatibility=check_compatibility))
+    상태 = {"inventory": [_보유행("u1", "p1", "a"), _보유행("u2", "p2", "b")],
+            "replace_target": {"user_product_id": "u1"},
+            "product_meta": {"n1": {}, "n2": {}},
+            "result": {"replacement": {"items": [{"productId": "n1"}, {"productId": "n2"}]}}}
+    자료 = await 러너.routine_context(상태)
+    assert 자료["avoid_with"] == {"n1": ["u2"], "n2": []}
+    assert 받은 == [["u2"], ["u2"]]

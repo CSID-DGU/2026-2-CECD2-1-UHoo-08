@@ -217,11 +217,103 @@ async def test_꼭_필요한_단계가_없으면_결과를_만들지_않는다(�
         await 노드.compose(_상태(scenario=시나리오, trace=[f"{빈_단계}(stub)"]))
 
 
+_HOME_ROUTINE_예시 = _BE_예시.with_name("HOME_ROUTINE.json")
+
+
+def _루틴_점검():
+    return {
+        "pairs": [
+            {"a": {"user_product_id": "u1", "name": "레티놀 앰플"},
+             "b": {"user_product_id": "u2", "name": "비타민C 세럼"},
+             "level": "AVOID", "title": "같이 쓰지 마세요", "reason": "자극이 커져요"},
+            {"a": {"user_product_id": "u1", "name": "레티놀 앰플"},
+             "b": {"user_product_id": "u3", "name": "수분 크림"},
+             "level": "OK", "title": None, "reason": None},
+            {"a": {"user_product_id": "u2", "name": "비타민C 세럼"},
+             "b": {"user_product_id": "u3", "name": "수분 크림"},
+             "level": "OK", "title": None, "reason": None},
+        ],
+        "counts": {"ok": 2, "separate": 0, "avoid": 1},
+        "schedule": {"morning": ["비타민C 세럼"], "evening": ["레티놀 앰플", "수분 크림"], "tip": None},
+        "uncompared_count": 0,
+        "checked_user_product_ids": ["u1", "u2", "u3"],
+    }
+
+
+def _루틴_상태(**값):
+    기본 = dict(
+        scenario="HOME_ROUTINE", job_id="home:u1:ROUTINE", raw_query="",
+        query_spec={"request_type": "SEARCH", "target": "SELF"},
+        inventory=[{"user_product_id": u, "product_id": f"x{u}"} for u in ("u1", "u2", "u3")],
+        routine_check=_루틴_점검(),
+        replace_target={"user_product_id": "u2", "product_id": "xu2", "name": "비타민C 세럼",
+                        "reason": "별점이 낮은 쪽을 바꾸는 걸 먼저 권해요"},
+        scored=[_점수표(f"p{i}", 90 - i) for i in range(5)],
+        product_meta={f"p{i}": _메타(f"p{i}") for i in range(5)},
+        conflict_marks={"p1": [{"level": "SEPARATE", "advice": "레티놀 앰플과는 저녁에 나눠 쓰세요"}]},
+        excluded=[], collaborative=[],
+        trace=["inventory", "compatibility", "alternative", "prefilter", "score_lite"],
+    )
+    return _상태(**{**기본, **값})
+
+
 @pytest.mark.asyncio
-async def test_홈_루틴_결과는_분석_칸_없이_내보내지_않는다():
-    """분석 칸이 비어 있으면 BE 가 카드를 계속 분석 전으로 내려보낸다."""
-    with pytest.raises(노드.부품_없음):
-        await 노드.compose(_상태(scenario="HOME_ROUTINE", trace=["compatibility"]))
+async def test_홈_루틴_결과가_계약을_지키고_BE_예시와_키가_같다():
+    결과 = (await 노드.compose(_루틴_상태()))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_HOME_ROUTINE_예시.read_text())
+    assert set(결과) == set(예시)
+    assert set(결과["query"]) >= set(예시["query"])
+    assert set(결과["replacement"]) == set(예시["replacement"])
+    assert set(결과["replacement"]["items"][0]) >= set(예시["replacement"]["items"][0])
+    assert set(결과["pairs"][0]) == set(예시["pairs"][0])
+    assert 결과["items"] == [] and 결과["alternatives"] == []
+
+
+@pytest.mark.asyncio
+async def test_점검_결과는_고치지_않고_그대로_싣는다():
+    결과 = (await 노드.compose(_루틴_상태()))["result"]
+    점검 = _루틴_점검()
+    assert 결과["counts"] == 점검["counts"]
+    assert [(쌍["a"]["userProductId"], 쌍["b"]["userProductId"], 쌍["level"]) for 쌍 in 결과["pairs"]] \
+        == [(쌍["a"]["user_product_id"], 쌍["b"]["user_product_id"], 쌍["level"]) for 쌍 in 점검["pairs"]]
+    assert 결과["schedule"] == 점검["schedule"]
+    assert 결과["uncomparedCount"] == 0
+    assert 결과["checkedUserProductIds"] == ["u1", "u2", "u3"]
+
+
+@pytest.mark.asyncio
+async def test_대체_제안은_상위_3개에_괜찮음과_시간대_안내를_배지로_단다():
+    대체 = (await 노드.compose(_루틴_상태()))["result"]["replacement"]
+    assert 대체["replaceTarget"] == {"userProductId": "u2", "name": "비타민C 세럼"}
+    assert 대체["message"] == "별점이 낮은 쪽을 바꾸는 걸 먼저 권해요"
+    assert [(i["productId"], i["totalScore"], i["badge"]) for i in 대체["items"]] == [
+        ("p0", 90, "쓰시는 제품 2개와 모두 괜찮아요"),
+        ("p1", 89, "레티놀 앰플과는 저녁에 나눠 쓰세요"),
+        ("p2", 88, "쓰시는 제품 2개와 모두 괜찮아요"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_바꿀_제품이_없으면_대체_제안은_null_이다():
+    결과 = (await 노드.compose(_루틴_상태(replace_target=None, scored=[])))["result"]
+    assert "replacement" in 결과 and 결과["replacement"] is None
+    assert 결과["counts"] == _루틴_점검()["counts"]
+
+
+@pytest.mark.asyncio
+async def test_바꿀_제품이_점검한_보유_제품이_아니면_결과를_만들지_않는다():
+    """BE 는 점검하지 않은 제품을 가리키는 카드를 통째로 점검 전으로 내린다."""
+    with pytest.raises(노드.잘못된_참조):
+        await 노드.compose(_루틴_상태(replace_target={"user_product_id": "u9", "name": "모름"}))
+
+
+@pytest.mark.asyncio
+async def test_점검_결과의_모양이_틀리면_결과를_만들지_않는다():
+    점검 = {**_루틴_점검(), "counts": {"ok": 2}}
+    with pytest.raises(ValueError):
+        await 노드.compose(_루틴_상태(routine_check=점검))
 
 
 _HOME_ENV_예시 = _BE_예시.with_name("HOME_ENV.json")

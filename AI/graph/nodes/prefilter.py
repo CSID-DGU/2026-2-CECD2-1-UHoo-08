@@ -47,7 +47,7 @@ def _불러오기(이름: str) -> ModuleType | None:
         return None
 
 
-def _성분_부품() -> tuple[ModuleType, ModuleType] | None:
+def ingredient_parts() -> tuple[ModuleType, ModuleType] | None:
     global _부품_없음_알림
     성분, 궁합 = _불러오기(_성분_모듈), _불러오기(_궁합_모듈)
     if 성분 is None or 궁합 is None:
@@ -65,7 +65,7 @@ async def conflict_pairs(
 
     대체 후보 노드도 같은 판정을 쓴다.
     """
-    부품 = _성분_부품()
+    부품 = ingredient_parts()
     if 부품 is None:
         return {}, 메타
     성분_모듈, 궁합_모듈 = 부품
