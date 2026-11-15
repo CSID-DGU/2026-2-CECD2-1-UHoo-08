@@ -73,7 +73,7 @@ logger = logging.getLogger(__name__)
 이유_LLM_제한_초 = 15.0
 
 # 이 단계가 아직 없으면(stub) 결과를 만들 수 없는 경로
-_필수_부품: dict[str, tuple[str, ...]] = {
+REQUIRED_NODES: dict[str, tuple[str, ...]] = {
     "S6_BUNDLE": ("budget", "bundle"),
     "HOME_ENV": ("env_history",),
     "HOME_ROUTINE": ("compatibility",),
@@ -99,7 +99,7 @@ class 부품_없음(RuntimeError):
 
 
 def _부품을_확인한다(시나리오: str, 자취: list[str]) -> None:
-    빠진 = [이름 for 이름 in _필수_부품.get(시나리오, ()) if f"{이름}(stub)" in 자취]
+    빠진 = [이름 for 이름 in REQUIRED_NODES.get(시나리오, ()) if f"{이름}(stub)" in 자취]
     if 빠진:
         raise 부품_없음(f"{시나리오}: 아직 없는 단계가 있어 결과를 만들 수 없다 {빠진}")
     if 시나리오 in _홈_경로:
