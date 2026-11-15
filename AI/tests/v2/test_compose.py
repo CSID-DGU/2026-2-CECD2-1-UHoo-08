@@ -218,11 +218,106 @@ async def test_꼭_필요한_단계가_없으면_결과를_만들지_않는다(�
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("시나리오", ["HOME_ENV", "HOME_ROUTINE"])
-async def test_홈_결과는_분석_칸_없이_내보내지_않는다(시나리오):
+async def test_홈_루틴_결과는_분석_칸_없이_내보내지_않는다():
     """분석 칸이 비어 있으면 BE 가 카드를 계속 분석 전으로 내려보낸다."""
     with pytest.raises(노드.부품_없음):
-        await 노드.compose(_상태(scenario=시나리오, trace=["env_history", "compatibility"]))
+        await 노드.compose(_상태(scenario="HOME_ROUTINE", trace=["compatibility"]))
+
+
+_HOME_ENV_예시 = _BE_예시.with_name("HOME_ENV.json")
+_건조 = {"key": "DRY", "label": "보습", "basis": "습도 40% 미만 18일",
+        "reason_text": "요즘 공기가 건조해요", "category": "base",
+        "features": {"finish": "글로우"}, "conditions": ["촉촉"]}
+_매트 = {"key": "MATTE", "label": "매트 마무리", "basis": "기온 28도 이상 10일",
+        "reason_text": "요즘 덥고 습해요", "category": "base",
+        "features": {"finish": "매트"}, "conditions": ["매트"]}
+
+
+def _홈_상태(env_conditions, **값):
+    값.setdefault("candidates", [
+        {"product_id": pid, "source": f"env:{키}", "similarity": 0.8}
+        for 키, pids in (("DRY", ("p1", "p2")),) for pid in pids
+    ])
+    return _상태(
+        scenario="HOME_ENV", job_id="home:u1:ENV", raw_query="",
+        query_spec={"request_type": "SEARCH", "target": "SELF", "use_env": True,
+                    "category": "base", "conditions": ["보습"]},
+        env_summary={"region": "서울", "day_count": 28, "needs": [_건조, _매트]},
+        env_conditions=env_conditions,
+        collaborative=[],
+        trace=["env_history", "inventory", "coverage", "retrieve", "prefilter", "score_lite"],
+        **값,
+    )
+
+
+_덮임 = [
+    {"key": "DRY", "label": "보습", "basis": "습도 40% 미만 18일", "covered": False,
+     "covered_by": None},
+    {"key": "MATTE", "label": "매트 마무리", "basis": "기온 28도 이상 10일", "covered": True,
+     "covered_by": "네오 쿠션"},
+]
+
+
+@pytest.mark.asyncio
+async def test_홈_환경_결과가_계약을_지키고_BE_예시와_키가_같다():
+    결과 = (await 노드.compose(_홈_상태(_덮임)))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_HOME_ENV_예시.read_text())
+    assert set(결과) == set(예시)
+    # 질의 요약은 조건 탐색과 같은 모양이다. 홈 예시는 쓰지 않는 예산 칸을 적지 않았다
+    assert set(결과["query"]) >= set(예시["query"])
+    assert set(결과["conditions"][0]) == set(예시["conditions"][0])
+    assert 결과["conditions"][1] == {"key": "MATTE", "label": "매트 마무리",
+                                     "basis": "기온 28도 이상 10일", "covered": True,
+                                     "coveredBy": "네오 쿠션"}
+    assert 결과["query"]["raw"] == "" and 결과["query"]["useEnv"] is True
+    assert 결과["similarUserProducts"] == []
+
+
+@pytest.mark.asyncio
+async def test_홈_환경_카드는_덮이지_않은_기능마다_상위_3개를_묶어_싣는다():
+    _빛 = {"key": "UV", "label": "자외선 차단", "basis": "자외선 6 이상 20일",
+          "reason_text": "요즘 자외선이 강해요", "category": "sun",
+          "features": {"product_type": "선크림"}, "conditions": ["자외선 차단"]}
+    조건 = [*_덮임, {"key": "UV", "label": "자외선 차단", "basis": "자외선 6 이상 20일",
+                   "covered": False, "covered_by": None}]
+    # 건조(DRY)로 찾은 d0~d4, 자외선(UV)으로 찾은 u0~u3, 덮인 매트(MATTE)로 찾은 m0
+    후보 = ([{"product_id": f"d{i}", "source": "env:DRY"} for i in range(5)]
+            + [{"product_id": f"u{i}", "source": "env:UV"} for i in range(4)]
+            + [{"product_id": "m0", "source": "env:MATTE"}])
+    # 점수는 기능이 섞인 순서로 온다
+    점수 = [_점수표(pid, 95 - i, review=60) for i, pid in enumerate(
+        ["u0", "d0", "u1", "d1", "m0", "d2", "u2", "d3", "u3", "d4"])]
+    메타 = {c["product_id"]: _메타(c["product_id"]) for c in 후보}
+    상태 = _홈_상태(조건, candidates=후보, scored=점수, product_meta=메타)
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _빛]}
+    결과 = (await 노드.compose(상태))["result"]
+
+    assert [i["productId"] for i in 결과["items"]] == ["d0", "d1", "d2", "u0", "u1", "u2"]
+    배지 = [[b["text"] for b in i["badges"] if b["type"] == "ENV"] for i in 결과["items"]]
+    assert 배지 == [["요즘 공기가 건조해요"]] * 3 + [["요즘 자외선이 강해요"]] * 3
+
+
+@pytest.mark.asyncio
+async def test_필요한_기능이_없으면_조건은_빈_목록이고_null_이_아니다():
+    결과 = (await 노드.compose(_홈_상태([], scored=[])))["result"]
+    assert 결과["conditions"] == [] and 결과["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_모두_덮였으면_카드가_없다():
+    모두 = [{**c, "covered": True, "covered_by": "네오 쿠션"} for c in _덮임]
+    # 점수가 남아 있어도 덮인 기능으로 찾은 상품은 싣지 않는다
+    결과 = (await 노드.compose(_홈_상태(모두)))["result"]
+    assert 결과["items"] == [] and all(c["covered"] for c in 결과["conditions"])
+
+
+@pytest.mark.asyncio
+async def test_검색_결과에는_홈_조건_칸이_없다():
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert "conditions" not in 결과
 
 
 @pytest.mark.asyncio
