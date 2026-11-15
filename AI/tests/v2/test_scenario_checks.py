@@ -177,3 +177,30 @@ def test_결과_카드가_비었는지_본다():
     assert 판정.items_empty(True, _결과(), {})[0]
     assert not 판정.items_empty(True, _결과([_카드("p1")]), {})[0]
     assert 판정.items_empty(False, _결과([_카드("p1")]), {})[0]
+
+
+def _루틴_결과(upid="u1", name="레티놀 앰플"):
+    return _결과(replacement={"replaceTarget": {"userProductId": upid, "name": name},
+                               "message": None, "items": []})
+
+
+def test_바꿀_제품의_상품이_기대_중_하나여야_한다():
+    메타 = {판정.ROUTINE_KEY: {"product_of": {"u1": "p1", "u2": "p2"}, "avoid_with": None}}
+    assert 판정.replace_target_in(["p1", "p9"], _루틴_결과(), 메타)[0]
+    assert not 판정.replace_target_in(["p2"], _루틴_결과(), 메타)[0]
+    assert not 판정.replace_target_in(["p1"], _결과(replacement=None), 메타)[0]
+    # 빈 목록이면 바꿀 제품이 없어야 한다
+    assert 판정.replace_target_in([], _결과(replacement=None), 메타)[0]
+    assert not 판정.replace_target_in([], _루틴_결과(), 메타)[0]
+
+
+def test_대체_후보가_남은_보유_제품과_AVOID_가_아니어야_한다():
+    결과 = _루틴_결과()
+    assert 판정.replacement_items_no_avoid(
+        True, 결과, {판정.ROUTINE_KEY: {"avoid_with": {"n1": [], "n2": []}}})[0]
+    통과, 설명 = 판정.replacement_items_no_avoid(
+        True, 결과, {판정.ROUTINE_KEY: {"avoid_with": {"n1": ["u3"], "n2": []}}})
+    assert not 통과 and "n1" in 설명
+    # 성분 부품이 없어 다시 판정하지 못했으면 통과로 보지 않는다
+    통과, 설명 = 판정.replacement_items_no_avoid(True, 결과, {판정.ROUTINE_KEY: {"avoid_with": None}})
+    assert not 통과 and "성분 부품" in 설명

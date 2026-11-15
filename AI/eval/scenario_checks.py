@@ -17,6 +17,9 @@ from pydantic.alias_generators import to_camel
 
 # 상위 몇 개를 보는지
 상위_수 = 5
+# 홈 루틴 판정 자료를 상품 정보에 넣어 넘기는 키. 러너가 채운다(eval/run_scenario_eval.py).
+# {"product_of": {user_product_id: product_id}, "avoid_with": {product_id: [user_product_id]} | None}
+ROUTINE_KEY = "_routine"
 
 Judgement = tuple[bool, str]
 
@@ -140,6 +143,27 @@ def items_empty(기대: bool, 결과: dict, 메타: dict) -> Judgement:
     return ((수 == 0) is 기대, f"결과 카드 {수}개")
 
 
+def replace_target_in(기대: list[str], 결과: dict, 메타: dict) -> Judgement:
+    """홈 루틴의 바꿀 제품이 이 상품 중 하나다. 빈 목록이면 바꿀 제품이 없어야 한다."""
+    대체 = 결과.get("replacement")
+    if not 기대:
+        return (대체 is None, f"바꿀 제품이 있다: {대체['replaceTarget']}" if 대체 else "")
+    if not 대체:
+        return False, "바꿀 제품이 없다"
+    upid = 대체["replaceTarget"]["userProductId"]
+    pid = ((메타.get(ROUTINE_KEY) or {}).get("product_of") or {}).get(upid)
+    return (pid in 기대, f"바꿀 제품 {대체['replaceTarget']['name']} ({pid})")
+
+
+def replacement_items_no_avoid(기대: bool, 결과: dict, 메타: dict) -> Judgement:
+    """대체 후보가 남은 보유 제품과 함께 쓰지 않는 게 좋은 조합이 아니다. 성분 부품이 없으면 실패다."""
+    상대 = (메타.get(ROUTINE_KEY) or {}).get("avoid_with")
+    if 상대 is None:
+        return False, "성분 부품(B)이 없어 판정할 수 없다"
+    걸린 = {pid: upids for pid, upids in 상대.items() if upids}
+    return ((not 걸린) is 기대, f"AVOID 인 대체 후보: {걸린}" if 걸린 else "AVOID 인 대체 후보가 없다")
+
+
 CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "must_exclude": must_exclude,
     "must_exclude_reason": must_exclude_reason,
@@ -152,6 +176,8 @@ CHECKS: dict[str, Callable[[Any, dict, dict], Judgement]] = {
     "change_present": change_present,
     "conditions_cover": conditions_cover,
     "items_empty": items_empty,
+    "replace_target_in": replace_target_in,
+    "replacement_items_no_avoid": replacement_items_no_avoid,
 }
 PROPERTY_KEYS: frozenset[str] = frozenset(CHECKS)
 
