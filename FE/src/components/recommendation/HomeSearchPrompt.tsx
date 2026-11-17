@@ -9,7 +9,11 @@ const prompts = [
   "5만원으로 스킨·로션을 골라볼까요?",
 ];
 
-export function HomeSearchPrompt({ onSubmit }: { onSubmit: (query: string) => void }) {
+/**
+ * 홈 검색창. 여기서 바로 입력하지 않고 누르면 검색 화면으로 간다.
+ * 검색 화면에서 최근 검색어와 예시를 함께 보여주기 위해서다.
+ */
+export function HomeSearchPrompt({ onOpen }: { onOpen: () => void }) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -27,5 +31,5 @@ export function HomeSearchPrompt({ onSubmit }: { onSubmit: (query: string) => vo
       media.removeEventListener("change", update);
     };
   }, []);
-  return <SearchField editable placeholder={prompts[index]} onSubmit={onSubmit} />;
+  return <SearchField placeholder={prompts[index]} onClick={onOpen} />;
 }

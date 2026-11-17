@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Check,
   FlaskConical,
-  Layers,
   Leaf,
   SlidersHorizontal,
   Sun,
@@ -88,17 +87,6 @@ const slides = [
     kind: "budget",
     upcoming: true,
   },
-  {
-    id: "S7",
-    label: "조건 수정 · 재탐색",
-    title: "조금 더 저렴하게?\n조건을 더해 좁혀요",
-    description: "검색 결과에서 조건을 더하거나 바꾸고, 이전 결과와 비교해요.",
-    cta: "조건 수정하러 가기",
-    icon: Layers,
-    accent: "#9DBDE9",
-    tint: "#A8C6EC",
-    kind: "refine",
-  },
 ];
 const track = [slides[slides.length - 1], ...slides, slides[0]];
 
@@ -174,7 +162,6 @@ export function HomeHero({
     else if (kind === "environment") navigate("/environment");
     else if (kind === "inventory") navigate("/my/products");
     else if (kind === "ingredients") navigate("/recommendation/lookup");
-    else navigate("/search", { state: { entryScenario: "refine" } });
   }
   return (
     <>
