@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { AuthGuard } from "./components/common/AuthGuard";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { KakaoCallbackPage } from "./pages/auth/KakaoCallbackPage";
+import { GoogleCallbackPage } from "./pages/auth/GoogleCallbackPage";
 import { ProfileSetupPage } from "./pages/onboarding/ProfileSetupPage";
 import { PreferenceSetupPage } from "./pages/onboarding/PreferenceSetupPage";
 import { KnownProductSetupPage } from "./pages/onboarding/KnownProductSetupPage";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
   // 인증 불필요
   { path: "/", element: <LoginPage /> },
   { path: "/auth/social", element: <KakaoCallbackPage /> },
+  { path: "/auth/google", element: <GoogleCallbackPage /> },
   { path: "/kiosk", element: <KioskPage /> },
 
   // 인증 필요
