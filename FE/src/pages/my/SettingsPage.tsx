@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getTrackings, updateAlertSettings } from "../../api/priceTrackingApi";
 import { clearTokens } from "../../lib/auth";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
 
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+function Toggle({ on, onToggle, disabled, label }: { on: boolean; onToggle: () => void; disabled?: boolean; label: string }) {
   return (
     <button
-      className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-primary-500" : "bg-gray-200"}`}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-40 ${on ? "bg-primary-500" : "bg-gray-200"}`}
       onClick={onToggle}
       type="button"
       aria-pressed={on}
+      aria-label={label}
+      disabled={disabled}
     >
       <span
         className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -26,29 +29,65 @@ function SettingRow({
   desc,
   on,
   onToggle,
+  disabled,
+  badge,
 }: {
   label: string;
   desc?: string;
   on: boolean;
   onToggle: () => void;
+  disabled?: boolean;
+  badge?: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-4">
+    <div className="flex items-center justify-between gap-3 py-4">
       <div>
-        <p className="text-body2 text-gray-500">{label}</p>
+        <p className="text-body2 text-gray-500">
+          {label}
+          {badge && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">{badge}</span>}
+        </p>
         {desc && <p className="mt-0.5 text-caption text-gray-300">{desc}</p>}
       </div>
-      <Toggle on={on} onToggle={onToggle} />
+      <Toggle on={on} onToggle={onToggle} disabled={disabled} label={label} />
     </div>
   );
 }
 
+type AlertSettings = { targetPriceAlert: boolean; weeklyReport: boolean };
+
 export function SettingsPage() {
   const navigate = useNavigate();
-  const [priceAlert, setPriceAlert] = useState(true);
-  const [aiRecommend, setAiRecommend] = useState(true);
-  const [weeklyReport, setWeeklyReport] = useState(false);
-  const [reviewRequest, setReviewRequest] = useState(true);
+  // 가격 알림과 주간 리포트는 가격 추적 설정(BE)에 저장한다. 불러오기 전에는 막아 둔다.
+  const [alerts, setAlerts] = useState<AlertSettings | null>(null);
+  const [alertError, setAlertError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getTrackings()
+      .then(({ data }) => {
+        if (active && data?.alertSettings) setAlerts(data.alertSettings);
+      })
+      .catch(() => {
+        if (active) setAlertError("알림 설정을 불러오지 못했어요.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function changeAlert(key: keyof AlertSettings) {
+    if (!alerts) return;
+    const previous = alerts;
+    const next = { ...alerts, [key]: !alerts[key] };
+    setAlerts(next); // 먼저 바꿔 보여주고, 실패하면 되돌린다.
+    setAlertError("");
+    try {
+      await updateAlertSettings(next.targetPriceAlert, next.weeklyReport);
+    } catch {
+      setAlerts(previous);
+      setAlertError("알림 설정을 저장하지 못했어요. 다시 시도해주세요.");
+    }
+  }
 
   function handleLogout() {
     clearTokens();
@@ -68,29 +107,40 @@ export function SettingsPage() {
           <div className="mt-3 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white px-4">
             <SettingRow
               label="가격 변동 알림"
-              desc="추적 중인 상품의 가격이 변경되면 알려드려요"
-              on={priceAlert}
-              onToggle={() => setPriceAlert((v) => !v)}
+              desc="추적 중인 상품이 목표가에 닿으면 알려드려요"
+              on={alerts?.targetPriceAlert ?? false}
+              disabled={!alerts}
+              onToggle={() => void changeAlert("targetPriceAlert")}
+            />
+            <SettingRow
+              label="주간 리포트"
+              desc="추적 중인 상품 가격을 매주 정리해 드려요"
+              on={alerts?.weeklyReport ?? false}
+              disabled={!alerts}
+              onToggle={() => void changeAlert("weeklyReport")}
             />
             <SettingRow
               label="AI 추천 알림"
               desc="맞춤 제품 추천 소식을 알려드려요"
-              on={aiRecommend}
-              onToggle={() => setAiRecommend((v) => !v)}
-            />
-            <SettingRow
-              label="주간 리포트"
-              desc="매주 피부 케어 리포트를 보내드려요"
-              on={weeklyReport}
-              onToggle={() => setWeeklyReport((v) => !v)}
+              badge="준비 중"
+              on={false}
+              disabled
+              onToggle={() => {}}
             />
             <SettingRow
               label="리뷰 요청"
               desc="사용한 제품에 대한 리뷰를 남겨주세요"
-              on={reviewRequest}
-              onToggle={() => setReviewRequest((v) => !v)}
+              badge="준비 중"
+              on={false}
+              disabled
+              onToggle={() => {}}
             />
           </div>
+          {alertError && (
+            <p role="alert" className="mt-2 text-caption text-red-700">
+              {alertError}
+            </p>
+          )}
         </div>
 
         {/* 고객센터 */}

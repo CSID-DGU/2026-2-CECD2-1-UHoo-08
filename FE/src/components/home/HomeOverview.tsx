@@ -6,6 +6,16 @@ import { getMyProducts, type MyProduct } from "../../api/myProductApi";
 import { RecentlyViewed } from "./RecentlyViewed";
 import { care } from "../../lib/careBase";
 import type { EnvironmentResponse } from "../../kiosk/lib/types";
+import {
+  getHomeEnvironmentRecommendation,
+  getRoutineCheck,
+  getTrendProducts,
+  type EnvironmentRecommendation,
+  type RoutineCheck,
+  type TrendProducts,
+} from "../../api/homeApi";
+import { apiErrorCode } from "../../api/recommendationQueryApi";
+import { ProductThumbnail } from "../common/ProductThumbnail";
 
 export function HomeOverview() {
   const navigate = useNavigate();
@@ -16,6 +26,26 @@ export function HomeOverview() {
   const [environmentState, setEnvironmentState] = useState("loading");
   const [productsState, setProductsState] = useState("loading");
   const [attempt, setAttempt] = useState(0);
+  // BE 홈 카드. 실패해도 홈은 그대로 보이게 각각 따로 받는다.
+  const [envReco, setEnvReco] = useState<EnvironmentRecommendation | "no-region" | null>(null);
+  const [routine, setRoutine] = useState<RoutineCheck | null>(null);
+  const [trends, setTrends] = useState<TrendProducts | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getHomeEnvironmentRecommendation()
+      .then(({ data }) => { if (active) setEnvReco(data); })
+      .catch((error) => { if (active && apiErrorCode(error) === "REGION_NOT_SET") setEnvReco("no-region"); });
+    getRoutineCheck()
+      .then(({ data }) => { if (active) setRoutine(data); })
+      .catch(() => {});
+    getTrendProducts()
+      .then(({ data }) => { if (active) setTrends(data); })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -156,6 +186,7 @@ export function HomeOverview() {
               <p className="text-[11px] font-semibold text-gray-500">
                 환경에 맞춰 루틴 살펴보기
               </p>
+              <EnvRecoSummary value={envReco} onSetRegion={() => navigate("/environment")} />
               <div className="mt-2 flex items-center justify-between gap-2">
                 <span className="text-[10px] text-gray-300">
                   측정 환경을 참고해 제품을 확인해요
@@ -187,6 +218,9 @@ export function HomeOverview() {
             </span>
           )}
         </div>
+        {routine?.checked ? (
+          <RoutineSummary routine={routine} />
+        ) : (
         <p
           className="mt-2 text-xs leading-relaxed text-gray-400"
           role={productsState === "loading" ? "status" : undefined}
@@ -199,6 +233,7 @@ export function HomeOverview() {
                 ? "쓰고 있는 제품과 개봉일을 확인해 보세요."
                 : "쓰고 있는 제품을 등록해 루틴을 모아보세요."}
         </p>
+        )}
         <button
           type="button"
           onClick={() => navigate("/my/products")}
@@ -213,12 +248,115 @@ export function HomeOverview() {
         <h2 id="home-trending" className="text-sm font-semibold text-gray-500">
           요즘 뜨는 제품
         </h2>
-        <div className="mt-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
-          <p className="text-[11px] text-gray-300">
-            아직 집계된 인기 제품 정보가 없어요.
-          </p>
-        </div>
+        {trends?.items.length ? (
+          <ul className="-mx-5 mt-2 flex gap-3 overflow-x-auto px-5 pb-1 scrollbar-none">
+            {trends.items.map((item) => (
+              <li key={item.productId} className="w-[112px] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/product/${item.productId}`)}
+                  className="block w-full text-left"
+                >
+                  <div className="relative grid aspect-square place-items-center overflow-hidden rounded-xl bg-[#F2F6FC]">
+                    <span className="absolute left-2 top-1.5 text-[11px] font-semibold text-slate-500">{item.rank}</span>
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-2" />
+                    ) : (
+                      <ProductThumbnail className="h-full w-full bg-[#F2F6FC]" />
+                    )}
+                  </div>
+                  <p className="mt-1.5 truncate text-[10px] text-gray-400">{item.brand}</p>
+                  <p className="line-clamp-2 text-[11px] font-medium leading-4 text-gray-500">{item.name}</p>
+                  {item.interestChangePct != null && item.interestChangePct > 0 && (
+                    <p className="mt-0.5 text-[10px] text-primary-600">관심 {item.interestChangePct}% ↑</p>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
+            <p className="text-[11px] text-gray-300">
+              아직 집계된 인기 제품 정보가 없어요.
+            </p>
+          </div>
+        )}
       </section>
+    </div>
+  );
+}
+
+/** 환경이 요구하는데 지금 루틴에 빠진 조건과, 그걸 채울 추천 제품 몇 개. */
+function EnvRecoSummary({
+  value,
+  onSetRegion,
+}: {
+  value: EnvironmentRecommendation | "no-region" | null;
+  onSetRegion: () => void;
+}) {
+  if (value === null) return null;
+  if (value === "no-region")
+    return (
+      <button type="button" onClick={onSetRegion} className="mt-1.5 text-[10px] text-primary-600">
+        지역을 설정하면 필요한 제품을 골라드려요 ›
+      </button>
+    );
+  if (value.state === "NOT_READY") return null;
+  if (value.state === "FULLY_COVERED")
+    return <p className="mt-1.5 text-[10px] text-[#318457]">지금 쓰는 제품으로 충분해요</p>;
+  const items = value.result?.items.slice(0, 3) ?? [];
+  return (
+    <div className="mt-1.5">
+      {value.missingConditions.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {value.missingConditions.map((condition) => (
+            <span key={condition.key} className="rounded-md bg-[#FFF4E6] px-1.5 py-0.5 text-[10px] text-[#C06F2A]">
+              {condition.label} 필요
+            </span>
+          ))}
+        </div>
+      )}
+      {items.length > 0 && (
+        <p className="mt-1 truncate text-[10px] text-gray-400">
+          추천: {items.map((item) => item.name).join(" · ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** 쓰는 제품끼리의 궁합 점검 결과. 같이 쓰면 안 되는 쌍을 먼저 보여준다. */
+function RoutineSummary({ routine }: { routine: RoutineCheck }) {
+  const worst =
+    routine.pairs.find((pair) => pair.level === "AVOID") ??
+    routine.pairs.find((pair) => pair.level === "SEPARATE");
+  return (
+    <div className="mt-2">
+      <div className="grid grid-cols-3 gap-1.5 text-center">
+        {[
+          { label: "괜찮아요", value: routine.counts.ok, tone: "text-[#318457]" },
+          { label: "시간 나눠요", value: routine.counts.separate, tone: "text-[#C06F2A]" },
+          { label: "같이 쓰지 마요", value: routine.counts.avoid, tone: "text-red-700" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-lg bg-gray-50 py-1.5">
+            <p className={`text-sm font-bold ${item.tone}`}>{item.value}</p>
+            <p className="text-[10px] text-gray-400">{item.label}</p>
+          </div>
+        ))}
+      </div>
+      {worst && (
+        <p className="mt-2 text-[11px] leading-5 text-gray-500">
+          <span className="font-semibold">
+            {worst.a.name} + {worst.b.name}
+          </span>
+          {worst.title ? ` · ${worst.title}` : ""}
+        </p>
+      )}
+      {routine.uncomparedCount > 0 && (
+        <p className="mt-1 text-[10px] text-gray-300">
+          성분 정보가 없어 {routine.uncomparedCount}개는 비교하지 못했어요
+        </p>
+      )}
     </div>
   );
 }
