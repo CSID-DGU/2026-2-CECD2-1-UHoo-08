@@ -9,7 +9,11 @@ type ScanState = "idle" | "scanning" | "reading" | "error";
 
 export function NfcScanPage() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, state: routeState } = useLocation() as {
+    pathname: string;
+    // 검색에서 왔으면 "detail". 인식 확인 화면에 그대로 넘겨 제품 상세로 보낸다.
+    state: { next?: "detail" } | null;
+  };
   const isDemo = pathname.endsWith("/demo");
 
   const [state, setState] = useState<ScanState>(isDemo ? "scanning" : "idle");
@@ -46,7 +50,9 @@ export function NfcScanPage() {
         const nfcData = record.toText();
         try {
           const res = await recognizeProduct("NFC", nfcData);
-          navigate("/product/recognize", { state: { result: res.data } });
+          navigate("/product/recognize", {
+            state: { result: res.data, next: routeState?.next },
+          });
         } catch {
           setErrorMsg("제품 조회에 실패했어요.");
           setState("error");
