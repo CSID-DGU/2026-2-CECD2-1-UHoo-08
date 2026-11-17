@@ -12,7 +12,9 @@ import { fileToBase64, supportsWebNfc } from "../../lib/fileToBase64";
  *
  * 숨은 파일 입력(inputs)을 화면 어딘가에 그려야 카메라·앨범이 열린다.
  */
-export function useProductLens() {
+export function useProductLens(after: "detail" | "recommend" = "detail") {
+  // 인식 확인 화면에 넘길 다음 행선지. 추천 흐름이면 비워 둔다(확인 화면의 기본 동작).
+  const next = after === "detail" ? "detail" : undefined;
   const navigate = useNavigate();
   const cameraRef = useRef<HTMLInputElement>(null);
   const albumRef = useRef<HTMLInputElement>(null);
@@ -34,7 +36,7 @@ export function useProductLens() {
             brand: res.brand ?? "",
             imageUrl: null,
           },
-          next: "detail",
+          next,
         },
       });
     } catch {
@@ -72,6 +74,6 @@ export function useProductLens() {
     nfcSupported,
     openCamera: () => cameraRef.current?.click(),
     openAlbum: () => albumRef.current?.click(),
-    openNfc: () => navigate("/recommendation/nfc-scan", { state: { next: "detail" } }),
+    openNfc: () => navigate("/recommendation/nfc-scan", { state: { next } }),
   };
 }

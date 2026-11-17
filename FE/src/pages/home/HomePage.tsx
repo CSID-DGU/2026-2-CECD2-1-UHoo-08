@@ -81,7 +81,7 @@ export function HomePage() {
 
               <HomeHero
                 onSearch={handleSearch}
-                onEvaluate={() => navigate("/recommendation/lookup")}
+                onEvaluate={() => navigate("/search?pick=evaluate")}
               />
 
               <HomeOverview />

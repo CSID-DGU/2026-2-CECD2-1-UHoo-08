@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthGuard } from "./components/common/AuthGuard";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { KakaoCallbackPage } from "./pages/auth/KakaoCallbackPage";
@@ -16,7 +16,6 @@ import { SearchResultPage } from "./pages/search/SearchResultPage";
 import { ProductDetailPage } from "./pages/product/ProductDetailPage";
 import { ProductRecognizePage } from "./pages/product/ProductRecognizePage";
 import { NotificationPage } from "./pages/notification/NotificationPage";
-import { ProductLookupPage } from "./pages/recommendation/ProductLookupPage";
 import { NfcScanPage } from "./pages/recommendation/NfcScanPage";
 import { ExtraInfoPage } from "./pages/recommendation/ExtraInfoPage";
 import { RecommendationLoadingPage } from "./pages/recommendation/RecommendationLoadingPage";
@@ -63,7 +62,8 @@ export const router = createBrowserRouter([
       { path: "/my/products", element: <MyProductListPage /> },
       { path: "/my/products/new", element: <MyProductRegisterPage /> },
       { path: "/recommendation/care", element: <CareRecommendationPage /> },
-      { path: "/recommendation/lookup", element: <ProductLookupPage /> },
+      // 제품 조회는 검색 화면의 고르기 모드로 합쳤다. 예전 주소는 그리로 보낸다.
+      { path: "/recommendation/lookup", element: <Navigate to="/search?pick=evaluate" replace /> },
       { path: "/recommendation/nfc-scan", element: <NfcScanPage /> },
       { path: "/recommendation/nfc-scan/demo", element: <NfcScanPage /> },
       { path: "/recommendation/extra-info", element: <ExtraInfoPage /> },

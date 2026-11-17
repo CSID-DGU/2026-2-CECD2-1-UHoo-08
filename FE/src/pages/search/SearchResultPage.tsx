@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, History, Plus, Sparkles } from "lucide-react";
 import {
   recordProductView,
@@ -148,7 +148,28 @@ function SearchResultContent() {
     state: { query?: string } | null;
     key: string;
   };
+  // ?pick=evaluate: 평가할 기준 제품을 고르는 모드. 화면은 같고, 제품을 고르면
+  // 상세 대신 추천 흐름(추가 정보 → 결과)으로 간다.
+  const [params] = useSearchParams();
+  const picking = params.get("pick") === "evaluate";
   const cacheKey = searchViewKey(key);
+
+  /** 제품을 골랐을 때. 일반 검색이면 상세로, 고르기 모드면 추천 흐름으로 간다. */
+  function openProduct(product: { id: string; name: string; brand: string; imageUrl?: string | null }) {
+    recordProductView(product.id).catch(() => {});
+    if (picking) {
+      navigate("/recommendation/extra-info", {
+        state: {
+          productId: product.id,
+          productName: product.name,
+          productBrand: product.brand,
+          productImageUrl: product.imageUrl ?? null,
+        },
+      });
+      return;
+    }
+    navigate(`/product/${product.id}`);
+  }
   const [saved] = useState(() => {
     const view = searchViews.get(cacheKey) ?? readSearchView<SavedSearchView>(cacheKey);
     if (!view || typeof view.baseQuery !== "string") return undefined;
@@ -191,7 +212,7 @@ function SearchResultContent() {
   const [toast, setToast] = useState("");
 
   // 사진·NFC로 찾기
-  const lens = useProductLens();
+  const lens = useProductLens(picking ? "recommend" : "detail");
   const [lensOpen, setLensOpen] = useState(false);
 
   // 새 요청을 시작하면 이전 폴링은 결과를 버린다.
@@ -603,12 +624,18 @@ function SearchResultContent() {
               onBack={() => navigate(-1)}
               onSubmit={search}
               onLens={() => setLensOpen(true)}
+              placeholder={picking ? "평가할 제품 이름을 입력하세요" : undefined}
               onSelectProduct={(product) => {
                 addRecentSearch(product.name);
-                recordProductView(product.id).catch(() => {});
-                navigate(`/product/${product.id}`);
+                openProduct(product);
               }}
             />
+            {picking && (
+              <p className="mt-3 rounded-xl bg-primary-50 px-3.5 py-2.5 text-xs leading-5 text-primary-600">
+                <span className="font-semibold">평가할 제품을 골라주세요.</span> 고른 제품이 내 피부에 맞는지,
+                더 나은 대체 제품이 있는지 분석해 드려요.
+              </p>
+            )}
 
             {(phase === "done" || phase === "error") && (
               <div
@@ -696,7 +723,7 @@ function SearchResultContent() {
                   </h2>
                   <span className="text-xs text-slate-500">{products.length}개</span>
                 </div>
-                <button
+                {!picking && <button
                   type="button"
                   onClick={() => void startQuery(baseQuery, "SELF")}
                   className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F2F6FC] p-3.5 text-left"
@@ -713,7 +740,7 @@ function SearchResultContent() {
                     </span>
                   </span>
                   <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
-                </button>
+                </button>}
                 <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5">
                   {products.map((item, index) => (
                     <SearchProductCard
@@ -732,10 +759,7 @@ function SearchResultContent() {
                       showScore={false}
                       saved={Boolean(wishlistIds?.[item.id])}
                       onToggleSaved={() => toggleWishlist(item.id)}
-                      onOpen={() => {
-                        recordProductView(item.id).catch(() => {});
-                        navigate(`/product/${item.id}`);
-                      }}
+                      onOpen={() => openProduct(item)}
                     />
                   ))}
                 </div>
@@ -831,10 +855,14 @@ function SearchResultContent() {
                             setFeedbackError("");
                             setFeedbackTarget({ item, liked: true });
                           }}
-                          onOpen={() => {
-                            recordProductView(item.productId).catch(() => {});
-                            navigate(`/product/${item.productId}`);
-                          }}
+                          onOpen={() =>
+                            openProduct({
+                              id: item.productId,
+                              name: item.name,
+                              brand: item.brand,
+                              imageUrl: item.imageUrl,
+                            })
+                          }
                         />
                       ))}
                     </div>
