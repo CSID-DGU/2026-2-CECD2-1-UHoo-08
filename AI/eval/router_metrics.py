@@ -29,6 +29,8 @@ VALUE_KEYS = (
 # 여기 없는 모델은 비용을 계산하지 않는다.
 PRICES_PER_1M: dict[str, tuple[float, float]] = {
     "qwen-plus": (0.26, 0.78),
+    # Jev 는 입력 토큰에만 값을 매긴다 (TypeSafe 모델 문서, 2026년 11월)
+    "jev-1.14.0": (0.042, 0.0),
 }
 
 

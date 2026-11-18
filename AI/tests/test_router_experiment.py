@@ -155,3 +155,80 @@ async def test_직전_결과가_있으면_반복하지_않고_한_번만_묻는�
     assert len(llm.받은) == 1
     assert 나온.scenario == "S7_REFINE"
     assert 나온.scenario_prob is None and not 나온.clarify_rule
+
+
+@pytest.fixture
+def 가짜_jev(monkeypatch):
+    """Jev 가 내놓을 답을 정해 두고, 받은 내용과 질문을 적어 둔다."""
+    def 끼우기(답):
+        받은 = []
+
+        async def ask(state, questions):
+            받은.append((state, questions))
+            return {이름: 답[이름] for 이름 in questions}
+
+        monkeypatch.setattr("services.llm.jev.ask", ask)
+        return 받은
+    return 끼우기
+
+
+def _jev_종류(종류, 확률):
+    나머지 = {k: 0.0 for k in ("SEARCH", "EVALUATE", "BUNDLE", "REFINE")}
+    return {"type": "choice", "choice": 종류, "confidence": 확률, "probabilities": {**나머지, 종류: 확률}}
+
+
+@pytest.mark.asyncio
+async def test_나눠_맡는_조건은_값은_LLM_요청_종류는_Jev_것을_쓴다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답("SEARCH", category="base", base_product_ref="어떤 쿠션")])
+    가짜_jev({"request_type": _jev_종류("EVALUATE", 0.8), "vague": {"type": "noul", "noul": 0.1}})
+
+    나온 = await CONDITIONS["a4"].run({"raw_query": "어떤 쿠션 대신 쓸 거"})
+
+    assert 나온.spec["request_type"] == "EVALUATE"
+    assert 나온.spec["category"] == "base"
+    assert 나온.scenario == "S1_EVALUATE"
+    assert (나온.scenario_prob, 나온.vague_prob) == (0.8, 0.1)
+    assert not 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_Jev_가_조건_수정을_골라도_직전_결과가_없으면_검색으로_본다(가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_jev({"request_type": _jev_종류("REFINE", 0.7), "vague": {"type": "noul", "noul": 0.2}})
+    나온 = await CONDITIONS["a7"].run({"raw_query": "더 저렴한 쿠션 없어?"})
+
+    assert 나온.scenario == "S2_SEARCH"
+    assert not 나온.extracts_values
+
+
+@pytest.mark.asyncio
+async def test_확인하는_조건은_LLM_이_정한_종류를_Jev_에_묻고_그_확률을_쓴다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답("BUNDLE", category="skincare")])
+    받은 = 가짜_jev({"correct": {"type": "noul", "noul": 0.35}})
+
+    나온 = await CONDITIONS["a6"].run({"raw_query": "스킨케어 세트 추천"})
+
+    assert 받은[0][0]["predicted_request_type"] == "BUNDLE"
+    assert 나온.scenario == "S6_BUNDLE"
+    assert 나온.scenario_prob == 0.35
+    assert 나온.clarify_rule          # 전체 예산이 없다. 구조 규칙은 그대로 본다
+
+
+@pytest.mark.asyncio
+async def test_직전_결과가_있으면_Jev_를_부르지_않는다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답(category="base")])
+    받은 = 가짜_jev({})
+
+    for 키 in ("a4", "a6", "a7"):
+        나온 = await CONDITIONS[키].run({"raw_query": "쿠션 추천", "parent_job_id": "prev"})
+        assert 나온.scenario == "S7_REFINE"
+        assert 나온.scenario_prob is None
+
+    assert 받은 == []

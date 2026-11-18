@@ -229,10 +229,130 @@ async def _a3(입력: dict) -> Outcome:
     return Outcome(spec=spec, scenario=시나리오, clarify_rule=되물음, scenario_prob=비율)
 
 
+# ── Jev 를 쓰는 조건 ────────────────────────────────────────────────────────
+#
+# Jev 는 영어에서 가장 정확하다고 알려져 있어 질문과 보기 설명은 영어로 적는다.
+# 사용자 질문은 한국어 그대로 넘긴다. 한국어 질문을 얼마나 잘 읽는지가 이 실험이
+# 확인하려는 것이다. 아래 문장은 프롬프트와 같으므로 연습용 문제만 보고 고친다.
+
+_요청_종류_질문 = "What kind of request is this Korean query to a cosmetics recommendation service?"
+_요청_종류_보기 = {
+    "SEARCH": (
+        "Find products that match conditions such as product type, skin type, texture, or a price "
+        "limit for a single product. Also when only a brand or a product type is named."
+    ),
+    "EVALUATE": (
+        "Asks about one specific named product: whether it is good or suits the user, how two named "
+        "products compare, or what could replace or resembles that named product."
+    ),
+    "BUNDLE": (
+        "Wants several products for different steps put together within one total budget, "
+        "such as a set or a routine."
+    ),
+    "REFINE": "Changes or adds a condition to a recommendation result that was just shown.",
+}
+_막연함_질문 = (
+    "Does the service have to ask a follow-up question before it can recommend anything? "
+    "Yes when the query gives no product type, feature, condition, or budget at all; when it asks "
+    "about a product referred to only by words like 'this' or 'that one'; or when it asks for a set "
+    "or routine without a total budget."
+)
+_확인_질문 = (
+    "A classifier assigned the request type in `predicted_request_type` to the Korean query in "
+    "`query`. Is that request type correct? The request types are described in `request_types`."
+)
+
+
+def _jev_요청_종류(답: dict) -> tuple[str, float]:
+    """Jev 가 고른 요청 종류와 그 확률."""
+    종류 = 답["choice"]
+    return 종류, float(답["probabilities"][종류])
+
+
+def _시나리오(종류: str) -> str:
+    """요청 종류가 가는 시나리오. 직전 결과 없이 조건 수정이면 라우터와 같이 새 검색으로 본다."""
+    from contracts.query_spec import RequestType
+    from graph.registry import ROUTE
+
+    읽은 = RequestType(종류)
+    return ROUTE[RequestType.SEARCH if 읽은 is RequestType.REFINE else 읽은]
+
+
+async def _jev_판단(질문: str) -> tuple[str, float, float]:
+    """요청 종류, 그 확률, 막연한 질문일 확률을 한 번의 호출로 받는다."""
+    from services.llm.jev import ask, choice, noul
+
+    답 = await ask(질문, {
+        "request_type": choice(_요청_종류_질문, _요청_종류_보기),
+        "vague": noul(_막연함_질문),
+    })
+    종류, 확률 = _jev_요청_종류(답["request_type"])
+    return 종류, 확률, float(답["vague"]["noul"])
+
+
+async def _a4(입력: dict) -> Outcome:
+    """값 뽑기는 LLM, 요청 종류와 막연함 판단은 Jev. 두 호출을 동시에 보낸다."""
+    if 입력.get("parent_job_id"):
+        spec, 시나리오, _ = await _구조_규칙으로_해석(입력)
+        return Outcome(spec=spec or {}, scenario=시나리오)
+
+    (spec, _, _), (종류, 확률, 막연함) = await asyncio.gather(
+        _구조_규칙으로_해석(입력), _jev_판단(입력.get("raw_query") or ""),
+    )
+    return Outcome(
+        # 값은 LLM 것을 쓰고 요청 종류만 Jev 것으로 바꾼다
+        spec={**(spec or {}), "request_type": 종류},
+        scenario=_시나리오(종류),
+        # 값을 읽지 못했으면 추천할 재료가 없으므로 되묻는다
+        clarify_rule=spec is None,
+        scenario_prob=확률,
+        vague_prob=막연함,
+    )
+
+
+async def _a6(입력: dict) -> Outcome:
+    """구조 규칙대로 해석한 다음, LLM 이 정한 요청 종류가 맞는지 Jev 에 예/아니오로 묻는다."""
+    from services.llm.jev import ask, noul
+
+    spec, 시나리오, 되물음 = await _구조_규칙으로_해석(입력)
+    if 입력.get("parent_job_id") or spec is None:
+        return Outcome(spec=spec or {}, scenario=시나리오, clarify_rule=되물음)
+
+    답 = await ask(
+        {
+            "query": 입력.get("raw_query") or "",
+            "predicted_request_type": spec["request_type"],
+            "request_types": _요청_종류_보기,
+        },
+        {"correct": noul(_확인_질문)},
+    )
+    return Outcome(spec=spec, scenario=시나리오, clarify_rule=되물음,
+                   scenario_prob=float(답["correct"]["noul"]))
+
+
+async def _a7(입력: dict) -> Outcome:
+    """Jev 에만 묻는다. 값 뽑기는 하지 못하므로 요청 종류와 되묻기 판단만 채점한다."""
+    from contracts.query_spec import RequestType
+    from graph.registry import ROUTE
+
+    if 입력.get("parent_job_id"):
+        return Outcome(spec={"request_type": "REFINE"}, scenario=ROUTE[RequestType.REFINE],
+                       extracts_values=False)
+    종류, 확률, 막연함 = await _jev_판단(입력.get("raw_query") or "")
+    return Outcome(spec={"request_type": 종류}, scenario=_시나리오(종류),
+                   scenario_prob=확률, vague_prob=막연함, extracts_values=False)
+
+
+# Jev 조건의 기준값. 연습용 문제에서 다시 정한다
+_jev_기준 = Thresholds(scenario=0.6, vague=0.5)
+
 CONDITIONS: dict[str, Condition] = {
     "b0": Condition("b0", "B0. 규칙만", _b0),
     "a1": Condition("a1", "A1. LLM + 스스로 매긴 확신 점수", _a1, _a1_기준()),
     "a2": Condition("a2", "A2. LLM + 구조 규칙", _a2),
     # 다섯 번 중 세 번 이상 같은 답이면 처리한다. 연습용 문제에서 다시 정한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),
+    "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, _jev_기준),
+    "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.5)),
+    "a7": Condition("a7", "A7. Jev 만", _a7, _jev_기준),
 }
