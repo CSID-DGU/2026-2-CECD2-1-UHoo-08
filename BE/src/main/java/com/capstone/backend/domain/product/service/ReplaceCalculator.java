@@ -20,13 +20,16 @@ public final class ReplaceCalculator {
 
     /**
      * 개봉 후 대략적인 사용 기간(개월). 실제 통계가 없어 화장품 일반 권장 기간으로 잡은 고정값이다.
-     * 립 제품은 다른 제품보다 오래 쓰는 편이라 길게 둔다.
+     * 립 제품은 다른 제품보다 오래 쓰는 편이라 길게 둔다. 아이 메이크업은 마스카라, 아이라이너처럼
+     * 눈가에 닿아 빨리 바꾸는 제품이 많아 짧게, 치크는 파우더 제품이 많아 가장 길게 둔다.
      */
     static final Map<String, Integer> CATEGORY_MONTHS = Map.of(
             "base", 12,
             "sun", 12,
             "skincare", 12,
-            "lip", 18
+            "lip", 18,
+            "eye", 6,
+            "cheek", 24
     );
 
     private ReplaceCalculator() {
