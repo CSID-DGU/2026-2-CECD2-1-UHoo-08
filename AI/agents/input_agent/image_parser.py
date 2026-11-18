@@ -5,6 +5,7 @@ from langchain_core.messages import HumanMessage
 
 from config import settings
 from models.extracted_product import ExtractedProduct
+from prompts.product_types_text import category_lines
 
 PROMPT = """너는 화장품 상품 이미지 분석 전문가이다.
 
@@ -34,11 +35,9 @@ PROMPT = """너는 화장품 상품 이미지 분석 전문가이다.
 }
 
 [카테고리 분류 기준]
-- base: 쿠션, 파운데이션, 프라이머, 컨실러
-- sun: 선크림, 선스틱, 선쿠션, 선스프레이
-- lip: 틴트, 립스틱, 립글로스, 립밤
-- skincare: 토너, 에센스, 세럼, 크림, 오일, 로션, 핸드크림 등 기타 스킨케어
-category.sub에는 위 세부 제품 유형을 그대로 입력하라.
+__카테고리_절__
+category.main에는 위 카테고리 중 하나를 넣어라. 세부 유형이 목록에 없어도 속하는 카테고리가 분명하면 넣는다. 예: 핸드크림은 skincare.
+category.sub에는 위 세부 제품 유형을 글자 그대로 넣어라. 목록에 없는 유형이면 null.
 
 [규칙]
 - detected_objects: 이미지에서 읽히는 모든 텍스트를 넣어라.
@@ -48,6 +47,9 @@ category.sub에는 위 세부 제품 유형을 그대로 입력하라.
 - unit: g 또는 ml 중 하나만
 - 상품명, 브랜드, 용량, 색상은 이미지에서 확인 가능한 경우만 채워라.
 - 모르는 값은 null. 배열 정보가 없으면 빈 배열 []."""
+
+# 카테고리와 종류 목록은 상수로 만든다. 본문에 JSON 중괄호가 많아 format 대신 바꿔 끼운다
+PROMPT = PROMPT.replace("__카테고리_절__", category_lines())
 
 # TODO(llm): services.llm 의 vlm 역할로 옮긴다. 사진 인식 모델을 바꿔 보려면
 #            여기와 services/llm 두 곳을 같이 고쳐야 해서, 지금은 비교가 번거롭다.

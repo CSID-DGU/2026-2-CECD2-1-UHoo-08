@@ -7,51 +7,19 @@
 되물을 수 있지만, 잘못 채우면 사용자가 요청하지 않은 조건으로 걸러진 결과가
 그대로 나간다.
 
-카테고리와 제품 종류 목록은 rules/product_types.py 에서 만든다. 상품 추출도 같은 목록을
-쓰므로, 질의의 종류와 상품의 종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가
-한 번 더 표준 이름으로 바꾼다(graph/nodes/normalize.py).
+카테고리와 제품 종류 목록은 rules/product_types.py 의 상수로 만든다
+(prompts/product_types_text.py). 상품 추출도 같은 목록을 쓰므로, 질의의 종류와 상품의
+종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가 한 번 더 표준 이름으로
+바꾼다(graph/nodes/normalize.py).
 """
-from rules.product_types import CATEGORY_TYPES, GROUPS
-
-# 카테고리마다 product_type 외의 특징 키와 값
-_다른_특징: dict[str, str] = {
-    "base": "coverage(가벼운|중간|높음), finish(매트|세미매트|글로우|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[모공,잡티,칙칙함,트러블]), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)",
-    "sun": "finish(매트|세미매트|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[진정,보습,미백]), lasting_power(낮음|중간|높음), white_cast(true|false)",
-    "lip": "finish(매트|세미매트|글로우|촉촉), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음), moisturizing(true|false), skin_concern(배열:[보습,각질])",
-    "skincare": "texture(가벼운|중간|진한), skin_type(건성|지성|복합|민감), skin_concern(배열:[보습,미백,주름,진정,모공]), key_ingredient(배열), fragrance_free(true|false)",
-    "eye": "finish(매트|쉬머|글리터), lasting_power(낮음|중간|높음), waterproof(true|false)",
-    "cheek": "finish(매트|글로우|쉬머), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)",
-}
-
-# 종류 이름 말고도 카테고리를 알려 주는 말
-_카테고리_힌트: dict[str, tuple[str, ...]] = {
-    "sun": ("자외선차단",),
-}
-
-
-def _종류_값(카테고리: str) -> list[str]:
-    """그 카테고리의 product_type 에 쓸 수 있는 값. 묶음 이름(크림, 클렌저)도 넣는다."""
-    값들 = list(CATEGORY_TYPES[카테고리])
-    값들 += [이름 for 이름 in GROUPS.get(카테고리, {}) if 이름 not in 값들]
-    return 값들
-
+from prompts.product_types_text import (
+    category_lines,
+    group_text,
+    query_feature_lines,
+)
+from rules.product_types import CATEGORY_TYPES
 
 _카테고리_값 = " | ".join([*CATEGORY_TYPES, "null"])
-
-_카테고리_절 = "\n".join(
-    f"- {카테고리}: {', '.join([*종류들, *_카테고리_힌트.get(카테고리, ())])}"
-    for 카테고리, 종류들 in CATEGORY_TYPES.items()
-)
-
-_특징_절 = "\n".join(
-    f"{카테고리}: product_type({'|'.join(_종류_값(카테고리))}), {_다른_특징[카테고리]}"
-    for 카테고리 in CATEGORY_TYPES
-)
-
-_묶음_설명 = ", ".join(
-    f"{이름}({', '.join(안)})"
-    for 묶음들 in GROUPS.values() for 이름, 안 in 묶음들.items()
-)
 
 QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해 JSON으로만 반환하라.
 설명, 마크다운, 코드블록 출력 금지.
@@ -131,7 +99,7 @@ __특징_절__
 QUERY_NORMALIZE_SYSTEM = (
     QUERY_NORMALIZE_SYSTEM
     .replace("__카테고리_값__", _카테고리_값)
-    .replace("__카테고리_절__", _카테고리_절)
-    .replace("__특징_절__", _특징_절)
-    .replace("__묶음_설명__", _묶음_설명)
+    .replace("__카테고리_절__", category_lines())
+    .replace("__특징_절__", query_feature_lines())
+    .replace("__묶음_설명__", group_text())
 )

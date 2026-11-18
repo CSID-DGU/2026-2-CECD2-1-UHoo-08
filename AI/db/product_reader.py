@@ -10,6 +10,8 @@ import json
 from typing import Dict, List, Optional, TypedDict
 
 from db.supabase_client import get_supabase
+# 아래 함수 인자 product_types 와 이름이 겹쳐 다른 이름으로 가져온다
+from rules.product_types import matches, product_types as 상품의_종류
 
 
 class ProductMeta(TypedDict):
@@ -288,8 +290,9 @@ def search_products_by_traits(
 
         score = 0
         if wanted_types:
-            ptype = (feat.get("product_type") or "").strip()
-            if ptype in wanted_types:
+            # 종류가 여럿인 상품도 있고, 동의어와 묶음도 맞아야 한다(rules/product_types.py)
+            종류들 = 상품의_종류(feat)
+            if any(matches(t, 종류들) for t in wanted_types):
                 score += 2
         if wanted_concerns:
             have = {str(c).strip() for c in (feat.get("skin_concern") or []) if c}

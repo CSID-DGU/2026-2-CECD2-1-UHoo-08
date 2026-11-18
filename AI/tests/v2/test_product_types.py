@@ -6,6 +6,7 @@
 import pytest
 
 from rules.product_types import (
+    CATEGORY_NAMES,
     CATEGORY_TYPES,
     GROUPS,
     MAX_TYPES,
@@ -36,6 +37,10 @@ def test_묶음_안의_종류는_그_카테고리의_종류다():
             assert set(안) <= set(CATEGORY_TYPES[카테고리]), 이름
 
 
+def test_카테고리_이름은_모든_카테고리에_있다():
+    assert set(CATEGORY_NAMES) == set(CATEGORY_TYPES)
+
+
 def test_톤업크림은_베이스와_스킨케어_둘_다에_있다():
     assert "톤업크림" in allowed_types("base")
     assert "톤업크림" in allowed_types("skincare")
@@ -55,6 +60,10 @@ def test_새_카테고리_eye_cheek_이_있다():
     ("선세럼", "선에센스"),
     ("겔 크림", "젤크림"),
     ("블러쉬", "블러셔"),
+    ("비비", "비비크림"),
+    ("BB크림", "비비크림"),
+    ("씨씨", "씨씨크림"),
+    ("CC 크림", "씨씨크림"),
     ("크림", "크림"),
     ("클렌저", "클렌저"),
 ])
