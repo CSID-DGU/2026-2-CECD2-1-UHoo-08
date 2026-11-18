@@ -201,6 +201,19 @@ def mentioned(종류: Any, 문장: str | None) -> bool:
     return any(열쇠 in 글 for 열쇠, 이름 in _표준.items() if 이름 in 이름들)
 
 
+def category_mentioned(category: str | None, 문장: str | None) -> bool:
+    """문장에 그 카테고리를 가리키는 말이 있는지. 카테고리 이름("스킨케어", "립")이나
+    그 카테고리의 종류 이름("토너", "틴트")을 본다."""
+    if not category or not 문장:
+        return False
+    이름 = CATEGORY_NAMES.get(category)
+    if 이름:
+        글 = _열쇠(문장)
+        if _열쇠(이름) in 글 or _열쇠(이름.split()[0]) in 글:
+            return True
+    return any(mentioned(종류, 문장) for 종류 in allowed_types(category))
+
+
 def _넓힌_종류(원하는: str, category: str | None) -> set[str]:
     if category is not None:
         묶음 = GROUPS.get(category, {}).get(원하는, ())
