@@ -15,12 +15,28 @@ function kioskDevEntry(): Plugin {
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? "";
         // /kiosk.webmanifest 같은 실제 파일은 건드리지 않는다.
-        if (url === "/kiosk" || url === "/kiosk/" || url.startsWith("/kiosk?")) {
-          req.url = "/kiosk.html" + url.slice(url.indexOf("?") === -1 ? url.length : url.indexOf("?"));
+        if (
+          url === "/kiosk" ||
+          url === "/kiosk/" ||
+          url.startsWith("/kiosk?")
+        ) {
+          req.url =
+            "/kiosk.html" +
+            url.slice(url.indexOf("?") === -1 ? url.length : url.indexOf("?"));
         }
         next();
       });
     },
+  };
+}
+
+/** 로컬 BE 로 보내는 프록시. 화면 요청(HTML)은 건너뛰어 SPA 가 받게 한다. */
+function toBackend() {
+  return {
+    target: "http://localhost:8080",
+    changeOrigin: true,
+    bypass: (req: { headers: { accept?: string }; url?: string }) =>
+      req.headers.accept?.includes("text/html") ? req.url : undefined,
   };
 }
 
@@ -33,11 +49,18 @@ export default defineConfig({
       registerType: "autoUpdate",
       // 키오스크용 manifest는 kiosk.html이 직접 선언한다.
       // 프리캐시에 포함시켜야 오프라인에서도 홈 화면 추가가 동작한다.
-      includeAssets: ["favicon.svg", "apple-touch-icon.png", "kiosk.webmanifest"],
+      includeAssets: [
+        "favicon.ico",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "apple-touch-icon.png",
+        "kiosk.webmanifest",
+      ],
       manifest: {
         name: "화담(HWADAM) — 스마트 화장품 보관 관리 및 추천",
         short_name: "화담",
-        description: "센서로 보관 환경을 감지를 통한 화장품 상태 관리 및 화장품 추천 서비스",
+        description:
+          "센서로 보관 환경을 감지를 통한 화장품. 피부 적합도, AI 맞춤 검색, 생활 환경 케어, 최저가 추적",
         start_url: "/",
         scope: "/",
         display: "standalone",
@@ -97,15 +120,17 @@ export default defineConfig({
           if (req.method === "GET") return req.url;
         },
       },
-      "/products": "http://localhost:8080",
-      "/recommendations": "http://localhost:8080",
-      "/users": "http://localhost:8080",
-      "/notifications": "http://localhost:8080",
-      "/onboarding": "http://localhost:8080",
-      "/wishlists": "http://localhost:8080",
-      "/wishlist": "http://localhost:8080",
-      "/price-trackings": "http://localhost:8080",
-      "/price-tracking": "http://localhost:8080",
+      // 앱 화면 주소(/onboarding/intro, /notifications, /wishlist …)와 API 경로가 겹친다.
+      // 브라우저가 화면을 열거나 새로고침할 때(HTML 요청)는 프록시하지 않고 앱을 돌려준다.
+      "/products": toBackend(),
+      "/recommendations": toBackend(),
+      "/users": toBackend(),
+      "/notifications": toBackend(),
+      "/onboarding": toBackend(),
+      "/wishlists": toBackend(),
+      "/wishlist": toBackend(),
+      "/price-trackings": toBackend(),
+      "/price-tracking": toBackend(),
       "/ai": {
         target: "http://localhost:8000",
         changeOrigin: true,
