@@ -3,14 +3,16 @@ package com.capstone.backend.domain.recommendation.enums;
 import java.util.Arrays;
 
 /**
- * 추천 결과의 카테고리. AI 계약의 Category 와 같은 네 값이고, 화면에 보일 한글 이름을 가진다.
+ * 추천 결과의 카테고리. AI 계약의 Category 와 같은 값이고, 화면에 보일 한글 이름을 가진다.
  */
 public enum RecommendationCategory {
 
     BASE("base", "베이스 메이크업"),
     SUN("sun", "선케어"),
     LIP("lip", "립 메이크업"),
-    SKINCARE("skincare", "스킨케어");
+    SKINCARE("skincare", "스킨케어"),
+    EYE("eye", "아이 메이크업"),
+    CHEEK("cheek", "치크 메이크업");
 
     private final String value;
     private final String label;
