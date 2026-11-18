@@ -14,6 +14,8 @@
     python -m eval.run_router_eval --condition a1 --runs 3
     python -m eval.run_router_eval --condition a1 --split dev --fit-target 0.97
     python -m eval.run_router_eval --condition a1 --threshold 0.6,0.8 --out eval/reports/a1.md
+    python -m eval.run_router_eval --condition a1 --dump a1.json        실행 결과를 남긴다
+    python -m eval.run_router_eval --condition a1 --load a1.json --threshold 0.8   다시 채점만 한다
 
 수치는 test 로 낸다. 프롬프트는 dev 를 보고만 고친다. 골든셋에 맞춰 튜닝한
 결과를 성능이라고 부르지 않기 위해서다.
@@ -212,10 +214,25 @@ def _기준값_목록(글: str | None) -> list[float] | None:
 
 def _실험(args, 기록: list[dict]) -> None:
     from eval.router_conditions import CONDITIONS
-    from eval.router_metrics import Thresholds, fit_threshold, to_markdown
+    from eval.router_metrics import (
+        Thresholds,
+        fit_threshold,
+        fit_vague_threshold,
+        from_records,
+        to_markdown,
+        to_records,
+    )
 
     조건 = CONDITIONS[args.condition]
-    runs = asyncio.run(run_condition(기록, 조건.run, args.runs, args.concurrency))
+    if args.load:
+        # 이미 실행해 둔 결과를 읽는다. 기준값만 바꿔 다시 채점할 때 LLM 을 또 부르지 않는다
+        runs = from_records(json.loads(Path(args.load).read_text(encoding="utf-8")), 기록)
+    else:
+        runs = asyncio.run(run_condition(기록, 조건.run, args.runs, args.concurrency))
+    if args.dump:
+        Path(args.dump).write_text(
+            json.dumps(to_records(runs), ensure_ascii=False), encoding="utf-8")
+        print(f"실행 결과 저장: {args.dump}")
     모든_실행 = [t for run in runs for t in run]
     모델 = sorted({c.model for t in 모든_실행 for c in t.calls})
 
@@ -228,6 +245,12 @@ def _실험(args, 기록: list[dict]) -> None:
     if 기준들 is None:
         기준들 = [맞춘_기준 if 맞춘_기준 is not None else 조건.thresholds.scenario]
     막연_기준 = args.vague_threshold if args.vague_threshold is not None else 조건.thresholds.vague
+    맞춘_막연_기준 = None
+    if args.fit_target is not None and args.vague_threshold is None:
+        맞춘_막연_기준 = fit_vague_threshold(모든_실행, 기준들[0])
+        if 맞춘_막연_기준 is not None:
+            막연_기준 = 맞춘_막연_기준
+            print(f"되묻기 판단이 가장 잘 맞는 막연함 확률 기준값: {맞춘_막연_기준}")
 
     for 기준 in 기준들:
         머리말 = {
@@ -239,6 +262,8 @@ def _실험(args, 기록: list[dict]) -> None:
         }
         if 맞춘_기준 is not None:
             머리말["이 문제에서 맞춘 기준값"] = f"{맞춘_기준} (목표 {args.fit_target:.0%})"
+        if 맞춘_막연_기준 is not None:
+            머리말["이 문제에서 맞춘 막연함 확률 기준값"] = str(맞춘_막연_기준)
         본문 = to_markdown(runs=runs, thr=Thresholds(scenario=기준, vague=막연_기준), 머리말=머리말)
         if not args.out:
             print(본문)
@@ -260,6 +285,8 @@ def main() -> None:
     ap.add_argument("--concurrency", type=int, default=1, help="동시에 보낼 문제 수 (실험)")
     ap.add_argument("--threshold", help="시나리오 확률 기준값. 쉼표로 여럿 주면 기준값마다 리포트를 낸다")
     ap.add_argument("--vague-threshold", type=float, help="막연함 확률 기준값")
+    ap.add_argument("--dump", help="실행 결과를 JSON 으로 저장 (실험)")
+    ap.add_argument("--load", help="저장해 둔 실행 결과를 읽어 다시 채점한다. LLM 을 부르지 않는다 (실험)")
     ap.add_argument("--fit-target", type=float,
                     help="처리한 질문의 시나리오 일치율 목표. 이를 채우는 가장 낮은 기준값을 찾는다. dev 에서만 쓴다")
     args = ap.parse_args()

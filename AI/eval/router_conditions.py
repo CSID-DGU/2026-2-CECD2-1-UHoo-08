@@ -144,13 +144,37 @@ def is_underspecified(spec: dict) -> bool:
     ))
 
 
+# 제품을 가리키기만 하고 이름은 알려 주지 않는 말
+_이름_없는_말 = frozenset({
+    "이", "그", "저", "이거", "그거", "저거", "이것", "그것", "저것", "요거", "고거",
+    "이런", "그런", "방금", "아까", "저번", "제품", "상품", "거", "것",
+})
+
+
+def names_a_product(기준_제품: Optional[str]) -> bool:
+    """기준 제품 자리의 말이 어떤 제품인지 알려 주는가.
+
+    "이거", "그 선크림"처럼 가리키는 말과 종류 이름뿐이면 어떤 제품인지 알 수 없다.
+    LLM 은 이런 말도 기준 제품 자리에 그대로 옮겨 적으므로, 자리가 찼는지만 보면
+    되물어야 할 질문을 놓친다.
+    """
+    남은 = [
+        낱말 for 낱말 in (기준_제품 or "").split()
+        if 낱말 not in _이름_없는_말 and 낱말 not in _종류_이름()
+    ]
+    return bool(남은)
+
+
 def structural_clarify(spec: Optional[dict], 빠진_필수: Sequence[str]) -> bool:
     """구조 규칙으로 되물을지 정한다.
 
-    되묻는 경우는 셋이다. LLM 의 답을 양식으로 읽지 못했다, 요청 종류에 꼭 필요한
-    값이 비었다, 찾을 단서가 하나도 없다.
+    되묻는 경우는 넷이다. LLM 의 답을 양식으로 읽지 못했다, 요청 종류에 꼭 필요한
+    값이 비었다, 평가 요청인데 기준 제품이 어떤 제품인지 알 수 없다, 찾을 단서가
+    하나도 없다.
     """
     if spec is None:
+        return True
+    if spec.get("request_type") == "EVALUATE" and not names_a_product(spec.get("base_product_ref")):
         return True
     return bool(빠진_필수) or is_underspecified(spec)
 
@@ -247,7 +271,8 @@ _요청_종류_보기 = {
     ),
     "BUNDLE": (
         "Wants several products for different steps put together within one total budget, "
-        "such as a set or a routine."
+        "such as a set or a routine. Also when several different product types are listed "
+        "under one budget, or a set or routine is requested without stating a budget."
     ),
     "REFINE": "Changes or adds a condition to a recommendation result that was just shown.",
 }
@@ -343,16 +368,17 @@ async def _a7(입력: dict) -> Outcome:
                    scenario_prob=확률, vague_prob=막연함, extracts_values=False)
 
 
-# Jev 조건의 기준값. 연습용 문제에서 다시 정한다
-_jev_기준 = Thresholds(scenario=0.6, vague=0.5)
+# 아래 기준값은 연습용 문제(v2 dev)에서 정했다. 시나리오 확률 기준은 처리한 질문의
+# 시나리오 일치율이 97% 이상이 되는 가장 낮은 값이고, 막연함 확률 기준은 되묻기
+# 판단의 F1 이 가장 높은 값이다. 프롬프트나 문제가 바뀌면 --fit-target 으로 다시 정한다.
 
 CONDITIONS: dict[str, Condition] = {
     "b0": Condition("b0", "B0. 규칙만", _b0),
     "a1": Condition("a1", "A1. LLM + 스스로 매긴 확신 점수", _a1, _a1_기준()),
     "a2": Condition("a2", "A2. LLM + 구조 규칙", _a2),
-    # 다섯 번 중 세 번 이상 같은 답이면 처리한다. 연습용 문제에서 다시 정한다
+    # 다섯 번 중 세 번 이상 같은 답이면 처리한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),
-    "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, _jev_기준),
-    "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.5)),
-    "a7": Condition("a7", "A7. Jev 만", _a7, _jev_기준),
+    "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, Thresholds(scenario=0.5, vague=0.62)),
+    "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.09)),
+    "a7": Condition("a7", "A7. Jev 만", _a7, Thresholds(scenario=0.52, vague=0.6)),
 }

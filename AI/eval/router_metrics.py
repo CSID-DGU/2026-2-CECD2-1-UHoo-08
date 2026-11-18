@@ -247,6 +247,80 @@ def fit_threshold(trials: Sequence[Trial], target: float) -> Optional[float]:
     return None
 
 
+def fit_vague_threshold(trials: Sequence[Trial], scenario: Optional[float]) -> Optional[float]:
+    """되묻기 판단의 F1 이 가장 높아지는 막연함 확률 기준값.
+
+    시나리오 확률 기준값은 먼저 정해 두고 그대로 둔 채 찾는다. 후보는 실제로 나온
+    확률들이다. F1 이 같으면 낮은 기준값을 고른다. 연습용 문제에서만 쓴다.
+    막연함 확률을 내지 않는 조건이면 None.
+    """
+    후보 = sorted({
+        t.outcome.vague_prob for t in trials
+        if t.outcome is not None and t.outcome.vague_prob is not None
+    })
+    가장_좋은: tuple[float, Optional[float]] = (-1.0, None)
+    for 기준 in 후보:
+        정밀도, 재현율 = clarify_precision_recall(trials, Thresholds(scenario=scenario, vague=기준))
+        f1 = 2 * 정밀도 * 재현율 / (정밀도 + 재현율) if 정밀도 and 재현율 else 0.0
+        if f1 > 가장_좋은[0]:
+            가장_좋은 = (f1, 기준)
+    return 가장_좋은[1]
+
+
+def to_records(runs: Sequence[Sequence[Trial]]) -> list[list[dict]]:
+    """실행 결과를 파일에 적을 수 있는 모양으로 바꾼다. 문제는 id 만 적는다."""
+    return [
+        [
+            {
+                "id": t.rec["id"],
+                "outcome": None if t.outcome is None else {
+                    "spec": t.outcome.spec,
+                    "scenario": t.outcome.scenario,
+                    "clarify_rule": t.outcome.clarify_rule,
+                    "scenario_prob": t.outcome.scenario_prob,
+                    "vague_prob": t.outcome.vague_prob,
+                    "extracts_values": t.outcome.extracts_values,
+                },
+                "seconds": t.seconds,
+                "calls": [
+                    {"model": c.model, "input_tokens": c.input_tokens,
+                     "output_tokens": c.output_tokens, "seconds": c.seconds}
+                    for c in t.calls
+                ],
+                "error": t.error,
+            }
+            for t in run
+        ]
+        for run in runs
+    ]
+
+
+@dataclass(frozen=True)
+class _적어_둔_호출:
+    model: str
+    input_tokens: int
+    output_tokens: int
+    seconds: float
+
+
+def from_records(적힌: Sequence[Sequence[dict]], 기록: Sequence[dict]) -> list[list[Trial]]:
+    """파일에 적어 둔 실행 결과를 다시 읽는다. 기준값만 바꿔 다시 채점할 때 쓴다."""
+    문제 = {rec["id"]: rec for rec in 기록}
+    return [
+        [
+            Trial(
+                rec=문제[줄["id"]],
+                outcome=Outcome(**줄["outcome"]) if 줄["outcome"] else None,
+                seconds=줄["seconds"],
+                calls=[_적어_둔_호출(**c) for c in 줄["calls"]],
+                error=줄["error"],
+            )
+            for 줄 in run
+        ]
+        for run in 적힌
+    ]
+
+
 def repeat_agreement(runs: Sequence[Sequence[Trial]], thr: Thresholds) -> Optional[float]:
     """같은 질문을 여러 번 넣었을 때 시나리오와 되묻기 판단이 모두 같았던 비율."""
     if len(runs) < 2:

@@ -81,3 +81,25 @@ def test_가장_많이_나온_답과_그_비율을_낸다():
 
 def test_같은_수면_먼저_나온_답을_고른다():
     assert majority_vote(["S1", "S2", "S2", "S1"]) == ("S1", 0.5)
+
+
+@pytest.mark.parametrize("말, 알려_주나", [
+    ("라운드랩 독도 토너", True),
+    ("독도 토너", True),
+    ("이거", False),
+    ("그 선크림", False),
+    ("이 제품", False),
+    ("방금 그거", False),
+    ("", False),
+    (None, False),
+])
+def test_가리키는_말과_종류_이름뿐이면_어떤_제품인지_알_수_없다(말, 알려_주나):
+    from eval.router_conditions import names_a_product
+
+    assert names_a_product(말) is 알려_주나
+
+
+def test_평가_요청인데_제품을_알_수_없으면_되묻는다():
+    평가 = {**_빈_양식, "request_type": "EVALUATE", "category": "sun"}
+    assert structural_clarify({**평가, "base_product_ref": "그 선크림"}, ())
+    assert not structural_clarify({**평가, "base_product_ref": "달바 워터풀 선크림"}, ())

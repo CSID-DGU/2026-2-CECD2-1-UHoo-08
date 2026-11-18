@@ -232,3 +232,41 @@ def test_리포트에_측정값과_틀린_문제가_들어간다():
     assert "반복 일치율 | 0.0%" in 글
     assert "router-g-1001" in 글
     assert "2번 중 1번" in 글
+
+
+def test_막연함_확률_기준값은_되묻기_판단이_가장_잘_맞는_값을_고른다():
+    from eval.router_metrics import fit_vague_threshold
+
+    실행 = [
+        _실행(_문제("a", needs_clarification=True), vague_prob=0.9),
+        _실행(_문제("b", needs_clarification=True), vague_prob=0.7),
+        _실행(_문제("c", needs_clarification=False), vague_prob=0.6),
+        _실행(_문제("d", needs_clarification=False), vague_prob=0.2),
+    ]
+    # 0.6 보다 높으면 되묻는다고 해야 둘을 다 잡고 헛짚지 않는다
+    assert fit_vague_threshold(실행, None) == 0.6
+
+
+def test_막연함_확률을_내지_않는_조건은_기준값이_없다():
+    from eval.router_metrics import fit_vague_threshold
+
+    assert fit_vague_threshold([_실행(_문제("a", needs_clarification=True))], None) is None
+
+
+def test_실행_결과를_적었다가_다시_읽어도_측정값이_같다():
+    from eval.router_metrics import from_records, summarize_run, to_records
+
+    문제들 = [_문제("a", scenario="S2_SEARCH", needs_clarification=False),
+              _문제("b", needs_clarification=True)]
+    runs = [[
+        _실행(문제들[0], scenario_prob=0.9, spec={"category": "base"}),
+        Trial(rec=문제들[1], outcome=None, error="boom", calls=[_호출("qwen-plus", 10, 2)]),
+    ]]
+    for t in runs[0]:
+        for c in t.calls:
+            c.seconds = 0.5
+
+    읽은 = from_records(to_records(runs), 문제들)
+    기준 = Thresholds(scenario=0.6)
+    assert summarize_run(읽은[0], 기준) == summarize_run(runs[0], 기준)
+    assert 읽은[0][1].error == "boom"
