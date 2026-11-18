@@ -218,12 +218,21 @@ async def test_후기가_적은_높은_평점은_평균_쪽으로_당긴다():
 
 
 @pytest.mark.asyncio
-async def test_전체_인기_기준이_아니거나_평점이_없으면_인기는_None이다():
+async def test_전체_인기_기준이_아니면_인기는_None이다():
     상품들 = [_상품("p1", average_score=4.5, review_count=10), _상품("p2", average_score=None)]
     assert await popularity(상품들, _맥락()) == {"p1": None, "p2": None}
-    결과 = await popularity(상품들, _맥락(spec={"target": Target.POPULAR}))
-    assert 결과["p1"] is not None
-    assert 결과["p2"] is None
+
+
+@pytest.mark.asyncio
+async def test_평점이_없는_상품의_인기는_0이다():
+    """None 이면 인기 항목이 빠진 채 다시 나눠 평점 없는 상품이 위로 올라올 수 있다."""
+    맥락 = _맥락(spec={"target": Target.POPULAR})
+    상품들 = [_상품("낮음", average_score=1.0, review_count=500), _상품("없음", average_score=None)]
+    결과 = await popularity(상품들, 맥락)
+    assert 결과["없음"] == 0.0
+    assert 결과["낮음"] >= 결과["없음"]
+    # 후보 모두 평점이 없어도 0 이다
+    assert await popularity([_상품("없음", average_score=None)], 맥락) == {"없음": 0.0}
 
 
 @pytest.mark.asyncio
