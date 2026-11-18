@@ -16,7 +16,7 @@ export function KakaoCallbackPage() {
     socialLogin(code)
       .then(({ data }) => {
         setTokens(data.accessToken, data.refreshToken);
-        navigate(data.isNewUser ? "/onboarding/profile" : "/home", {
+        navigate(data.isNewUser ? "/onboarding/intro" : "/home", {
           replace: true,
         });
       })

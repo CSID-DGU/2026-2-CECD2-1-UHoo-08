@@ -3,6 +3,7 @@ import { AuthGuard } from "./components/common/AuthGuard";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { KakaoCallbackPage } from "./pages/auth/KakaoCallbackPage";
 import { GoogleCallbackPage } from "./pages/auth/GoogleCallbackPage";
+import { IntroPage } from "./pages/onboarding/IntroPage";
 import { ProfileSetupPage } from "./pages/onboarding/ProfileSetupPage";
 import { PreferenceSetupPage } from "./pages/onboarding/PreferenceSetupPage";
 import { KnownProductSetupPage } from "./pages/onboarding/KnownProductSetupPage";
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
   {
     element: <AuthGuard />,
     children: [
+      { path: "/onboarding/intro", element: <IntroPage /> },
       { path: "/onboarding/profile", element: <ProfileSetupPage /> },
       { path: "/onboarding/preference", element: <PreferenceSetupPage /> },
       { path: "/onboarding/products", element: <KnownProductSetupPage /> },
