@@ -187,18 +187,40 @@ def broader(종류: str, category: str | None = None) -> str:
     return 종류
 
 
+# 문장에서 종류 이름을 찾을 때 긴 이름부터 본다
+_긴_이름부터 = sorted(_표준, key=len, reverse=True)
+
+
+def _문장_속_종류(문장: str) -> set[str]:
+    """문장에 쓰인 종류의 표준 이름들. 띄어쓰기는 무시한다.
+
+    긴 이름부터 찾고, 이미 찾은 이름 안에 든 짧은 이름은 따로 세지 않는다. "스킨틴트" 안의
+    "스킨"(토너), "선크림" 안의 "크림" 은 그 종류를 말한 것이 아니다.
+    """
+    글 = _열쇠(문장)
+    쓴_자리 = [False] * len(글)
+    찾은: set[str] = set()
+    for 열쇠 in _긴_이름부터:
+        시작 = 글.find(열쇠)
+        while 시작 != -1:
+            끝 = 시작 + len(열쇠)
+            if not any(쓴_자리[시작:끝]):
+                쓴_자리[시작:끝] = [True] * len(열쇠)
+                찾은.add(_표준[열쇠])
+            시작 = 글.find(열쇠, 시작 + 1)
+    return 찾은
+
+
 def mentioned(종류: Any, 문장: str | None) -> bool:
     """문장에 그 종류의 이름이 있는지. 동의어와 그 종류를 담은 묶음 이름도 본다.
 
-    예: "토너" 는 "스킨으로 바꿔줘" 에, "젤크림" 은 "크림으로" 에 있다. 띄어쓰기는 무시한다.
-    질의 해석이 문장에 없는 종류를 지어냈는지 볼 때 쓴다.
+    예: "토너" 는 "스킨으로 바꿔줘" 에, "젤크림" 은 "크림으로" 에 있다. "스킨틴트로" 에는
+    토너가 없다. 질의 해석이 문장에 없는 종류를 지어냈는지 볼 때 쓴다.
     """
     표준 = canonical(종류)
     if 표준 is None or not 문장:
         return False
-    이름들 = {표준, broader(표준)}
-    글 = _열쇠(문장)
-    return any(열쇠 in 글 for 열쇠, 이름 in _표준.items() if 이름 in 이름들)
+    return bool({표준, broader(표준)} & _문장_속_종류(문장))
 
 
 def category_mentioned(category: str | None, 문장: str | None) -> bool:

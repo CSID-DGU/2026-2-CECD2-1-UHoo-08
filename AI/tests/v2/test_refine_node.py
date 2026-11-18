@@ -109,6 +109,15 @@ async def test_직접_쓴_문장에_없는_종류와_카테고리는_버린다(�
 
 
 @pytest.mark.asyncio
+async def test_다른_종류_이름_안의_동의어로는_종류를_받지_않는다(대역):
+    """"스킨틴트" 안의 "스킨" 을 토너로 보면 이전 검색이 토너로 바뀐다."""
+    대역(_이전(), 해석={"category": "skincare", "features": {"product_type": "토너"}})
+    스펙 = (await 노드.refine(_상태("스킨틴트로 바꿔줘")))["query_spec"]
+    assert 스펙["category"] == "base"
+    assert 스펙["features"] == {"product_type": "쿠션"}
+
+
+@pytest.mark.asyncio
 async def test_종류가_없어도_문장에_근거가_없는_카테고리는_버린다(대역):
     """종류를 null 로 비운 채 카테고리만 바꾸면 skincare 의 쿠션처럼 목록에 없는 조합이 된다."""
     대역(_이전(), 해석={"category": "skincare", "features": {}, "conditions": ["촉촉한"]})
