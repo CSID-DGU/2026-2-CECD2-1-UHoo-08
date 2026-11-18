@@ -54,3 +54,104 @@ def test_버전을_주면_그_버전_문제만_읽는다():
     assert len(v1) == 36
     assert len(v2) == 180
     assert not {r["id"] for r in v1} & {r["id"] for r in v2}
+
+
+class _가짜_LLM:
+    """정해 둔 답을 차례로 내놓는다. 받은 프롬프트와 temperature 를 적어 둔다."""
+
+    def __init__(self, 답들):
+        self._답들 = list(답들)
+        self.받은 = []
+
+    async def chat_json(self, system, user, temperature=0.0, **_):
+        self.받은.append((system, temperature))
+        return self._답들[(len(self.받은) - 1) % len(self._답들)]
+
+
+def _답(종류="SEARCH", **채운):
+    return {"request_type": 종류, "category": None, "features": {}, "conditions": [],
+            "budget": {"max": None, "total": None}, **채운}
+
+
+@pytest.fixture
+def 가짜_llm(monkeypatch):
+    def 끼우기(답들):
+        llm = _가짜_LLM(답들)
+        monkeypatch.setattr("services.llm.get_llm", lambda role: llm)
+        return llm
+    return 끼우기
+
+
+@pytest.mark.asyncio
+async def test_구조_규칙_조건은_확신_점수를_묻지_않고_확률도_내지_않는다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답(category="base")])
+    나온 = await CONDITIONS["a2"].run({"raw_query": "쿠션 추천"})
+
+    assert "confidence" not in llm.받은[0][0]
+    assert 나온.scenario == "S2_SEARCH"
+    assert not 나온.clarify_rule
+    assert 나온.scenario_prob is None
+
+
+@pytest.mark.asyncio
+async def test_구조_규칙_조건은_단서가_없거나_필수_값이_비면_되묻는다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답()])
+    assert (await CONDITIONS["a2"].run({"raw_query": "추천해줘"})).clarify_rule
+
+    가짜_llm([_답("EVALUATE", category="base")])
+    나온 = await CONDITIONS["a2"].run({"raw_query": "그 쿠션 어때?"})
+    assert 나온.scenario == "S1_EVALUATE" and 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_구조_규칙_조건은_답을_읽지_못하면_되묻는다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([None])
+    나온 = await CONDITIONS["a2"].run({"raw_query": "쿠션 추천"})
+    assert 나온.clarify_rule and 나온.scenario == "S2_SEARCH"
+
+
+@pytest.mark.asyncio
+async def test_반복_질문_조건은_다섯_번_묻고_일치한_비율을_확률로_쓴다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([
+        _답("SEARCH", category="base"), _답("EVALUATE", category="base", base_product_ref="어떤 쿠션"),
+        _답("SEARCH", category="base"), _답("SEARCH", category="base"),
+        _답("EVALUATE", category="base", base_product_ref="어떤 쿠션"),
+    ])
+    나온 = await CONDITIONS["a3"].run({"raw_query": "쿠션 뭐가 좋아?"})
+
+    assert len(llm.받은) == 5
+    assert all(온도 == 0.7 for _, 온도 in llm.받은)
+    assert 나온.scenario == "S2_SEARCH"
+    assert 나온.scenario_prob == pytest.approx(0.6)
+    assert 나온.spec["request_type"] == "SEARCH"
+
+
+@pytest.mark.asyncio
+async def test_반복_질문_조건도_조건이_부족하면_일치_비율과_상관없이_되묻는다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답()])
+    나온 = await CONDITIONS["a3"].run({"raw_query": "추천해줘"})
+
+    assert 나온.scenario_prob == 1.0
+    assert 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_직전_결과가_있으면_반복하지_않고_한_번만_묻는다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답(category="base")])
+    나온 = await CONDITIONS["a3"].run({"raw_query": "쿠션 추천", "parent_job_id": "prev"})
+
+    assert len(llm.받은) == 1
+    assert 나온.scenario == "S7_REFINE"
+    assert 나온.scenario_prob is None and not 나온.clarify_rule

@@ -134,20 +134,25 @@ def _종류_다듬기(spec: QuerySpec) -> QuerySpec:
     return spec.model_copy(update={"features": 특징, "conditions": 조건, "bundle_steps": 단계들})
 
 
-async def normalize(state: GraphState) -> dict:
-    raw = (state.get("raw_query") or "").strip()
-    if not raw:
-        return {"query_spec": _빈_스펙("").model_dump(mode="json")}
+async def parse_query(
+    사용자_말: str,
+    raw: str,
+    *,
+    system: str = QUERY_NORMALIZE_SYSTEM,
+    temperature: float = 0.0,
+) -> QuerySpec | None:
+    """LLM 에 물어 QuerySpec 을 만든다. 두 번 시도해도 읽지 못하면 None.
 
-    # 부를 일이 생긴 뒤에 가져온다. 함수 첫 줄에 두면 질의가 비어 돌려보낼
-    # 때에도 설정과 SDK 를 통째로 불러오게 된다.
+    프롬프트와 temperature 를 바꿔 부를 수 있게 노드에서 떼어 두었다. 평가 도구가
+    같은 해석 과정을 다른 설정으로 태워 견준다. raw 는 로그에만 쓴다.
+    """
+    # 부를 일이 생긴 뒤에 가져온다. 최상단에 두면 설정과 SDK 를 통째로 불러온다.
     from services.llm import LLMRole, get_llm
 
     llm = get_llm(LLMRole.NORMALIZE)
-    사용자_말 = _사용자_말(state, raw)
 
     for 시도 in range(1, _최대_시도 + 1):
-        원본 = await llm.chat_json(system=QUERY_NORMALIZE_SYSTEM, user=사용자_말)
+        원본 = await llm.chat_json(system=system, user=사용자_말, temperature=temperature)
         if 원본 is None:
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue
@@ -167,7 +172,18 @@ async def normalize(state: GraphState) -> dict:
         except _종류_형식_오류 as e:
             logger.warning("normalize: %s (%d/%d) %r", e, 시도, _최대_시도, raw)
             continue
-        return {"query_spec": 다듬은.model_dump(mode="json")}
+        return 다듬은
 
-    logger.warning("normalize: 해석 실패, 되묻기로 넘긴다 %r", raw)
-    return {"query_spec": _빈_스펙(raw).model_dump(mode="json")}
+    return None
+
+
+async def normalize(state: GraphState) -> dict:
+    raw = (state.get("raw_query") or "").strip()
+    if not raw:
+        return {"query_spec": _빈_스펙("").model_dump(mode="json")}
+
+    spec = await parse_query(_사용자_말(state, raw), raw)
+    if spec is None:
+        logger.warning("normalize: 해석 실패, 되묻기로 넘긴다 %r", raw)
+        spec = _빈_스펙(raw)
+    return {"query_spec": spec.model_dump(mode="json")}

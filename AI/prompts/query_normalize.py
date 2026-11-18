@@ -12,6 +12,8 @@
 종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가 한 번 더 표준 이름으로
 바꾼다(graph/nodes/normalize.py).
 """
+import re
+
 from prompts.product_types_text import (
     group_text,
     query_category_lines,
@@ -111,3 +113,17 @@ QUERY_NORMALIZE_SYSTEM = (
     .replace("__특징_절__", query_feature_lines())
     .replace("__묶음_설명__", group_text())
 )
+
+
+def _확신_점수_빼기(글: str) -> str:
+    """프롬프트에서 confidence 를 다루는 자리를 모두 뺀다."""
+    글 = 글.replace(',\n  "confidence": 0.0~1.0', "")
+    글 = re.sub(r"\[confidence\]\n.*?\n\n", "", 글, flags=re.S)
+    글 = re.sub(r',"confidence":[0-9.]+', "", 글)
+    assert "confidence" not in 글, "confidence 를 다루는 자리가 남았다"
+    return 글
+
+
+# 확신 점수를 묻지 않는 프롬프트. 되물을지를 LLM 의 숫자가 아니라 코드 규칙으로
+# 정하는 방식을 견줄 때 쓴다. 나머지 지시는 위와 글자 하나까지 같아야 비교가 된다.
+QUERY_NORMALIZE_SYSTEM_NO_CONFIDENCE = _확신_점수_빼기(QUERY_NORMALIZE_SYSTEM)

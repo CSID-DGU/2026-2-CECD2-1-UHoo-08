@@ -41,6 +41,7 @@ class Outcome:
     clarify_rule: bool = False               # 확률과 상관없이 되물어야 한다 (필수 값이 비었다 등)
     scenario_prob: Optional[float] = None    # 시나리오를 맞혔을 확률. 내지 않는 조건은 None
     vague_prob: Optional[float] = None       # 막연한 질문일 확률. 내지 않는 조건은 None
+    extracts_values: bool = True             # 값 뽑기를 하는 조건인가. 아니면 값 일치율에서 뺀다
 
 
 @dataclass
@@ -127,9 +128,14 @@ def request_type_macro_f1(trials: Sequence[Trial]) -> Optional[float]:
 
 
 def value_match_rate(trials: Sequence[Trial]) -> Optional[float]:
-    """뽑아낸 값이 정답과 같은 비율. 문제에 적힌 항목만 센다."""
+    """뽑아낸 값이 정답과 같은 비율. 문제에 적힌 항목만 센다.
+
+    값 뽑기를 하지 않는 조건의 결과는 세지 않는다.
+    """
     맞음 = 전체 = 0
     for t in trials:
+        if t.outcome is not None and not t.outcome.extracts_values:
+            continue
         for 키 in VALUE_KEYS:
             if 키 not in t.rec["expected"]:
                 continue
