@@ -81,10 +81,21 @@ def _null_글자_비우기(값):
     return 값
 
 
+def _null_만_든_목록(원래, 다듬은) -> bool:
+    """원래 값이 있던 목록이 "null" 을 빼고 나니 비었다. 처음부터 빈 목록이면 아니다."""
+    return isinstance(원래, list) and bool(원래) and 다듬은 == []
+
+
 def _응답_다듬기(원본: dict) -> dict:
     다듬은 = _null_글자_비우기(원본)
-    if isinstance(다듬은.get("features"), dict):
-        다듬은["features"] = {키: v for 키, v in 다듬은["features"].items() if v is not None}
+    원래_특징 = 원본.get("features")
+    if isinstance(원래_특징, dict) and isinstance(다듬은.get("features"), dict):
+        # ["null"] 처럼 null 만 든 특징도 빈 값으로 보고 키를 뺀다. 빈 목록으로 남기면
+        # 제품 종류 형식 오류로 다시 묻게 되고, 두 번 받으면 예산과 세트까지 잃는다.
+        다듬은["features"] = {
+            키: v for 키, v in 다듬은["features"].items()
+            if v is not None and not _null_만_든_목록(원래_특징.get(키), v)
+        }
     return 다듬은
 
 

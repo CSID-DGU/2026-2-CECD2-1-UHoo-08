@@ -84,6 +84,20 @@ async def test_문자열_null은_빈_값으로_읽고_다시_묻지_않는다(LL
 
 
 @pytest.mark.asyncio
+async def test_null만_든_종류_배열은_특징에서_빼고_다시_묻지_않는다(LLM세우기):
+    """빈 목록으로 남기면 형식 오류로 다시 묻고, 두 번 받으면 예산과 세트를 잃는다."""
+    가짜 = LLM세우기([{
+        "request_type": "BUNDLE", "category": "skincare",
+        "budget": {"max": None, "total": 100000},
+        "bundle_steps": [{"category": "skincare", "product_type": "토너", "label": "토너"}],
+        "features": {"product_type": ["null"]}, "confidence": 0.9,
+    }])
+    spec = (await 모듈.normalize({"raw_query": "10만원으로 토너 세트"}))["query_spec"]
+    assert 가짜.호출 == 1
+    assert spec["features"] == {} and spec["budget"]["total"] == 100000
+
+
+@pytest.mark.asyncio
 async def test_null이_아닌_글자는_그대로_둔다(LLM세우기):
     LLM세우기([{**_제대로, "conditions": ["nullable", "논 코메도제닉"]}])
     spec = (await 모듈.normalize({"raw_query": "쿠션"}))["query_spec"]
