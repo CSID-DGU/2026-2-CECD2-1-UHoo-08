@@ -18,6 +18,18 @@ QUERY_FEATURES: dict[str, str] = {
     "cheek": "finish(매트|글로우|쉬머), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)",
 }
 
+# 질의 해석의 카테고리 판단에 보여 줄 대표 종류. 전체 종류는 특징 표에 있다.
+# 카테고리 판단에 모든 종류를 늘어놓았더니, 종류 이름 없이 피부 타입만 말하는 세트
+# ("13만원으로 건성 피부 세트")에서 카테고리와 세트 단계를 비우는 일이 늘었다
+CATEGORY_EXAMPLES: dict[str, tuple[str, ...]] = {
+    "base": ("쿠션", "파운데이션", "비비크림", "프라이머", "컨실러"),
+    "sun": ("선크림", "선스틱", "선쿠션", "선스프레이"),
+    "lip": ("틴트", "립스틱", "립글로스", "립밤"),
+    "skincare": ("토너", "에센스", "세럼", "크림", "오일", "로션", "클렌저", "마스크팩"),
+    "eye": ("아이섀도", "아이라이너", "마스카라", "아이브로우"),
+    "cheek": ("블러셔", "하이라이터", "쉐딩"),
+}
+
 # 종류 이름 말고도 카테고리를 알려 주는 말
 CATEGORY_HINTS: dict[str, tuple[str, ...]] = {
     "sun": ("자외선차단",),
@@ -46,6 +58,14 @@ def category_lines() -> str:
     return "\n".join(
         f"- {카테고리}: {', '.join([*종류들, *CATEGORY_HINTS.get(카테고리, ())])}"
         for 카테고리, 종류들 in CATEGORY_TYPES.items()
+    )
+
+
+def query_category_lines() -> str:
+    """질의 해석의 카테고리 판단 기준. 카테고리마다 대표 종류와 카테고리를 알려 주는 말."""
+    return "\n".join(
+        f"- {카테고리}: {', '.join([*CATEGORY_EXAMPLES[카테고리], *CATEGORY_HINTS.get(카테고리, ())])}"
+        for 카테고리 in CATEGORY_TYPES
     )
 
 

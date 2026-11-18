@@ -9,13 +9,15 @@ import re
 import pytest
 
 from prompts.product_types_text import (
+    CATEGORY_EXAMPLES,
     PRODUCT_TYPE_RULE,
     category_label,
     category_lines,
+    query_category_lines,
     query_feature_lines,
     type_choices,
 )
-from rules.product_types import CATEGORY_NAMES, CATEGORY_TYPES, MAX_TYPES
+from rules.product_types import CATEGORY_NAMES, CATEGORY_TYPES, GROUPS, MAX_TYPES
 
 
 def _종류_허용값(스키마: str) -> list[str]:
@@ -29,6 +31,20 @@ def test_카테고리_판단_기준은_카테고리마다_한_줄이고_모든_�
     for 줄, (카테고리, 종류들) in zip(줄들, CATEGORY_TYPES.items()):
         assert 줄.startswith(f"- {카테고리}: ")
         assert set(종류들) <= set(줄.split(": ", 1)[1].split(", "))
+
+
+def test_질의_해석의_대표_종류는_그_카테고리의_종류나_묶음이다():
+    assert set(CATEGORY_EXAMPLES) == set(CATEGORY_TYPES)
+    for 카테고리, 대표 in CATEGORY_EXAMPLES.items():
+        assert set(대표) <= set(CATEGORY_TYPES[카테고리]) | set(GROUPS.get(카테고리, {})), 카테고리
+
+
+def test_질의_해석의_카테고리_판단은_대표_종류만_보여_준다():
+    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+
+    assert query_category_lines() in QUERY_NORMALIZE_SYSTEM
+    assert category_lines() not in QUERY_NORMALIZE_SYSTEM
+    assert "- skincare: 토너, 에센스, 세럼, 크림, 오일, 로션, 클렌저, 마스크팩" in QUERY_NORMALIZE_SYSTEM
 
 
 def test_카테고리_이름표에_이름과_종류가_다_들어간다():

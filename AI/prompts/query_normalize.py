@@ -13,8 +13,8 @@
 바꾼다(graph/nodes/normalize.py).
 """
 from prompts.product_types_text import (
-    category_lines,
     group_text,
+    query_category_lines,
     query_feature_lines,
 )
 from rules.product_types import CATEGORY_TYPES
@@ -48,6 +48,8 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 
 [category]
 __카테고리_절__
+- 대표 종류만 적었다. 다른 종류는 아래 features 표에서 어느 카테고리의 product_type 인지 보고 정한다
+- 종류 이름 없이 피부 타입이나 피부 고민만 말하는 세트, 루틴은 skincare
 - 판단 불가 시 null. 위 카테고리 외의 값을 만들지 마라.
 
 [features — 카테고리별 허용 키와 값]
@@ -99,7 +101,7 @@ __특징_절__
 QUERY_NORMALIZE_SYSTEM = (
     QUERY_NORMALIZE_SYSTEM
     .replace("__카테고리_값__", _카테고리_값)
-    .replace("__카테고리_절__", category_lines())
+    .replace("__카테고리_절__", query_category_lines())
     .replace("__특징_절__", query_feature_lines())
     .replace("__묶음_설명__", group_text())
 )
