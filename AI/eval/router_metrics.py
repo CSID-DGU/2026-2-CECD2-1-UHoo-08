@@ -44,6 +44,9 @@ class Outcome:
     scenario_prob: Optional[float] = None    # 시나리오를 맞혔을 확률. 내지 않는 조건은 None
     vague_prob: Optional[float] = None       # 막연한 질문일 확률. 내지 않는 조건은 None
     extracts_values: bool = True             # 값 뽑기를 하는 조건인가. 아니면 값 일치율에서 뺀다
+    # LLM 과 Jev 가 고른 요청 종류를 견준 결과. 견주지 않는 조건은 None
+    # same: 처음부터 같았다, resolved: 다시 해석해 같아졌다, unresolved: 끝까지 달라 사용자에게 묻는다
+    agreement: Optional[str] = None
 
 
 @dataclass
@@ -267,6 +270,34 @@ def fit_vague_threshold(trials: Sequence[Trial], scenario: Optional[float]) -> O
     return 가장_좋은[1]
 
 
+def agreement_stats(trials: Sequence[Trial]) -> Optional[dict[str, Any]]:
+    """LLM 과 Jev 가 고른 요청 종류를 견준 결과. 견주는 조건이 아니면 None.
+
+    같았을 때와 달랐을 때의 시나리오 일치율은 시나리오 정답이 적힌 문제로만 낸다.
+    다시 해석해 맞게 정해졌다는 것은 두 답이 같아졌고 그 시나리오가 정답이라는 뜻이다.
+    """
+    견준 = [t for t in trials if t.outcome is not None and t.outcome.agreement is not None]
+    if not 견준:
+        return None
+    같음 = [t for t in 견준 if t.outcome.agreement == "same"]
+    다름 = [t for t in 견준 if t.outcome.agreement != "same"]
+    다름_채점 = _시나리오_문제(다름)
+    return {
+        "견준 수": len(견준),
+        "같았던 수": len(같음),
+        "같았던 비율": len(같음) / len(견준),
+        "같았을 때 시나리오 일치율": scenario_accuracy(같음),
+        "달랐던 수": len(다름),
+        "달랐을 때 시나리오 일치율": scenario_accuracy(다름),
+        "다시 해석해 같아진 비율": _비율(sum(t.outcome.agreement == "resolved" for t in 다름), len(다름)),
+        "다시 해석해 맞게 정해진 비율": _비율(
+            sum(t.outcome.agreement == "resolved" and _시나리오_맞음(t) for t in 다름_채점),
+            len(다름_채점),
+        ),
+        "사용자에게 물은 비율": _비율(sum(t.outcome.agreement == "unresolved" for t in 다름), len(다름)),
+    }
+
+
 def to_records(runs: Sequence[Sequence[Trial]]) -> list[list[dict]]:
     """실행 결과를 파일에 적을 수 있는 모양으로 바꾼다. 문제는 id 만 적는다."""
     return [
@@ -280,6 +311,7 @@ def to_records(runs: Sequence[Sequence[Trial]]) -> list[list[dict]]:
                     "scenario_prob": t.outcome.scenario_prob,
                     "vague_prob": t.outcome.vague_prob,
                     "extracts_values": t.outcome.extracts_values,
+                    "agreement": t.outcome.agreement,
                 },
                 "seconds": t.seconds,
                 "calls": [
@@ -472,6 +504,22 @@ def to_markdown(
         줄 += [f"| {기준:.2f} | {비율 * 100:.1f}% | {일치율 * 100:.1f}% |" for 기준, 비율, 일치율 in 곡선]
     else:
         줄.append("이 조건은 시나리오 확률을 내지 않는다.")
+
+    견줌 = agreement_stats([t for run in runs for t in run])
+    if 견줌:
+        줄 += [
+            "", "## LLM 과 Jev 의 요청 종류 견주기", "",
+            "반복 실행을 모두 합쳐 계산했다. 직전 결과가 있는 질문은 견주지 않는다.",
+            "",
+            "| 항목 | 값 |",
+            "| --- | ---: |",
+            f"| 요청 종류가 같았던 비율 | {_숫자(견줌['같았던 비율'], True)} ({견줌['같았던 수']} / {견줌['견준 수']}) |",
+            f"| 같았을 때 시나리오 일치율 | {_숫자(견줌['같았을 때 시나리오 일치율'], True)} |",
+            f"| 달랐을 때 시나리오 일치율 | {_숫자(견줌['달랐을 때 시나리오 일치율'], True)} ({견줌['달랐던 수']}건) |",
+            f"| 다시 해석해 두 답이 같아진 비율 | {_숫자(견줌['다시 해석해 같아진 비율'], True)} |",
+            f"| 다시 해석해 맞게 정해진 비율 | {_숫자(견줌['다시 해석해 맞게 정해진 비율'], True)} |",
+            f"| 사용자에게까지 물은 비율 | {_숫자(견줌['사용자에게 물은 비율'], True)} |",
+        ]
 
     틀림 = wrong_cases(runs, thr)
     줄 += ["", f"## 틀린 문제 ({len(틀림)}건)", ""]

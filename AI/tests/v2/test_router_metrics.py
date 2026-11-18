@@ -270,3 +270,52 @@ def test_실행_결과를_적었다가_다시_읽어도_측정값이_같다():
     기준 = Thresholds(scenario=0.6)
     assert summarize_run(읽은[0], 기준) == summarize_run(runs[0], 기준)
     assert 읽은[0][1].error == "boom"
+
+
+def test_견주지_않는_조건은_견준_결과가_없다():
+    from eval.router_metrics import agreement_stats
+
+    assert agreement_stats([_실행(_문제("a", scenario="S2_SEARCH"))]) is None
+
+
+def test_요청_종류를_견준_결과를_같았을_때와_달랐을_때로_나눠_센다():
+    from eval.router_metrics import agreement_stats
+
+    실행 = [
+        _실행(_문제("a", scenario="S2_SEARCH"), agreement="same"),
+        _실행(_문제("b", scenario="S1_EVALUATE"), agreement="same"),
+        _실행(_문제("c", scenario="S2_SEARCH"), agreement="resolved"),
+        _실행(_문제("d", scenario="S1_EVALUATE"), agreement="resolved"),
+        _실행(_문제("e", scenario="S2_SEARCH"), agreement="unresolved", clarify_rule=True),
+        _실행(_문제("f", scenario="S2_SEARCH")),
+    ]
+    결과 = agreement_stats(실행)
+
+    assert 결과["견준 수"] == 5
+    assert 결과["같았던 비율"] == pytest.approx(0.4)
+    assert 결과["같았을 때 시나리오 일치율"] == pytest.approx(0.5)
+    assert 결과["달랐을 때 시나리오 일치율"] == pytest.approx(2 / 3)
+    assert 결과["다시 해석해 같아진 비율"] == pytest.approx(2 / 3)
+    # 같아진 둘 중 하나는 틀린 시나리오로 같아졌다
+    assert 결과["다시 해석해 맞게 정해진 비율"] == pytest.approx(1 / 3)
+    assert 결과["사용자에게 물은 비율"] == pytest.approx(1 / 3)
+
+
+def test_견준_결과는_적었다가_다시_읽어도_남고_리포트에_들어간다():
+    from eval.router_metrics import from_records, to_records
+
+    문제 = _문제("a", scenario="S2_SEARCH", needs_clarification=False)
+    runs = [[_실행(문제, agreement="resolved", vague_prob=0.2)]]
+
+    읽은 = from_records(to_records(runs), [문제])
+    assert 읽은[0][0].outcome.agreement == "resolved"
+
+    글 = to_markdown(runs=읽은, thr=Thresholds(vague=0.6), 머리말={"조건": "A5"})
+    assert "요청 종류가 같았던 비율 | 0.0% (0 / 1)" in 글
+    assert "사용자에게까지 물은 비율 | 0.0%" in 글
+
+
+def test_견주지_않는_조건의_리포트에는_견주기_항목이_없다():
+    문제 = _문제("a", scenario="S2_SEARCH")
+    글 = to_markdown(runs=[[_실행(문제)]], thr=Thresholds(), 머리말={"조건": "A2"})
+    assert "견주기" not in 글

@@ -179,10 +179,13 @@ def structural_clarify(spec: Optional[dict], 빠진_필수: Sequence[str]) -> bo
     return bool(빠진_필수) or is_underspecified(spec)
 
 
-async def _구조_규칙으로_해석(입력: dict, temperature: float = 0.0) -> tuple[Optional[dict], str, bool]:
+async def _구조_규칙으로_해석(
+    입력: dict, temperature: float = 0.0, 덧붙일_말: str = "",
+) -> tuple[Optional[dict], str, bool]:
     """확신 점수를 묻지 않는 프롬프트로 한 번 해석한다. (spec, 시나리오, 되물을지)
 
     해석하지 못하면 spec 은 None 이고 검색으로 둔 채 되묻는다.
+    덧붙일_말은 사용자 말 뒤에 붙여 함께 보낸다.
     """
     from contracts.query_spec import RequestType
     from graph.nodes.normalize import _사용자_말, parse_query
@@ -191,7 +194,7 @@ async def _구조_규칙으로_해석(입력: dict, temperature: float = 0.0) ->
 
     raw = (입력.get("raw_query") or "").strip()
     읽은 = await parse_query(
-        _사용자_말(입력, raw), raw,
+        _사용자_말(입력, raw) + 덧붙일_말, raw,
         system=QUERY_NORMALIZE_SYSTEM_NO_CONFIDENCE, temperature=temperature,
     )
     if 입력.get("parent_job_id"):
@@ -335,6 +338,52 @@ async def _a4(입력: dict) -> Outcome:
     )
 
 
+# 요청 종류가 갈렸을 때 LLM 에 덧붙이는 말. 같은 질문을 그대로 다시 보내면 같은 답이
+# 나오므로 두 후보를 함께 알려 준다.
+_다시_해석_말 = (
+    "\n\n[다시 해석] 이 질의의 요청 종류를 두고 판단이 갈렸다. 후보는 {하나} 와 {다른} 이다. "
+    "위 규칙에 비추어 두 후보 중 어느 쪽이 맞는지 다시 판단하고, 고른 종류에 맞게 모든 값을 다시 채워라."
+)
+
+
+async def _a5(입력: dict) -> Outcome:
+    """LLM 과 Jev 가 요청 종류를 따로 고른 뒤 견준다. 두 호출을 동시에 보낸다.
+
+    같으면 확정한다. 다르면 LLM 에 두 후보를 알려 주고 한 번만 다시 해석하게 한다.
+    그래도 다르면 사용자에게 어느 쪽인지 묻는다. 시나리오 확률은 내지 않는다.
+    조건이 부족한지는 구조 규칙과 Jev 의 막연함 확률을 함께 본다.
+
+    같은지는 요청 종류가 가는 시나리오로 견준다. 직전 결과 없는 조건 수정은 검색과
+    같은 곳으로 가므로, 이 둘이 갈린 것은 다시 물을 일이 아니다.
+    """
+    if 입력.get("parent_job_id"):
+        spec, 시나리오, _ = await _구조_규칙으로_해석(입력)
+        return Outcome(spec=spec or {}, scenario=시나리오)
+
+    (spec, 시나리오, 되물음), (jev_종류, _, 막연함) = await asyncio.gather(
+        _구조_규칙으로_해석(입력), _jev_판단(입력.get("raw_query") or ""),
+    )
+    jev_시나리오 = _시나리오(jev_종류)
+    if spec is None:
+        # 값을 읽지 못했으면 견줄 것이 없다. 경로만 Jev 것으로 두고 되묻는다
+        return Outcome(spec={"request_type": jev_종류}, scenario=jev_시나리오,
+                       clarify_rule=True, vague_prob=막연함)
+    if 시나리오 == jev_시나리오:
+        return Outcome(spec=spec, scenario=시나리오, clarify_rule=되물음,
+                       vague_prob=막연함, agreement="same")
+
+    다시 = await _구조_규칙으로_해석(입력, 덧붙일_말=_다시_해석_말.format(
+        하나=spec["request_type"], 다른=jev_종류,
+    ))
+    if 다시[0] is not None:
+        spec, 시나리오, 되물음 = 다시
+    if 시나리오 == jev_시나리오:
+        return Outcome(spec=spec, scenario=시나리오, clarify_rule=되물음,
+                       vague_prob=막연함, agreement="resolved")
+    return Outcome(spec=spec, scenario=시나리오, clarify_rule=True,
+                   vague_prob=막연함, agreement="unresolved")
+
+
 async def _a6(입력: dict) -> Outcome:
     """구조 규칙대로 해석한 다음, LLM 이 정한 요청 종류가 맞는지 Jev 에 예/아니오로 묻는다."""
     from services.llm.jev import ask, noul
@@ -379,6 +428,7 @@ CONDITIONS: dict[str, Condition] = {
     # 다섯 번 중 세 번 이상 같은 답이면 처리한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),
     "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, Thresholds(scenario=0.5, vague=0.62)),
+    "a5": Condition("a5", "A5. LLM 과 Jev 의 이중 확인", _a5, Thresholds(vague=0.62)),
     "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.09)),
     "a7": Condition("a7", "A7. Jev 만", _a7, Thresholds(scenario=0.52, vague=0.6)),
 }

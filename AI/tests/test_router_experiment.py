@@ -62,9 +62,11 @@ class _가짜_LLM:
     def __init__(self, 답들):
         self._답들 = list(답들)
         self.받은 = []
+        self.받은_말 = []
 
     async def chat_json(self, system, user, temperature=0.0, **_):
         self.받은.append((system, temperature))
+        self.받은_말.append(user)
         return self._답들[(len(self.받은) - 1) % len(self._답들)]
 
 
@@ -226,9 +228,102 @@ async def test_직전_결과가_있으면_Jev_를_부르지_않는다(가짜_llm
     가짜_llm([_답(category="base")])
     받은 = 가짜_jev({})
 
-    for 키 in ("a4", "a6", "a7"):
+    for 키 in ("a4", "a5", "a6", "a7"):
         나온 = await CONDITIONS[키].run({"raw_query": "쿠션 추천", "parent_job_id": "prev"})
         assert 나온.scenario == "S7_REFINE"
         assert 나온.scenario_prob is None
 
     assert 받은 == []
+
+
+def _jev_답(종류, 막연함=0.1):
+    return {"request_type": _jev_종류(종류, 0.9), "vague": {"type": "noul", "noul": 막연함}}
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_두_답이_같으면_다시_묻지_않고_확정한다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답("SEARCH", category="base")])
+    가짜_jev(_jev_답("SEARCH", 막연함=0.3))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "쿠션 추천"})
+
+    assert len(llm.받은) == 1
+    assert 나온.agreement == "same"
+    assert 나온.scenario == "S2_SEARCH"
+    assert 나온.scenario_prob is None and 나온.vague_prob == 0.3
+    assert not 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_직전_결과_없는_조건_수정과_검색을_같은_답으로_본다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답("REFINE", category="base")])
+    가짜_jev(_jev_답("SEARCH"))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "더 저렴한 쿠션 없어?"})
+
+    assert len(llm.받은) == 1
+    assert 나온.agreement == "same" and 나온.scenario == "S2_SEARCH"
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_두_답이_다르면_두_후보를_알려_주고_다시_해석한다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([
+        _답("SEARCH", category="base"),
+        _답("EVALUATE", category="base", base_product_ref="어떤 쿠션"),
+    ])
+    가짜_jev(_jev_답("EVALUATE"))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "어떤 쿠션 대신 쓸 거"})
+
+    assert len(llm.받은) == 2
+    assert "SEARCH" in llm.받은_말[1] and "EVALUATE" in llm.받은_말[1]
+    assert 나온.agreement == "resolved"
+    assert 나온.scenario == "S1_EVALUATE"
+    # 값도 다시 해석한 것을 쓴다
+    assert 나온.spec["base_product_ref"] == "어떤 쿠션"
+    assert not 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_다시_해석해도_다르면_사용자에게_묻는다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답("SEARCH", category="base")])
+    가짜_jev(_jev_답("EVALUATE"))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "어떤 쿠션 대신 쓸 거"})
+
+    assert len(llm.받은) == 2
+    assert 나온.agreement == "unresolved"
+    assert 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_두_답이_같아도_필수_값이_비면_되묻는다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답("BUNDLE", category="skincare")])
+    가짜_jev(_jev_답("BUNDLE"))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "스킨케어 세트 추천"})
+
+    assert 나온.agreement == "same" and 나온.clarify_rule
+
+
+@pytest.mark.asyncio
+async def test_이중_확인_조건은_값을_읽지_못하면_견주지_않고_되묻는다(가짜_llm, 가짜_jev):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([None])
+    가짜_jev(_jev_답("EVALUATE"))
+
+    나온 = await CONDITIONS["a5"].run({"raw_query": "쿠션 추천"})
+
+    assert 나온.agreement is None
+    assert 나온.clarify_rule and 나온.scenario == "S1_EVALUATE"
