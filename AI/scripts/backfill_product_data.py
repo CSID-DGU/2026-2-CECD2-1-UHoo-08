@@ -194,7 +194,7 @@ def main() -> None:
         return
     if args.types:
         _run(targets, _refill_types, args.workers)
-        print("상품 임베딩을 다시 만든다: PYTHONPATH=. ./venv/bin/python scripts/reembed_products.py")
+        print("상품 임베딩을 다시 만든다: python -m scripts.reembed_products")
         return
 
     # 리뷰 임베딩 모델을 미리 한 번 올린다. 워커들이 동시에 처음 로드하면
