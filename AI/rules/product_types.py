@@ -159,6 +159,20 @@ def product_types(feature_json: dict[str, Any] | None, category: str | None = No
     return 종류들[:MAX_TYPES]
 
 
+def broader(종류: str, category: str | None = None) -> str:
+    """그 종류를 담은 묶음 이름. 묶음에 들지 않으면 그대로 돌려준다.
+
+    예: 젤크림은 크림, 선로션은 선크림, 클렌징폼은 클렌저. 기준 상품 하나로 비슷한 상품을
+    찾을 때, 종류가 잘게 나뉘어 결과가 지나치게 좁아지지 않게 쓴다.
+    """
+    후보들 = [GROUPS.get(category, {})] if category is not None else list(GROUPS.values())
+    for 묶음들 in 후보들:
+        for 이름, 안 in 묶음들.items():
+            if 종류 in 안:
+                return 이름
+    return 종류
+
+
 def _넓힌_종류(원하는: str, category: str | None) -> set[str]:
     if category is not None:
         묶음 = GROUPS.get(category, {}).get(원하는, ())

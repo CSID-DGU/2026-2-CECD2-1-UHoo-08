@@ -81,3 +81,25 @@ def test_칸이_있으면_칸마다_상위를_남긴다():
     ]
     결과 = apply(후보, {}, _스펙(), ingredients={}, limit=2)
     assert _ids(결과) == ["t1", "t2", "c1"]
+
+
+def test_제품_종류는_동의어와_묶음과_여러_종류를_따른다():
+    메타 = {
+        "젤": {"feature_json": {"product_type": "젤크림"}},
+        "스킨": {"feature_json": {"product_type": "스킨"}},
+        "둘": {"feature_json": {"product_type": ["밤", "오일"]}},
+        "토너": {"feature_json": {"product_type": "토너"}},
+    }
+    후보들 = [_후보(pid) for pid in 메타]
+    크림 = apply(후보들, 메타, _스펙(category="skincare", features={"product_type": "크림"}),
+                ingredients={}, limit=10)
+    assert _ids(크림) == ["젤", "둘"]
+    토너 = apply(후보들, 메타, _스펙(features={"product_type": "토너"}), ingredients={}, limit=10)
+    assert _ids(토너) == ["스킨", "토너"]
+
+
+def test_카테고리가_문자열로_들어온_질의도_거른다():
+    """예산 세트는 칸마다 카테고리를 문자열로 바꿔 넣은 질의를 넘긴다."""
+    메타 = {"p1": {"feature_json": {"product_type": "선로션"}}}
+    스펙 = _스펙(features={"product_type": "선크림"}).model_copy(update={"category": "sun"})
+    assert _ids(apply([_후보("p1")], 메타, 스펙, ingredients={}, limit=10)) == ["p1"]

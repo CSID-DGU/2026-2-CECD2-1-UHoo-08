@@ -204,3 +204,15 @@ def test_대체_후보가_남은_보유_제품과_AVOID_가_아니어야_한다(
     # 성분 부품이 없어 다시 판정하지 못했으면 통과로 보지 않는다
     통과, 설명 = 판정.replacement_items_no_avoid(True, 결과, {판정.ROUTINE_KEY: {"avoid_with": None}})
     assert not 통과 and "성분 부품" in 설명
+
+
+def test_상위_5개의_제품_종류는_동의어와_묶음과_여러_종류를_따른다():
+    메타 = {
+        "젤": {"category": "skincare", "feature_json": {"product_type": "젤크림"}},
+        "둘": {"category": "skincare", "feature_json": {"product_type": ["미스트", "크림"]}},
+        "모름": {"category": "skincare", "feature_json": {"product_type": None}},
+    }
+    assert 판정.top5_all({"product_type": "크림"}, _결과([_카드("젤"), _카드("둘")]), 메타)[0]
+    # 종류를 모르는 상품은 필터가 남기지만 상위에 오면 어긴 것으로 본다
+    통과, 설명 = 판정.top5_all({"product_type": "크림"}, _결과([_카드("모름")]), 메타)
+    assert not 통과 and "모름 제품 종류 None" in 설명

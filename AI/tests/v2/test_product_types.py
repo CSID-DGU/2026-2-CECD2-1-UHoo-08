@@ -160,3 +160,18 @@ def test_질의_해석_프롬프트에_모든_카테고리와_종류가_들어�
     for 묶음들 in GROUPS.values():
         for 이름 in 묶음들:
             assert 이름 in QUERY_NORMALIZE_SYSTEM
+
+
+@pytest.mark.parametrize("종류, category, 넓힌", [
+    ("젤크림", "skincare", "크림"),
+    ("밤", None, "크림"),
+    ("선로션", "sun", "선크림"),
+    ("클렌징폼", "skincare", "클렌저"),
+    ("크림", "skincare", "크림"),
+    ("쿠션", "base", "쿠션"),
+    ("톤업크림", "base", "톤업크림"),
+])
+def test_묶음에_든_종류는_묶음_이름으로_넓힌다(종류, category, 넓힌):
+    from rules.product_types import broader
+
+    assert broader(종류, category) == 넓힌
