@@ -15,6 +15,8 @@ from typing import Any, Callable
 
 from pydantic.alias_generators import to_camel
 
+from rules.product_types import matches, product_types
+
 # 상위 몇 개를 보는지
 상위_수 = 5
 # 홈 루틴 판정 자료를 상품 정보에 넣어 넘기는 키. 러너가 채운다(eval/run_scenario_eval.py).
@@ -59,9 +61,11 @@ def top5_all(기대: dict[str, Any], 결과: dict, 메타: dict) -> Judgement:
         if "price_max" in 기대 and (카드.get("price") is None or 카드["price"] > 기대["price_max"]):
             어긴.append(f"{pid} 가격 {카드.get('price')}")
         if "product_type" in 기대:
-            종류 = (정보.get("feature_json") or {}).get("product_type")
-            if 종류 != 기대["product_type"]:
-                어긴.append(f"{pid} 제품 종류 {종류}")
+            특징 = 정보.get("feature_json") or {}
+            종류들 = product_types(특징)
+            # 종류를 모르는 상품도 어긴 것으로 본다. 필터는 남기지만 순위가 낮아져야 한다
+            if not matches(기대["product_type"], 종류들, 기대.get("category")):
+                어긴.append(f"{pid} 제품 종류 {특징.get('product_type')}")
     return (not 어긴, ", ".join(어긴))
 
 

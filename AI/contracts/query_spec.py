@@ -25,12 +25,14 @@ class RequestType(str, Enum):
 
 
 class Category(str, Enum):
-    """상품 카테고리. 현재 DB에 들어 있는 값 그대로다."""
+    """상품 카테고리. 카테고리마다 허용하는 제품 종류는 rules/product_types.py 에 있다."""
 
-    BASE = "base"          # 쿠션, 파운데이션, 프라이머, 컨실러
-    SUN = "sun"            # 선크림, 선스틱, 선쿠션, 선스프레이
-    LIP = "lip"            # 틴트, 립스틱, 립글로스, 립밤
-    SKINCARE = "skincare"  # 토너, 에센스, 세럼, 크림, 오일, 로션
+    BASE = "base"          # 베이스 메이크업. 쿠션, 파운데이션 등
+    SUN = "sun"            # 선케어. 선크림, 선스틱 등
+    LIP = "lip"            # 립 메이크업. 틴트, 립스틱 등
+    SKINCARE = "skincare"  # 스킨케어. 토너, 세럼, 크림 등
+    EYE = "eye"            # 아이 메이크업. 아이섀도, 아이라이너 등
+    CHEEK = "cheek"        # 치크. 블러셔, 하이라이터 등
 
 
 class Target(str, Enum):
@@ -60,7 +62,7 @@ class BundleStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     category: Category | None = None
-    product_type: str | None = None  # "토너", "세럼" 처럼 카테고리 안의 종류
+    product_type: str | None = None  # "토너", "세럼" 처럼 카테고리 안의 종류(rules/product_types.py)
     # 사용자가 쓴 표현 그대로. 화면에 그대로 보여준다.
     # 빈 값을 허용하면 무엇을 찾아야 하는지 모르는 단계가 세트에 들어가고,
     # bundle_steps 가 비어 있지 않다는 이유로 필수 필드 검사도 통과한다.

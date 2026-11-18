@@ -1,42 +1,59 @@
-# 카테고리별 feature 스키마 — 노션 "화장품 카테고리별 Feature 정리 목록" 기준
-FEATURE_SCHEMAS = {
-    "base": """{
-  "product_type": "쿠션 | 파운데이션 | 프라이머 | 컨실러",
-  "coverage": "가벼운 | 중간 | 높음",
+"""상품 정보 보강(가격, 리뷰, 성분, 특징) 프롬프트.
+
+특징 스키마는 노션 "화장품 카테고리별 Feature 정리 목록"을 따른다. 목록에 없는 eye, cheek 은
+질의 해석의 특징 키와 같게 정했다(prompts/product_types_text.py). 제품 종류 허용값은
+rules/product_types.py 의 상수로 만든다. 질의 해석도 같은 목록을 쓰므로, 여기서 적은
+종류가 질의의 종류와 같은 이름으로 맞는다.
+"""
+from prompts.product_types_text import PRODUCT_TYPE_RULE, type_choices
+from rules.product_types import CATEGORY_TYPES
+
+# 카테고리마다 product_type 외의 특징 필드
+_다른_특징: dict[str, str] = {
+    "base": '''  "coverage": "가벼운 | 중간 | 높음",
   "finish": "매트 | 세미매트 | 글로우 | 촉촉",
   "skin_type": "건성 | 지성 | 복합 | 민감",
   "skin_concern": ["모공", "잡티", "칙칙함", "트러블"] 또는 null,
   "personal_color": "웜톤 | 쿨톤 | 뉴트럴",
   "lasting_power": "낮음 | 중간 | 높음",
-  "spf": "SPF50+/PA++++ 형식 또는 null"
-}""",
-    "sun": """{
-  "product_type": "선크림 | 선스틱 | 선쿠션 | 선스프레이",
-  "spf": "SPF50+ 형식",
+  "spf": "SPF50+/PA++++ 형식 또는 null"''',
+    "sun": '''  "spf": "SPF50+ 형식",
   "pa": "PA++++ 형식",
   "finish": "매트 | 세미매트 | 촉촉",
   "skin_type": "건성 | 지성 | 복합 | 민감",
   "skin_concern": ["진정", "보습", "미백"] 또는 null,
   "lasting_power": "낮음 | 중간 | 높음",
-  "white_cast": true 또는 false
-}""",
-    "lip": """{
-  "product_type": "틴트 | 립스틱 | 립글로스 | 립밤",
-  "finish": "매트 | 세미매트 | 글로우 | 촉촉",
+  "white_cast": true 또는 false''',
+    "lip": '''  "finish": "매트 | 세미매트 | 글로우 | 촉촉",
   "personal_color": "웜톤 | 쿨톤 | 뉴트럴",
   "lasting_power": "낮음 | 중간 | 높음",
   "moisturizing": true 또는 false,
-  "skin_concern": ["보습", "각질"] 또는 null
-}""",
-    "skincare": """{
-  "product_type": "토너 | 에센스 | 세럼 | 크림 | 오일 | 로션 | 핸드크림 등",
-  "skin_type": "건성 | 지성 | 복합 | 민감",
+  "skin_concern": ["보습", "각질"] 또는 null''',
+    "skincare": '''  "skin_type": "건성 | 지성 | 복합 | 민감",
   "skin_concern": ["보습", "미백", "주름", "진정", "모공"] 또는 null,
   "key_ingredient": ["히알루론산", "나이아신아마이드", "레티놀"] 또는 null,
   "texture": "가벼운 | 중간 | 진한",
-  "fragrance_free": true 또는 false
-}""",
+  "fragrance_free": true 또는 false''',
+    "eye": '''  "finish": "매트 | 쉬머 | 글리터",
+  "lasting_power": "낮음 | 중간 | 높음",
+  "waterproof": true 또는 false''',
+    "cheek": '''  "finish": "매트 | 글로우 | 쉬머",
+  "personal_color": "웜톤 | 쿨톤 | 뉴트럴",
+  "lasting_power": "낮음 | 중간 | 높음"''',
 }
+
+
+def _스키마(카테고리: str) -> str:
+    return (
+        "{\n"
+        f'  "product_type": "{type_choices(카테고리)}",\n'
+        f"{_다른_특징[카테고리]}\n"
+        "}"
+    )
+
+
+# 카테고리별 특징 스키마. 크롤러도 같은 스키마를 쓴다(services/product_crawler.py)
+FEATURE_SCHEMAS: dict[str, str] = {카테고리: _스키마(카테고리) for 카테고리 in CATEGORY_TYPES}
 
 
 def build_prompt(product_name: str, brand: str, category_main: str,
@@ -99,6 +116,7 @@ def build_prompt(product_name: str, brand: str, category_main: str,
 # 4. Feature 생성
 카테고리({category_main})에 맞는 아래 스키마를 사용하라.
 허용값 외의 값은 절대 사용하지 마라. 해당 없는 필드는 null.
+{PRODUCT_TYPE_RULE}
 
 {feature_schema}
 

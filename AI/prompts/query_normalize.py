@@ -6,7 +6,20 @@
 쿼리에 없는 값을 지어내지 말라는 지시가 여기서 가장 중요하다. 비어 있으면
 되물을 수 있지만, 잘못 채우면 사용자가 요청하지 않은 조건으로 걸러진 결과가
 그대로 나간다.
+
+카테고리와 제품 종류 목록은 rules/product_types.py 의 상수로 만든다
+(prompts/product_types_text.py). 상품 추출도 같은 목록을 쓰므로, 질의의 종류와 상품의
+종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가 한 번 더 표준 이름으로
+바꾼다(graph/nodes/normalize.py).
 """
+from prompts.product_types_text import (
+    group_text,
+    query_category_lines,
+    query_feature_lines,
+)
+from rules.product_types import CATEGORY_TYPES
+
+_카테고리_값 = " | ".join([*CATEGORY_TYPES, "null"])
 
 QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해 JSON으로만 반환하라.
 설명, 마크다운, 코드블록 출력 금지.
@@ -14,7 +27,7 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 [반환할 JSON]
 {
   "request_type": "SEARCH | EVALUATE | BUNDLE | REFINE",
-  "category": "base | sun | lip | skincare | null",
+  "category": "__카테고리_값__",
   "base_product_ref": "기준이 되는 특정 상품 표현 또는 null",
   "budget": {"max": 제품 하나의 상한 또는 null, "total": 세트 전체 상한 또는 null},
   "bundle_steps": [{"category": ..., "product_type": "토너", "label": "토너"}],
@@ -34,17 +47,17 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 - REFINE   방금 결과에 조건을 더한다  "더 저렴한 걸로", "매트한 걸로 바꿔줘"
 
 [category]
-- base: 쿠션, 파운데이션, 프라이머, 컨실러
-- sun: 선크림, 선스틱, 선쿠션, 선스프레이, 자외선차단
-- lip: 틴트, 립스틱, 립글로스, 립밤
-- skincare: 토너, 에센스, 세럼, 크림, 오일, 로션
-- 판단 불가 시 null. 위 네 개 외의 값을 만들지 마라.
+__카테고리_절__
+- 대표 종류만 적었다. 다른 종류는 아래 features 표에서 어느 카테고리의 product_type 인지 보고 정한다
+- 종류 이름 없이 피부 타입이나 피부 고민만 말하는 세트, 루틴은 skincare
+- 판단 불가 시 null. 위 카테고리 외의 값을 만들지 마라.
 
 [features — 카테고리별 허용 키와 값]
-base: product_type(쿠션|파운데이션|프라이머|컨실러), coverage(가벼운|중간|높음), finish(매트|세미매트|글로우|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[모공,잡티,칙칙함,트러블]), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)
-sun: product_type(선크림|선스틱|선쿠션|선스프레이), finish(매트|세미매트|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[진정,보습,미백]), lasting_power(낮음|중간|높음), white_cast(true|false)
-lip: product_type(틴트|립스틱|립글로스|립밤), finish(매트|세미매트|글로우|촉촉), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음), moisturizing(true|false), skin_concern(배열:[보습,각질])
-skincare: product_type(토너|에센스|세럼|크림|오일|로션), texture(가벼운|중간|진한), skin_type(건성|지성|복합|민감), skin_concern(배열:[보습,미백,주름,진정,모공]), key_ingredient(배열), fragrance_free(true|false)
+__특징_절__
+
+[product_type]
+- 위 표의 값 중 하나만 쓴다. 묶음 이름으로 찾으면 묶음 이름 그대로 쓴다: __묶음_설명__
+- 표에 없는 종류("핸드크림" 등)는 product_type 에 넣지 말고 conditions 로 보낸다
 
 [features 와 conditions 의 구분]
 - features: 위 표의 키와 값으로 옮길 수 있는 조건. 필터로 쓴다
@@ -83,3 +96,12 @@ skincare: product_type(토너|에센스|세럼|크림|오일|로션), texture(�
 
 입력: "추천해줘"
 출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.2}"""
+
+# 본문에 JSON 중괄호가 많아 format 대신 자리 표시를 바꿔 끼운다
+QUERY_NORMALIZE_SYSTEM = (
+    QUERY_NORMALIZE_SYSTEM
+    .replace("__카테고리_값__", _카테고리_값)
+    .replace("__카테고리_절__", query_category_lines())
+    .replace("__특징_절__", query_feature_lines())
+    .replace("__묶음_설명__", group_text())
+)

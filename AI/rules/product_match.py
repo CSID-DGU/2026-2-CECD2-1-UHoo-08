@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from rules.product_types import matches, product_types
+
 # 순서가 있는 특징 값. 거리가 멀수록 덜 맞는다.
 _순서형: dict[str, dict[str, int]] = {
     "coverage":      {"가벼운": 1, "중간": 2, "높음": 3},
@@ -17,6 +19,10 @@ _순서형: dict[str, dict[str, int]] = {
 }
 # 순서형 값이 한 칸 멀어질 때마다 깎는 비율
 _순서_한_칸_감점 = 0.4
+
+# 질의에 제품 종류가 있는데 상품의 종류를 모를 때 주는 일치 정도. 검색 필터는 종류를 모르는
+# 상품을 남기므로, 여기서 종류가 맞는 상품보다 순위를 낮춘다. 맞을 수도 틀릴 수도 있어 절반이다
+종류_모름_일치 = 0.5
 
 # 할인율 점수. 할인이 없으면 이 점수, 상한 할인율 이상이면 100
 할인_없음_점수 = 50
@@ -49,10 +55,22 @@ _피부_고민 = {
 }
 
 
+def _종류_일치(원하는: Any, product_feat: dict[str, Any]) -> float:
+    """제품 종류 일치 정도. 동의어, 묶음, 종류가 여럿인 상품은 rules/product_types.py 를 따른다."""
+    맞음 = matches(원하는, product_types(product_feat))
+    if 맞음 is None:
+        return 종류_모름_일치
+    return 1.0 if 맞음 else 0.0
+
+
 def has_comparable_features(query_feat: dict[str, Any], product_feat: dict[str, Any]) -> bool:
-    """조건 특징 중 상품에도 값이 있는 항목이 하나라도 있는지."""
+    """조건 특징 중 상품과 견줄 수 있는 항목이 하나라도 있는지.
+
+    제품 종류는 상품이 모르더라도 견줄 수 있는 것으로 본다. 모르는 상품의 순위를 낮추려면
+    점수가 있어야 한다.
+    """
     return any(
-        qval is not None and product_feat.get(key) is not None
+        qval is not None and (key == "product_type" or product_feat.get(key) is not None)
         for key, qval in query_feat.items()
     )
 
@@ -63,6 +81,10 @@ def feature_match_ratio(query_feat: dict[str, Any], product_feat: dict[str, Any]
 
     for key, qval in query_feat.items():
         if qval is None:
+            continue
+        if key == "product_type":
+            total += 1
+            matched += _종류_일치(qval, product_feat)
             continue
         pval = product_feat.get(key)
         if pval is None:

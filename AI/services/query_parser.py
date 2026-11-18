@@ -15,9 +15,10 @@ from typing import Any, Dict, Optional, TypedDict
 
 from prompts.intent_classification import INTENT_CLASSIFICATION_SYSTEM
 from prompts.query_extraction import QUERY_EXTRACTION_SYSTEM
+from rules.product_types import CATEGORY_TYPES
 from services.llm import LLMRole, get_llm
 
-_VALID_CATEGORIES = {"base", "sun", "lip", "skincare"}
+_VALID_CATEGORIES = set(CATEGORY_TYPES)
 _VALID_INTENTS = {"PRODUCT_NAME", "RECOMMENDATION"}
 
 

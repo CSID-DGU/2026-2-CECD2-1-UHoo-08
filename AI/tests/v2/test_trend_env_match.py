@@ -122,3 +122,11 @@ def test_참거짓_조건은_값이_같아야_한다():
 
 def test_카테고리와_특징이_없는_기능은_모든_상품이_채운다():
     assert meets({"key": "X", "category": None, "features": {}}, {"category": "lip"})
+
+
+def test_환경_기능의_제품_종류도_동의어와_묶음을_따른다():
+    보습 = {"key": "MOISTURE", "category": "skincare", "features": {"product_type": "크림"}}
+    assert meets(보습, {"category": "skincare", "feature_json": {"product_type": "젤크림"}})
+    assert meets(보습, {"category": "skincare", "feature_json": {"product_type": ["밤", "오일"]}})
+    assert meets(_자외선, {"category": "sun", "feature_json": {"product_type": "선세럼"}})
+    assert not meets(보습, {"category": "skincare", "feature_json": {"product_type": "토너"}})

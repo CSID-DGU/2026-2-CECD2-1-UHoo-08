@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ExtractedProduct(BaseModel):
     product_name: str | None = None
     brand: str | None = None
-    category: dict | None = None       # {"main": base|sun|lip|skincare, "sub": ...}
+    category: dict | None = None       # {"main": base|sun|lip|skincare|eye|cheek, "sub": ...}
     attributes: dict | None = None     # {"shade", "type", "volume", "unit"}
     package_claims: list[str] = []
     detected_objects: list[str] = []

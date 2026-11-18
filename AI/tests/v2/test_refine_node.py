@@ -192,3 +192,31 @@ async def test_이전_job이_없으면_예외다(대역):
     대역(None)
     with pytest.raises(ValueError, match="찾지 못했다"):
         await 노드.refine(_상태())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("상품_종류, 찾을_종류", [
+    ("젤크림", "크림"),
+    (["밤", "오일"], "크림"),
+    ("스킨", "토너"),
+])
+async def test_평가한_상품의_종류는_표준_이름과_묶음으로_넓혀_찾는다(대역, 상품_종류, 찾을_종류):
+    """종류가 잘게 나뉘어 있어 그대로 쓰면 결과가 지나치게 좁아진다."""
+    이전 = _이전(scenario="S1_EVALUATE")
+    이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": "b1", "target": "SELF"}
+    이전["state_snapshot"] = {"base_product_id": "b1"}
+    대역(이전, 선택지=["CHEAPER"],
+         메타={"b1": {"category": "skincare", "feature_json": {"product_type": 상품_종류}}})
+    스펙 = (await 노드.refine(_상태()))["query_spec"]
+    assert 스펙["features"] == {"product_type": 찾을_종류}
+
+
+@pytest.mark.asyncio
+async def test_평가한_상품의_종류를_모르면_종류_조건을_넣지_않는다(대역):
+    이전 = _이전(scenario="S1_EVALUATE")
+    이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": "b1", "target": "SELF"}
+    이전["state_snapshot"] = {"base_product_id": "b1"}
+    대역(이전, 선택지=["CHEAPER"],
+         메타={"b1": {"category": "skincare", "feature_json": {"product_type": "핸드크림"}}})
+    스펙 = (await 노드.refine(_상태()))["query_spec"]
+    assert 스펙["features"] == {}

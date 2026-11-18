@@ -82,6 +82,35 @@ class TestFeatureTextBuilder:
         })
         assert "무향 아님" in text
 
+    def test_eye(self):
+        text = build_product_text("eye", {
+            "product_type": "아이라이너",
+            "finish": "매트",
+            "lasting_power": "높음",
+            "waterproof": True,
+        })
+        assert text == "아이라이너 제품. 매트 마무리감. 지속력 높음. 워터프루프."
+
+    def test_cheek(self):
+        text = build_product_text("cheek", {
+            "product_type": "블러셔",
+            "finish": "글로우",
+            "personal_color": "쿨톤",
+            "lasting_power": None,
+        })
+        assert text == "블러셔 제품. 글로우 마무리감. 쿨톤에 어울림."
+
+    def test_product_type_list_writes_both(self):
+        text = build_product_text("lip", {"product_type": ["립세럼", "틴트"]})
+        assert text.startswith("립세럼, 틴트 제품")
+
+    def test_product_type_synonym_written_as_standard_name(self):
+        assert build_product_text("skincare", {"product_type": "스킨"}).startswith("토너 제품")
+        assert build_product_text("cheek", {"product_type": ["블러쉬", "블러셔"]}).startswith("블러셔 제품")
+
+    def test_unlisted_product_type_kept_as_is(self):
+        assert build_product_text("skincare", {"product_type": "핸드크림"}).startswith("핸드크림 제품")
+
     def test_unknown_category_raises(self):
         with pytest.raises(ValueError):
             build_product_text("makeup_remover", {})

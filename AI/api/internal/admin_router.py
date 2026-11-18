@@ -13,11 +13,11 @@ from services.product_crawler import crawl_and_seed
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
 
-CATEGORIES = Literal["base", "sun", "lip", "skincare"]
+CATEGORIES = Literal["base", "sun", "lip", "skincare", "eye", "cheek"]
 
 
 class SeedRequest(BaseModel):
-    category: CATEGORIES = Field(..., description="base | sun | lip | skincare")
+    category: CATEGORIES = Field(..., description="base | sun | lip | skincare | eye | cheek")
     limit: int = Field(10, ge=1, le=30, description="조회할 제품 수 (최대 30)")
 
 

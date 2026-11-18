@@ -224,3 +224,17 @@ async def test_전체_인기_기준이_아니거나_평점이_없으면_인기�
     결과 = await popularity(상품들, _맥락(spec={"target": Target.POPULAR}))
     assert 결과["p1"] is not None
     assert 결과["p2"] is None
+
+
+@pytest.mark.asyncio
+async def test_제품_종류를_모르는_상품은_맞는_상품보다_조건_일치가_낮다():
+    """검색 필터가 남긴 종류 모르는 상품의 순위를 낮춘다. 맞지 않는 상품보다는 높다."""
+    맥락 = _맥락(spec={"category": "skincare", "features": {"product_type": "크림"}})
+    상품들 = [
+        _상품("맞음", feature_json={"product_type": "젤크림"}),
+        _상품("모름", feature_json={}),
+        _상품("여럿", feature_json={"product_type": ["미스트", "크림"]}),
+        _상품("다름", feature_json={"product_type": "토너"}),
+    ]
+    결과 = await query_fit(상품들, 맥락)
+    assert 결과 == {"맞음": 100, "모름": 50, "여럿": 100, "다름": 0}
