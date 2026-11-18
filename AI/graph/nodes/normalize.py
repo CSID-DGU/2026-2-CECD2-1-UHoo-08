@@ -17,6 +17,10 @@ LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한�
 남지 않는다. 문장 조건으로 옮기면 검색 문장에는 그대로 들어간다. 세트 단계의 종류도
 같이 바꾸고, 모르면 비운다.
 
+제품 종류는 문자열 하나다. ["토너"] 처럼 하나만 든 배열은 풀어서 같은 규칙을 적용한다.
+그 밖의 모양(여럿 든 배열, 숫자 등)은 형식을 어긴 것으로 보고 다시 묻는다. 그냥 넘기면
+종류가 필터와 검색 문장에서 모두 사라진 채 성공으로 나간다.
+
 services.llm 은 함수 안에서 가져온다. 최상단에서 가져오면 config 를 타고
 API 키를 요구해, 키 없는 곳에서는 이 노드를 불러오지도 못한다.
 """
@@ -60,12 +64,25 @@ def _카테고리(값) -> str | None:
     return 값.value if 값 is not None else None
 
 
+class _종류_형식_오류(ValueError):
+    """제품 종류가 문자열 하나로 오지 않았다."""
+
+
+def _한_종류(값):
+    """제품 종류 값을 문자열 하나(또는 None)로 맞춘다. 맞출 수 없으면 형식 오류다."""
+    if 값 is None or isinstance(값, str):
+        return 값
+    if isinstance(값, list) and len(값) == 1 and isinstance(값[0], str):
+        return 값[0]
+    raise _종류_형식_오류(f"제품 종류는 문자열 하나여야 한다: {값!r}")
+
+
 def _종류_다듬기(spec: QuerySpec) -> QuerySpec:
     """제품 종류를 표준 이름으로 바꾼다. 모르는 종류는 문장 조건으로 옮긴다."""
     특징 = dict(spec.features)
     조건 = list(spec.conditions)
     if "product_type" in 특징:
-        값 = 특징.pop("product_type")
+        값 = _한_종류(특징.pop("product_type"))
         표준 = canonical(값, _카테고리(spec.category))
         if 표준:
             특징["product_type"] = 표준
@@ -108,7 +125,12 @@ async def normalize(state: GraphState) -> dict:
                 시도, _최대_시도, raw, e.errors()[:3],
             )
             continue
-        return {"query_spec": _종류_다듬기(spec).model_dump(mode="json")}
+        try:
+            다듬은 = _종류_다듬기(spec)
+        except _종류_형식_오류 as e:
+            logger.warning("normalize: %s (%d/%d) %r", e, 시도, _최대_시도, raw)
+            continue
+        return {"query_spec": 다듬은.model_dump(mode="json")}
 
     logger.warning("normalize: 해석 실패, 되묻기로 넘긴다 %r", raw)
     return {"query_spec": _빈_스펙(raw).model_dump(mode="json")}

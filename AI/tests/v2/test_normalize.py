@@ -178,6 +178,35 @@ async def test_카테고리에_맞지_않는_종류도_문장_조건으로_옮�
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("값, 특징, 조건", [
+    (["스킨"], {"product_type": "토너"}, []),
+    (["핸드크림"], {}, ["핸드크림"]),
+])
+async def test_하나만_든_배열은_풀어서_같은_규칙을_적용한다(LLM세우기, 값, 특징, 조건):
+    """건너뛰면 종류가 필터와 검색 문장에서 모두 사라진 채 성공으로 나간다."""
+    가짜 = LLM세우기([_종류_응답("skincare", 값)])
+    spec = (await 모듈.normalize({"raw_query": "질의"}))["query_spec"]
+    assert 가짜.호출 == 1
+    assert spec["features"] == 특징 and spec["conditions"] == 조건
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("값", [["토너", "크림"], [], 3, {"이름": "토너"}])
+async def test_문자열_하나로_맞출_수_없는_종류는_다시_묻는다(LLM세우기, 값):
+    가짜 = LLM세우기([_종류_응답("skincare", 값), _종류_응답("skincare", "스킨")])
+    spec = (await 모듈.normalize({"raw_query": "질의"}))["query_spec"]
+    assert 가짜.호출 == 2
+    assert spec["features"]["product_type"] == "토너"
+
+
+@pytest.mark.asyncio
+async def test_종류_형식을_두_번_어기면_되묻기로_넘긴다(LLM세우기):
+    LLM세우기([_종류_응답("skincare", ["토너", "크림"])] * 2)
+    spec = (await 모듈.normalize({"raw_query": "질의"}))["query_spec"]
+    assert spec["confidence"] == 0.0
+
+
+@pytest.mark.asyncio
 async def test_종류가_비어_있으면_특징에서_뺀다(LLM세우기):
     LLM세우기([_종류_응답("base", None)])
     spec = (await 모듈.normalize({"raw_query": "베이스"}))["query_spec"]
