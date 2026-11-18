@@ -6,7 +6,52 @@
 쿼리에 없는 값을 지어내지 말라는 지시가 여기서 가장 중요하다. 비어 있으면
 되물을 수 있지만, 잘못 채우면 사용자가 요청하지 않은 조건으로 걸러진 결과가
 그대로 나간다.
+
+카테고리와 제품 종류 목록은 rules/product_types.py 에서 만든다. 상품 추출도 같은 목록을
+쓰므로, 질의의 종류와 상품의 종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가
+한 번 더 표준 이름으로 바꾼다(graph/nodes/normalize.py).
 """
+from rules.product_types import CATEGORY_TYPES, GROUPS
+
+# 카테고리마다 product_type 외의 특징 키와 값
+_다른_특징: dict[str, str] = {
+    "base": "coverage(가벼운|중간|높음), finish(매트|세미매트|글로우|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[모공,잡티,칙칙함,트러블]), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)",
+    "sun": "finish(매트|세미매트|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[진정,보습,미백]), lasting_power(낮음|중간|높음), white_cast(true|false)",
+    "lip": "finish(매트|세미매트|글로우|촉촉), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음), moisturizing(true|false), skin_concern(배열:[보습,각질])",
+    "skincare": "texture(가벼운|중간|진한), skin_type(건성|지성|복합|민감), skin_concern(배열:[보습,미백,주름,진정,모공]), key_ingredient(배열), fragrance_free(true|false)",
+    "eye": "finish(매트|쉬머|글리터), lasting_power(낮음|중간|높음), waterproof(true|false)",
+    "cheek": "finish(매트|글로우|쉬머), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)",
+}
+
+# 종류 이름 말고도 카테고리를 알려 주는 말
+_카테고리_힌트: dict[str, tuple[str, ...]] = {
+    "sun": ("자외선차단",),
+}
+
+
+def _종류_값(카테고리: str) -> list[str]:
+    """그 카테고리의 product_type 에 쓸 수 있는 값. 묶음 이름(크림, 클렌저)도 넣는다."""
+    값들 = list(CATEGORY_TYPES[카테고리])
+    값들 += [이름 for 이름 in GROUPS.get(카테고리, {}) if 이름 not in 값들]
+    return 값들
+
+
+_카테고리_값 = " | ".join([*CATEGORY_TYPES, "null"])
+
+_카테고리_절 = "\n".join(
+    f"- {카테고리}: {', '.join([*종류들, *_카테고리_힌트.get(카테고리, ())])}"
+    for 카테고리, 종류들 in CATEGORY_TYPES.items()
+)
+
+_특징_절 = "\n".join(
+    f"{카테고리}: product_type({'|'.join(_종류_값(카테고리))}), {_다른_특징[카테고리]}"
+    for 카테고리 in CATEGORY_TYPES
+)
+
+_묶음_설명 = ", ".join(
+    f"{이름}({', '.join(안)})"
+    for 묶음들 in GROUPS.values() for 이름, 안 in 묶음들.items()
+)
 
 QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해 JSON으로만 반환하라.
 설명, 마크다운, 코드블록 출력 금지.
@@ -14,7 +59,7 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 [반환할 JSON]
 {
   "request_type": "SEARCH | EVALUATE | BUNDLE | REFINE",
-  "category": "base | sun | lip | skincare | null",
+  "category": "__카테고리_값__",
   "base_product_ref": "기준이 되는 특정 상품 표현 또는 null",
   "budget": {"max": 제품 하나의 상한 또는 null, "total": 세트 전체 상한 또는 null},
   "bundle_steps": [{"category": ..., "product_type": "토너", "label": "토너"}],
@@ -34,17 +79,15 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 - REFINE   방금 결과에 조건을 더한다  "더 저렴한 걸로", "매트한 걸로 바꿔줘"
 
 [category]
-- base: 쿠션, 파운데이션, 프라이머, 컨실러
-- sun: 선크림, 선스틱, 선쿠션, 선스프레이, 자외선차단
-- lip: 틴트, 립스틱, 립글로스, 립밤
-- skincare: 토너, 에센스, 세럼, 크림, 오일, 로션
-- 판단 불가 시 null. 위 네 개 외의 값을 만들지 마라.
+__카테고리_절__
+- 판단 불가 시 null. 위 카테고리 외의 값을 만들지 마라.
 
 [features — 카테고리별 허용 키와 값]
-base: product_type(쿠션|파운데이션|프라이머|컨실러), coverage(가벼운|중간|높음), finish(매트|세미매트|글로우|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[모공,잡티,칙칙함,트러블]), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음)
-sun: product_type(선크림|선스틱|선쿠션|선스프레이), finish(매트|세미매트|촉촉), skin_type(건성|지성|복합|민감), skin_concern(배열:[진정,보습,미백]), lasting_power(낮음|중간|높음), white_cast(true|false)
-lip: product_type(틴트|립스틱|립글로스|립밤), finish(매트|세미매트|글로우|촉촉), personal_color(웜톤|쿨톤|뉴트럴), lasting_power(낮음|중간|높음), moisturizing(true|false), skin_concern(배열:[보습,각질])
-skincare: product_type(토너|에센스|세럼|크림|오일|로션), texture(가벼운|중간|진한), skin_type(건성|지성|복합|민감), skin_concern(배열:[보습,미백,주름,진정,모공]), key_ingredient(배열), fragrance_free(true|false)
+__특징_절__
+
+[product_type]
+- 위 표의 값 중 하나만 쓴다. 묶음 이름으로 찾으면 묶음 이름 그대로 쓴다: __묶음_설명__
+- 표에 없는 종류("핸드크림" 등)는 product_type 에 넣지 말고 conditions 로 보낸다
 
 [features 와 conditions 의 구분]
 - features: 위 표의 키와 값으로 옮길 수 있는 조건. 필터로 쓴다
@@ -83,3 +126,12 @@ skincare: product_type(토너|에센스|세럼|크림|오일|로션), texture(�
 
 입력: "추천해줘"
 출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.2}"""
+
+# 본문에 JSON 중괄호가 많아 format 대신 자리 표시를 바꿔 끼운다
+QUERY_NORMALIZE_SYSTEM = (
+    QUERY_NORMALIZE_SYSTEM
+    .replace("__카테고리_값__", _카테고리_값)
+    .replace("__카테고리_절__", _카테고리_절)
+    .replace("__특징_절__", _특징_절)
+    .replace("__묶음_설명__", _묶음_설명)
+)

@@ -138,3 +138,25 @@ def test_상품_종류를_모르면_None():
 
 def test_질의_종류가_목록에_없으면_글자가_같은_것만_맞는다():
     assert matches("핸드 크림", ["토너"]) is False
+
+
+def test_카테고리_계약과_종류_목록의_카테고리가_같다():
+    from contracts.query_spec import Category
+
+    assert {c.value for c in Category} == set(CATEGORY_TYPES)
+
+
+def test_질의_해석_프롬프트에_모든_카테고리와_종류가_들어간다():
+    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+
+    assert "__" not in QUERY_NORMALIZE_SYSTEM
+    for 카테고리, 종류들 in CATEGORY_TYPES.items():
+        줄 = next(
+            줄 for 줄 in QUERY_NORMALIZE_SYSTEM.splitlines()
+            if 줄.startswith(f"{카테고리}: product_type(")
+        )
+        for 종류 in 종류들:
+            assert f"|{종류}|" in 줄.replace("(", "|").replace(")", "|"), (카테고리, 종류)
+    for 묶음들 in GROUPS.values():
+        for 이름 in 묶음들:
+            assert 이름 in QUERY_NORMALIZE_SYSTEM

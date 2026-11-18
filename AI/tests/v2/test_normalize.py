@@ -139,3 +139,63 @@ async def test_답이_없으면_질의만_넘긴다(LLM세우기):
 
     await 모듈.normalize({"raw_query": "여름 쿠션"})
     assert 받은["user"] == "여름 쿠션"
+
+
+def _종류_응답(category, product_type, **값):
+    return {"request_type": "SEARCH", "category": category,
+            "features": {"product_type": product_type}, "confidence": 0.9, **값}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("category, 값, 표준", [
+    ("skincare", "스킨", "토너"),
+    ("sun", "선 세럼", "선에센스"),
+    ("skincare", "크림", "크림"),
+    ("eye", "아이라이너", "아이라이너"),
+    (None, "블러쉬", "블러셔"),
+])
+async def test_제품_종류를_표준_이름으로_바꾼다(LLM세우기, category, 값, 표준):
+    LLM세우기([_종류_응답(category, 값)])
+    spec = (await 모듈.normalize({"raw_query": "질의"}))["query_spec"]
+    assert spec["features"]["product_type"] == 표준
+
+
+@pytest.mark.asyncio
+async def test_목록에_없는_종류는_문장_조건으로_옮긴다(LLM세우기):
+    """특징에 두면 필터가 맞는 상품을 하나도 남기지 않는다."""
+    LLM세우기([_종류_응답("skincare", "핸드크림", conditions=["보습"])])
+    spec = (await 모듈.normalize({"raw_query": "보습 핸드크림"}))["query_spec"]
+    assert "product_type" not in spec["features"]
+    assert spec["conditions"] == ["보습", "핸드크림"]
+
+
+@pytest.mark.asyncio
+async def test_카테고리에_맞지_않는_종류도_문장_조건으로_옮긴다(LLM세우기):
+    LLM세우기([_종류_응답("skincare", "쿠션")])
+    spec = (await 모듈.normalize({"raw_query": "쿠션"}))["query_spec"]
+    assert "product_type" not in spec["features"]
+    assert spec["conditions"] == ["쿠션"]
+
+
+@pytest.mark.asyncio
+async def test_종류가_비어_있으면_특징에서_뺀다(LLM세우기):
+    LLM세우기([_종류_응답("base", None)])
+    spec = (await 모듈.normalize({"raw_query": "베이스"}))["query_spec"]
+    assert spec["features"] == {}
+    assert spec["conditions"] == []
+
+
+@pytest.mark.asyncio
+async def test_세트_단계의_종류도_바꾸고_모르면_비운다(LLM세우기):
+    LLM세우기([{
+        "request_type": "BUNDLE", "category": "skincare",
+        "budget": {"max": None, "total": 100000},
+        "bundle_steps": [
+            {"category": "skincare", "product_type": "스킨", "label": "스킨"},
+            {"category": "skincare", "product_type": "핸드크림", "label": "핸드크림"},
+        ],
+        "confidence": 0.9,
+    }])
+    spec = (await 모듈.normalize({"raw_query": "10만원으로 스킨, 핸드크림"}))["query_spec"]
+    assert [단계["product_type"] for 단계 in spec["bundle_steps"]] == ["토너", None]
+    assert [단계["label"] for 단계 in spec["bundle_steps"]] == ["스킨", "핸드크림"]
