@@ -44,6 +44,8 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 [request_type]
 - SEARCH   조건으로 찾아 달라  "여름에 안 무너지는 쿠션"
 - EVALUATE 특정 상품이 어떤지 묻는다  "라네즈 네오쿠션 21호 어때?"
+  특정 상품을 대신할 것, 그 상품과 비슷한 것을 찾는 요청도 EVALUATE 다. 그 상품을 base_product_ref 에 적는다
+  "에스트라 아토베리어 크림 대신 쓸 만한 거", "헤라 블랙쿠션이랑 비슷한 제품"
 - BUNDLE   예산 안에서 여러 단계를 묶어 달라  "10만원으로 스킨케어 세트"
 - REFINE   방금 결과에 조건을 더한다  "더 저렴한 걸로", "매트한 걸로 바꿔줘"
 
@@ -94,6 +96,9 @@ __특징_절__
 
 입력: "라네즈 네오쿠션 21호 어때?"
 출력: {"request_type":"EVALUATE","category":"base","base_product_ref":"라네즈 네오쿠션 21호","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.95}
+
+입력: "에스트라 아토베리어 크림 대신 쓸 만한 거 있어?"
+출력: {"request_type":"EVALUATE","category":"skincare","base_product_ref":"에스트라 아토베리어 크림","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"크림"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.9}
 
 입력: "추천해줘"
 출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.2}"""
