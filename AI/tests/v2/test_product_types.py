@@ -14,6 +14,7 @@ from rules.product_types import (
     allowed_types,
     canonical,
     matches,
+    mentioned,
     product_types,
 )
 
@@ -184,3 +185,15 @@ def test_묶음에_든_종류는_묶음_이름으로_넓힌다(종류, category,
     from rules.product_types import broader
 
     assert broader(종류, category) == 넓힌
+
+
+@pytest.mark.parametrize("종류, 문장, 있다", [
+    ("크림", "더 촉촉한 걸로", False),
+    ("쿠션", "쿠 션으로 바꿔줘", True),
+    ("토너", "스킨으로", True),
+    ("젤크림", "크림으로", True),
+    ("없는종류", "없는종류로", False),
+    ("크림", None, False),
+])
+def test_문장에_종류_이름이_있는지_본다(종류, 문장, 있다):
+    assert mentioned(종류, 문장) is 있다

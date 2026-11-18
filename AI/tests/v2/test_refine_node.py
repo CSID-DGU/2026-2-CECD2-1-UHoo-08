@@ -98,6 +98,30 @@ async def test_직접_쓴_문장만_다시_해석해_합친다(대역):
 
 
 @pytest.mark.asyncio
+async def test_직접_쓴_문장에_없는_종류와_카테고리는_버린다(대역):
+    """버리지 않으면 "더 촉촉한 걸로" 에 지어낸 크림이 이전의 쿠션을 덮어쓴다."""
+    대역(_이전(), 해석={"category": "skincare", "features": {"product_type": "크림"},
+                        "conditions": ["촉촉한"]})
+    스펙 = (await 노드.refine(_상태("더 촉촉한 걸로")))["query_spec"]
+    assert 스펙["category"] == "base"
+    assert 스펙["features"] == {"product_type": "쿠션"}
+    assert 스펙["conditions"] == ["여름", "촉촉한"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("문장, 종류, 카테고리", [
+    ("선크림으로 바꿔줘", "선크림", "sun"),
+    ("스킨으로 찾아줘", "토너", "skincare"),     # 동의어
+    ("크림 종류로", "젤크림", "skincare"),       # 그 종류를 담은 묶음 이름
+])
+async def test_직접_쓴_문장에_있는_종류는_받는다(대역, 문장, 종류, 카테고리):
+    대역(_이전(), 해석={"category": 카테고리, "features": {"product_type": 종류}})
+    스펙 = (await 노드.refine(_상태(문장)))["query_spec"]
+    assert 스펙["category"] == 카테고리
+    assert 스펙["features"]["product_type"] == 종류
+
+
+@pytest.mark.asyncio
 async def test_제외_성분만_더하면_재정렬이다(대역):
     대역(_이전(), 해석={"exclude_ingredients": ["향료"]})
     나옴 = await 노드.refine(_상태("향료 빼고"))

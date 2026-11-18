@@ -187,6 +187,20 @@ def broader(종류: str, category: str | None = None) -> str:
     return 종류
 
 
+def mentioned(종류: Any, 문장: str | None) -> bool:
+    """문장에 그 종류의 이름이 있는지. 동의어와 그 종류를 담은 묶음 이름도 본다.
+
+    예: "토너" 는 "스킨으로 바꿔줘" 에, "젤크림" 은 "크림으로" 에 있다. 띄어쓰기는 무시한다.
+    질의 해석이 문장에 없는 종류를 지어냈는지 볼 때 쓴다.
+    """
+    표준 = canonical(종류)
+    if 표준 is None or not 문장:
+        return False
+    이름들 = {표준, broader(표준)}
+    글 = _열쇠(문장)
+    return any(열쇠 in 글 for 열쇠, 이름 in _표준.items() if 이름 in 이름들)
+
+
 def _넓힌_종류(원하는: str, category: str | None) -> set[str]:
     if category is not None:
         묶음 = GROUPS.get(category, {}).get(원하는, ())

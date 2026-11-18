@@ -32,7 +32,7 @@ from typing import Any
 from contracts.query_spec import QuerySpec, RequestType
 from graph.state import GraphState
 from rules import refine_presets
-from rules.product_types import broader, product_types
+from rules.product_types import broader, mentioned, product_types
 from services import product_meta, product_resolver
 
 logger = logging.getLogger(__name__)
@@ -60,13 +60,24 @@ async def _읽기(job_id: str | None, columns: str) -> dict[str, Any] | None:
 
 
 async def _직접_쓴_스펙(state: GraphState, 문장: str) -> QuerySpec | None:
-    """직접 쓴 문장만 다시 해석한다. 해석하지 못하면 문장 그대로 조건에 둔다."""
+    """직접 쓴 문장만 다시 해석한다. 해석하지 못하면 문장 그대로 조건에 둔다.
+
+    "더 촉촉한 걸로" 처럼 종류를 말하지 않은 문장에도 질의 해석이 종류를 채우는 일이 있다.
+    그대로 합치면 이전 검색의 종류를 덮어써 다른 종류의 상품이 나온다. 문장에 그 종류의
+    이름이 없으면 종류를 버리고, 함께 바꾼 카테고리도 버린다.
+    """
     if not 문장:
         return None
     from graph.nodes.normalize import normalize
 
     나옴 = await normalize({**state, "raw_query": 문장, "clarify_answer": None})
-    return QuerySpec.model_validate(나옴["query_spec"])
+    스펙 = QuerySpec.model_validate(나옴["query_spec"])
+    종류 = 스펙.features.get("product_type")
+    if 종류 is None or mentioned(종류, 문장):
+        return 스펙
+    logger.info("refine: 문장에 없는 종류를 버린다 %r (%r)", 종류, 문장)
+    특징 = {키: 값 for 키, 값 in 스펙.features.items() if 키 != "product_type"}
+    return 스펙.model_copy(update={"features": 특징, "category": None})
 
 
 def _합치기(바탕: QuerySpec, 새: QuerySpec | None) -> QuerySpec:
