@@ -60,12 +60,23 @@ export function SettingsPage() {
   // 가격 알림과 주간 리포트는 가격 추적 설정(BE)에 저장한다. 불러오기 전에는 막아 둔다.
   const [alerts, setAlerts] = useState<AlertSettings | null>(null);
   const [alertError, setAlertError] = useState("");
+  // 저장 중에는 토글을 막는다. 두 요청이 겹치면 실패 복원이 다른 요청의 결과를 덮는다.
+  const [savingAlert, setSavingAlert] = useState(false);
 
   useEffect(() => {
     let active = true;
     getTrackings()
       .then(({ data }) => {
-        if (active && data?.alertSettings) setAlerts(data.alertSettings);
+        if (!active) return;
+        const settings = data?.alertSettings;
+        if (
+          typeof settings?.targetPriceAlert !== "boolean" ||
+          typeof settings?.weeklyReport !== "boolean"
+        ) {
+          setAlertError("알림 설정을 불러오지 못했어요.");
+          return;
+        }
+        setAlerts({ targetPriceAlert: settings.targetPriceAlert, weeklyReport: settings.weeklyReport });
       })
       .catch(() => {
         if (active) setAlertError("알림 설정을 불러오지 못했어요.");
@@ -76,16 +87,19 @@ export function SettingsPage() {
   }, []);
 
   async function changeAlert(key: keyof AlertSettings) {
-    if (!alerts) return;
+    if (!alerts || savingAlert) return;
     const previous = alerts;
     const next = { ...alerts, [key]: !alerts[key] };
     setAlerts(next); // 먼저 바꿔 보여주고, 실패하면 되돌린다.
     setAlertError("");
+    setSavingAlert(true);
     try {
       await updateAlertSettings(next.targetPriceAlert, next.weeklyReport);
     } catch {
       setAlerts(previous);
       setAlertError("알림 설정을 저장하지 못했어요. 다시 시도해주세요.");
+    } finally {
+      setSavingAlert(false);
     }
   }
 
@@ -109,14 +123,14 @@ export function SettingsPage() {
               label="가격 변동 알림"
               desc="추적 중인 상품이 목표가에 닿으면 알려드려요"
               on={alerts?.targetPriceAlert ?? false}
-              disabled={!alerts}
+              disabled={!alerts || savingAlert}
               onToggle={() => void changeAlert("targetPriceAlert")}
             />
             <SettingRow
               label="주간 리포트"
               desc="추적 중인 상품 가격을 매주 정리해 드려요"
               on={alerts?.weeklyReport ?? false}
-              disabled={!alerts}
+              disabled={!alerts || savingAlert}
               onToggle={() => void changeAlert("weeklyReport")}
             />
             <SettingRow

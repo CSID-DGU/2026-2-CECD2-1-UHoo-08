@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronLeft, Plus, Trash2 } from "lucide-react";
 import {
   deleteUserProduct,
-  getUserProducts,
+  getAllUserProducts,
   toServerDate,
   updateUserProduct,
   type UserProductItem,
@@ -37,9 +37,13 @@ const REMAINING = [100, 75, 50, 25];
 export function MyProductListPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("USING");
-  const [list, setList] = useState<{ tab: Tab; value: UserProductList } | null>(null);
-  const [failed, setFailed] = useState(false);
   const [version, setVersion] = useState(0);
+  // 응답을 어떤 요청(탭·버전)의 것인지와 같이 둔다. 다시 불러오는 동안 이전 목록으로
+  // 수정·삭제를 시작하지 않게, 지금 요청의 응답만 쓴다.
+  const requestKey = `${tab}:${version}`;
+  const [list, setList] = useState<{ key: string; value: UserProductList } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const failed = failedKey === requestKey;
   const [editing, setEditing] = useState<string | null>(null);
   /** 삭제는 되돌릴 수 없어 한 번 더 묻는다. */
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -52,12 +56,16 @@ export function MyProductListPage() {
 
   useEffect(() => {
     let active = true;
-    getUserProducts(tab)
-      .then(({ data }) => {
-        if (active) setList({ tab, value: data });
+    const key = `${tab}:${version}`;
+    // 첫 쪽이 오면 먼저 보여주고, 나머지 쪽은 이어서 받아 채운다.
+    getAllUserProducts(tab, (first) => {
+      if (active) setList({ key, value: first });
+    })
+      .then((all) => {
+        if (active) setList({ key, value: all });
       })
       .catch(() => {
-        if (active) setFailed(true);
+        if (active) setFailedKey(key);
       });
     return () => {
       active = false;
@@ -84,7 +92,7 @@ export function MyProductListPage() {
     };
   }, [version]);
 
-  const value = list?.tab === tab ? list.value : null;
+  const value = list?.key === requestKey ? list.value : null;
   const reload = () => {
     setEditing(null);
     setConfirming(null);
@@ -335,7 +343,9 @@ function EditForm({
 }) {
   const [opened, setOpened] = useState(fromOpenedAt(item.openedAt));
   const [remaining, setRemaining] = useState(item.remainingPct ?? 100);
-  const [storage, setStorage] = useState(storageId);
+  // 사용자가 직접 고른 보관 위치. 고르기 전에는 늦게 도착한 최신 값(storageId)을 그대로 보여준다.
+  const [pickedStorage, setPickedStorage] = useState<string | null>(null);
+  const storage = pickedStorage ?? storageId;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -355,8 +365,8 @@ function EditForm({
         remainingPct: remaining,
         openedAt: openedAt ? toServerDate(openedAt) : undefined,
       });
-      if (userId && storage !== storageId && storage) {
-        await updateMyProduct(userId, item.userProductId, { storage_node_id: storage });
+      if (userId && pickedStorage && pickedStorage !== storageId) {
+        await updateMyProduct(userId, item.userProductId, { storage_node_id: pickedStorage });
       }
       onSaved();
     } catch {
@@ -398,7 +408,7 @@ function EditForm({
                   storage === s.node_id ? "border-primary-500 bg-primary-50 text-primary-600" : "border-gray-100 bg-white text-gray-400"
                 }`}
                 key={s.node_id}
-                onClick={() => setStorage(s.node_id)}
+                onClick={() => setPickedStorage(s.node_id)}
                 type="button"
               >
                 {s.label}

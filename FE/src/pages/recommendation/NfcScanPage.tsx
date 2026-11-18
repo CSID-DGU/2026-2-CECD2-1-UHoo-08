@@ -7,6 +7,26 @@ import AppLayout from "../../layouts/AppLayout";
 
 type ScanState = "idle" | "scanning" | "reading" | "error";
 
+/** Web NFC 의 NDEFRecord 중 여기서 쓰는 값. */
+interface NfcRecord {
+  recordType: string;
+  /** text 레코드의 문자 인코딩. 없으면 utf-8 */
+  encoding?: string;
+  data?: DataView;
+}
+
+/**
+ * 레코드 본문을 문자열로 바꾼다. Web NFC 레코드에는 toText() 가 없어 data 를 직접 디코딩한다.
+ * text 레코드는 레코드의 encoding 을, url 레코드는 utf-8 을 쓴다.
+ */
+function decodeRecord(record: NfcRecord): string {
+  if (!record.data) throw new Error("EMPTY_RECORD");
+  const encoding = record.recordType === "text" ? record.encoding || "utf-8" : "utf-8";
+  const text = new TextDecoder(encoding).decode(record.data).trim();
+  if (!text) throw new Error("EMPTY_RECORD");
+  return text;
+}
+
 export function NfcScanPage() {
   const navigate = useNavigate();
   const { pathname, state: routeState } = useLocation() as {
@@ -37,18 +57,18 @@ export function NfcScanPage() {
       const reader = new window.NDEFReader();
       await reader.scan();
 
-      reader.onreading = async (event: { message: { records: Array<{ recordType: string; toText: () => string }> } }) => {
+      reader.onreading = async (event: { message: { records: NfcRecord[] } }) => {
         setState("reading");
         const record = event.message.records.find(
-          (r: { recordType: string }) => r.recordType === "url" || r.recordType === "text",
+          (r) => r.recordType === "url" || r.recordType === "text",
         );
         if (!record) {
           setErrorMsg("인식된 제품 정보가 없어요.");
           setState("error");
           return;
         }
-        const nfcData = record.toText();
         try {
+          const nfcData = decodeRecord(record);
           const res = await recognizeProduct("NFC", nfcData);
           navigate("/product/recognize", {
             state: { result: res.data, next: routeState?.next },

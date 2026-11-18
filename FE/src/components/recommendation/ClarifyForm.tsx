@@ -36,7 +36,12 @@ export function ClarifyForm({
         const amount = Number(raw.replace(/[^\d]/g, ""));
         if (amount > 0) answers.budget = amount;
       } else if (field.inputType === "TEXT_LIST") {
-        const items = raw.split(/[,\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 10);
+        // 서버가 항목당 50자, 최대 10개까지 받는다.
+        const items = raw
+          .split(/[,\n]/)
+          .map((item) => item.trim().slice(0, 50))
+          .filter(Boolean)
+          .slice(0, 10);
         if (items.length) answers.bundleSteps = items;
       } else if (field.key === "category") {
         answers.category = raw.slice(0, 50);

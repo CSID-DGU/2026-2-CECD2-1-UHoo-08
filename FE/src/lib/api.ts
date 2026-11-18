@@ -52,8 +52,10 @@ function refreshAccessToken(): Promise<boolean> {
           data?: { accessToken?: string; refreshToken?: string };
         } | null;
         const access = body?.data?.accessToken;
-        if (!access) return false;
-        setTokens(access, body?.data?.refreshToken ?? refreshToken);
+        if (typeof access !== "string" || !access) return false;
+        // 새 리프레시 토큰이 비어 있으면 기존 것을 그대로 쓴다.
+        const nextRefresh = body?.data?.refreshToken;
+        setTokens(access, typeof nextRefresh === "string" && nextRefresh ? nextRefresh : refreshToken);
         return true;
       } catch {
         return false;
@@ -91,6 +93,8 @@ async function request<T>(
   if (res.status === 401 && token && !retried && !path.startsWith("/auth/")) {
     if (await refreshAccessToken()) return request<T>(path, options, true);
     expireSession();
+    // 원래 401 본문 대신 세션 만료를 알린다. 호출한 쪽은 일반 오류와 구분할 수 있다.
+    throw { success: false, error: { code: "SESSION_EXPIRED", message: "다시 로그인해 주세요", status: 401 } };
   }
 
   const data = await readBody(res);

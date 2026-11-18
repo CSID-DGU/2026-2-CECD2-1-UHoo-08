@@ -63,6 +63,7 @@ const READY_BASES: RecommendationBasis[] = ["SELF", "POPULAR"];
 
 const POLL_INTERVAL_MS = 1200;
 const POLL_LIMIT_MS = 180_000;
+const STATUS_RETRY_LIMIT = 3;
 
 /**
  * finding: 제품명 검색 중(빠름). products: 제품명으로 찾은 목록을 보여주는 중.
@@ -92,8 +93,12 @@ function requestQueryOnce(entry: string, query: string, basis: RecommendationBas
   if (pending) return pending;
   const request = requestQuery({ query, basis });
   pendingQueries.set(key, request);
-  // 응답이 오면 잠시 뒤 지운다. 같은 화면에서 '다시 검색'은 새 job 을 만들어야 한다.
-  request.finally(() => setTimeout(() => pendingQueries.delete(key), 5_000)).catch(() => {});
+  // 성공하면 잠시 뒤 지운다. 같은 화면에서 '다시 검색'은 새 job 을 만들어야 한다.
+  // 실패하면 바로 지워 다음 시도가 실패한 요청을 다시 받지 않게 한다.
+  request.then(
+    () => setTimeout(() => pendingQueries.delete(key), 5_000),
+    () => pendingQueries.delete(key),
+  );
   return request;
 }
 
@@ -323,12 +328,14 @@ function SearchResultContent() {
 
   // ── job 흐름 ──────────────────────────────────────────────────────────
   function showResult(next: QueryResult) {
-    setResult(next);
+    // 결과 모양이 어긋나도 화면이 깨지지 않게 목록은 배열로 맞춘다.
+    const safe = { ...next, items: Array.isArray(next?.items) ? next.items : [] };
+    setResult(safe);
     setPhase("done");
     saveLastSearch({
       query: baseQuery,
-      category: next.summary?.categoryLabel ?? "",
-      products: next.items.map(toCardProduct),
+      category: safe.summary?.categoryLabel ?? "",
+      products: safe.items.map(toCardProduct),
     });
   }
 
@@ -346,10 +353,21 @@ function SearchResultContent() {
     const deadline = Date.now() + POLL_LIMIT_MS;
     let waitingForAnswer = answered;
     const answerGraceUntil = Date.now() + 15_000;
+    // 상태 조회가 잠깐 실패해도 바로 오류로 끝내지 않는다. 연속으로 이만큼 실패할 때만 멈춘다.
+    let statusFailures = 0;
     try {
       while (current === version.current) {
         if (Date.now() >= deadline) throw new Error("TIMEOUT");
-        const { data } = await withDeadline(getQueryStatus(nextJobId), 15_000);
+        let data: Awaited<ReturnType<typeof getQueryStatus>>["data"];
+        try {
+          ({ data } = await withDeadline(getQueryStatus(nextJobId), 15_000));
+          statusFailures = 0;
+        } catch (error) {
+          statusFailures += 1;
+          if (statusFailures >= STATUS_RETRY_LIMIT || apiErrorCode(error) === "SESSION_EXPIRED") throw error;
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+          continue;
+        }
         if (current !== version.current) return;
         const now = data.steps?.find((item) => item.state === "NOW");
         setStep(data.step ?? now?.label ?? "");
@@ -382,13 +400,17 @@ function SearchResultContent() {
     }
   }
 
-  async function startQuery(query: string, nextBasis: RecommendationBasis) {
+  /**
+   * AI 추천을 시작한다. display 는 화면 맨 위와 조건 칩에 보일 문장이다.
+   * 조건 수정처럼 보내는 문장(조건을 붙인 것)과 보여줄 문장이 다를 때 넘긴다.
+   */
+  async function startQuery(query: string, nextBasis: RecommendationBasis, display?: string) {
     const text = query.trim();
     if (!text) return;
     const current = ++version.current;
     searchViews.delete(cacheKey);
     deleteSearchView(cacheKey);
-    setBaseQuery(text);
+    setBaseQuery((display ?? text).trim());
     setBasis(nextBasis);
     setResult(null);
     setProducts(null);
@@ -485,7 +507,7 @@ function SearchResultContent() {
     if (!jobId) return;
     try {
       const { data } = await getRefinementOptions(jobId);
-      setOptions(data);
+      setOptions(Array.isArray(data?.presets) ? data : null);
     } catch {
       setOptions(null); // 시트는 기본 목록으로 동작한다.
     }
@@ -525,7 +547,7 @@ function SearchResultContent() {
   function editConditions(nextConditions: string[], editedBase?: string) {
     const base = (editedBase ?? baseQuery).trim();
     const query = nextConditions.length ? `${base}\n추가 조건: ${nextConditions.join(", ")}` : base;
-    void startQuery(query, basis).then(() => setBaseQuery(base));
+    void startQuery(query, basis, base);
   }
 
   async function openHistory() {
@@ -580,7 +602,7 @@ function SearchResultContent() {
       });
       setFeedbackSent((previous) => ({ ...previous, [feedbackTarget.item.productId]: true }));
       setFeedbackTarget(null);
-      setToast(data.message || "의견을 다음 추천에 반영할게요");
+      setToast(data?.message || "의견을 다음 추천에 반영할게요");
     } catch {
       setFeedbackError("피드백을 보내지 못했어요. 다시 시도해주세요.");
     } finally {
@@ -594,6 +616,8 @@ function SearchResultContent() {
       setBasis(next);
       return;
     }
+    // 기준을 바꾸면 처음 문장으로 다시 찾는다. 조건 추가로 더한 조건은 이어지지 않으니 알려준다.
+    if (result?.parentJobId) setToast("기준을 바꿔 처음 검색 문장으로 다시 찾았어요. 더한 조건은 다시 추가해 주세요.");
     void startQuery(baseQuery, next);
   }
 

@@ -107,7 +107,8 @@ export function EnvironmentPage() {
           onClick={() => setTab(index)} className={`rounded-lg py-2.5 text-xs ${tab === index ? "bg-[#9DBDE9] font-semibold text-[#203D66]" : "bg-gray-100 text-gray-400"}`}>{item.label}</button>)}
       </div>
       <section id="environment-metric" role="tabpanel" aria-labelledby={`environment-tab-${tab}`} className="mt-3 rounded-2xl border border-[#E5EDF8] p-4">
-        <p className="text-xs text-gray-300">지금 {metric.title}</p>
+        {/* 지금 값은 AI CARE 관측 지역 기준이라, 위의 설정 지역과 다를 수 있어 따로 밝힌다. */}
+        <p className="text-xs text-gray-300">지금 {metric.title}{weather?.region ? ` · ${weather.region} 관측` : ""}</p>
         <p className="mt-2 text-2xl font-bold text-gray-500">{failed ? "확인 불가" : !data ? "불러오는 중" : metric.value == null ? "미측정" : `${metric.value}${metric.unit}`}</p>
         {summaryState === "ready" ? (
           trend ? <TrendChart trend={trend} />

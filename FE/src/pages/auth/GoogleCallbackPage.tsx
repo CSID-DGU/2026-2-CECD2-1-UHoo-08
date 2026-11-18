@@ -32,9 +32,15 @@ export function GoogleCallbackPage() {
           fail("Google 인증 코드가 없습니다. 다시 로그인해 주세요.");
           return;
         }
-        const { data } = await googleLogin(code);
+        const response = await googleLogin(code);
+        const data = response?.data;
+        // 토큰이 둘 다 있어야 로그인으로 친다. 하나라도 비면 저장하지 않고 실패로 돌린다.
+        if (!data?.accessToken || !data.refreshToken) {
+          fail("Google 로그인에 실패했습니다. 다시 시도해 주세요.");
+          return;
+        }
         setTokens(data.accessToken, data.refreshToken);
-        navigate(data.isNewUser ? "/onboarding/profile" : "/home", { replace: true });
+        navigate(data.isNewUser ? "/onboarding/intro" : "/home", { replace: true });
       } catch (error) {
         const code = (error as { error?: { code?: string } } | null)?.error?.code;
         fail(code === "EMAIL_ALREADY_EXISTS"

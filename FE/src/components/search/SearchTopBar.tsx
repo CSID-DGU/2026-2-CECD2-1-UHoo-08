@@ -85,7 +85,15 @@ export function SearchTopBar({
   }
 
   return (
-    <header className="relative flex items-center gap-2">
+    <header
+      className="relative flex items-center gap-2"
+      // 포커스가 입력창에서 미리보기 항목(키보드 Tab 이동 포함)으로 옮겨가도 목록을 닫지 않는다.
+      // 검색 바 전체 밖으로 나갈 때만 닫는다.
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <button
         type="button"
         onClick={onBack}
@@ -113,9 +121,6 @@ export function SearchTopBar({
           aria-expanded={items.length > 0}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          onFocus={() => setFocused(true)}
-          // 미리보기를 누르는 동안 닫히지 않게 조금 늦게 닫는다.
-          onBlur={() => window.setTimeout(() => setFocused(false), 150)}
           placeholder={placeholder}
           className="min-w-0 flex-1 bg-transparent text-body2 text-slate-800 outline-none placeholder:text-slate-400 [&::-webkit-search-cancel-button]:hidden"
         />

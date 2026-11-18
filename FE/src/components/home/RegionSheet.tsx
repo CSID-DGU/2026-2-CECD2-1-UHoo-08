@@ -38,12 +38,17 @@ export function RegionSheet({
     }
   }
 
+  // 저장하는 동안에는 닫지 않는다. 닫히면 저장 결과를 받을 곳이 없어진다.
+  const close = () => {
+    if (!saving) onClose();
+  };
+
   return (
-    <BottomSheet label="지역 설정" onClose={onClose}>
+    <BottomSheet label="지역 설정" onClose={close}>
       <div className="px-5 pb-6 pt-3">
         <div className="flex items-center justify-between">
           <h2 className="text-body1 font-semibold text-slate-800">어디에서 지내세요?</h2>
-          <button type="button" aria-label="닫기" onClick={onClose} className="h-10 w-10 text-slate-400">
+          <button type="button" aria-label="닫기" onClick={close} disabled={saving} className="h-10 w-10 text-slate-400 disabled:opacity-40">
             ×
           </button>
         </div>

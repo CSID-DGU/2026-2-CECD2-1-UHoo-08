@@ -29,7 +29,9 @@ export function HomeOverview() {
   // BE 홈 카드. 실패해도 홈은 그대로 보이게 각각 따로 받는다.
   const [envReco, setEnvReco] = useState<EnvironmentRecommendation | "no-region" | null>(null);
   const [routine, setRoutine] = useState<RoutineCheck | null>(null);
-  const [trends, setTrends] = useState<TrendProducts | null>(null);
+  // null: 불러오는 중, "error": 실패. 빈 목록은 성공했지만 집계가 없다는 뜻이다.
+  const [trends, setTrends] = useState<TrendProducts | "error" | null>(null);
+  const [trendAttempt, setTrendAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -39,13 +41,24 @@ export function HomeOverview() {
     getRoutineCheck()
       .then(({ data }) => { if (active) setRoutine(data); })
       .catch(() => {});
-    getTrendProducts()
-      .then(({ data }) => { if (active) setTrends(data); })
-      .catch(() => {});
     return () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    getTrendProducts()
+      .then(({ data }) => {
+        if (active) setTrends(Array.isArray(data?.items) ? data : "error");
+      })
+      .catch(() => {
+        if (active) setTrends("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [trendAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -248,7 +261,25 @@ export function HomeOverview() {
         <h2 id="home-trending" className="text-sm font-semibold text-gray-500">
           요즘 뜨는 제품
         </h2>
-        {trends?.items.length ? (
+        {trends === null ? (
+          <p role="status" className="mt-2 rounded-2xl bg-gray-50 px-4 py-5 text-center text-[11px] text-gray-300">
+            인기 제품을 불러오고 있어요
+          </p>
+        ) : trends === "error" ? (
+          <div className="mt-2 rounded-2xl bg-gray-50 px-4 py-4 text-center text-[11px] text-gray-300">
+            <p>인기 제품을 불러오지 못했어요.</p>
+            <button
+              type="button"
+              className="mt-1 p-2 text-primary-600"
+              onClick={() => {
+                setTrends(null);
+                setTrendAttempt((value) => value + 1);
+              }}
+            >
+              다시 불러오기
+            </button>
+          </div>
+        ) : trends.items.length ? (
           <ul className="-mx-5 mt-2 flex gap-3 overflow-x-auto px-5 pb-1 scrollbar-none">
             {trends.items.map((item) => (
               <li key={item.productId} className="w-[112px] shrink-0">
