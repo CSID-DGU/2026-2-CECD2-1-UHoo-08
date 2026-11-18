@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Heart, Smile, Layers, Sun, Droplets, Folder } from "lucide-react";
+import { Heart, Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder } from "lucide-react";
 import { type ProductDetail, type StoreInfo, getProductDetail, recordProductView } from "../../api/productApi";
 import { addWishlist, deleteWishlist } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -18,6 +18,8 @@ const FOLDERS = [
   { key: "base", label: "Base", Icon: Layers },
   { key: "sun", label: "Sun", Icon: Sun },
   { key: "skincare", label: "Skincare", Icon: Droplets },
+  { key: "eye", label: "Eye", Icon: Eye },
+  { key: "cheek", label: "Cheek", Icon: Sparkles },
   { key: "other", label: "기타", Icon: Folder },
 ];
 

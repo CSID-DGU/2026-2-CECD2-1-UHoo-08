@@ -44,6 +44,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   sun: "선케어",
   lip: "립 메이크업",
   skincare: "스킨케어",
+  eye: "아이 메이크업",
+  cheek: "치크 메이크업",
 };
 const RESULT_BASES = [
   { id: "self", label: "내 피부 기준" },
