@@ -111,3 +111,11 @@ def test_필요한_기능_조건의_카테고리_이름이_모든_카테고리�
     from graph.nodes.coverage import 카테고리_이름
 
     assert set(카테고리_이름) == set(CATEGORY_TYPES)
+
+
+def test_질의_해석_응답_모양은_null을_따옴표_밖에_둔다():
+    """따옴표 안에 두면 모델이 문자열 "null" 을 넣는다."""
+    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+
+    assert '| null"' not in QUERY_NORMALIZE_SYSTEM
+    assert '또는 null"' not in QUERY_NORMALIZE_SYSTEM

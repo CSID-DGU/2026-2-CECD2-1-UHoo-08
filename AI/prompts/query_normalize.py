@@ -19,7 +19,8 @@ from prompts.product_types_text import (
 )
 from rules.product_types import CATEGORY_TYPES
 
-_카테고리_값 = " | ".join([*CATEGORY_TYPES, "null"])
+# null 은 따옴표 밖에 둔다. 따옴표 안에 두면 모델이 문자열 "null" 을 넣는다
+_카테고리_값 = " | ".join(CATEGORY_TYPES)
 
 QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해 JSON으로만 반환하라.
 설명, 마크다운, 코드블록 출력 금지.
@@ -27,8 +28,8 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
 [반환할 JSON]
 {
   "request_type": "SEARCH | EVALUATE | BUNDLE | REFINE",
-  "category": "__카테고리_값__",
-  "base_product_ref": "기준이 되는 특정 상품 표현 또는 null",
+  "category": "__카테고리_값__" 또는 null,
+  "base_product_ref": "기준이 되는 특정 상품 표현" 또는 null,
   "budget": {"max": 제품 하나의 상한 또는 null, "total": 세트 전체 상한 또는 null},
   "bundle_steps": [{"category": ..., "product_type": "토너", "label": "토너"}],
   "features": {},

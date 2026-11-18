@@ -17,6 +17,9 @@ LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한�
 남지 않는다. 문장 조건으로 옮기면 검색 문장에는 그대로 들어간다. 세트 단계의 종류도
 같이 바꾸고, 모르면 비운다.
 
+모델이 빈 값 자리에 문자열 "null" 을 넣는 일이 있다. 검증 전에 빈 값으로 읽는다. 그대로 두면
+카테고리 검증에 두 번 실패해 되묻기로 넘어가고, 그 사이 예산과 세트 경로를 잃는다.
+
 제품 종류는 문자열 하나다. ["토너"] 처럼 하나만 든 배열은 풀어서 같은 규칙을 적용한다.
 그 밖의 모양(여럿 든 배열, 숫자 등)은 형식을 어긴 것으로 보고 다시 묻는다. 그냥 넘기면
 종류가 필터와 검색 문장에서 모두 사라진 채 성공으로 나간다.
@@ -62,6 +65,27 @@ def _사용자_말(state: GraphState, raw: str) -> str:
 
 def _카테고리(값) -> str | None:
     return 값.value if 값 is not None else None
+
+
+_빈_값_글자 = frozenset({"null", "none"})
+
+
+def _null_글자_비우기(값):
+    """문자열 "null" 을 빈 값으로 읽는다. 목록에서는 빼고, 특징에서는 그 키를 뺀다."""
+    if isinstance(값, str) and 값.strip().lower() in _빈_값_글자:
+        return None
+    if isinstance(값, list):
+        return [x for x in map(_null_글자_비우기, 값) if x is not None]
+    if isinstance(값, dict):
+        return {키: _null_글자_비우기(v) for 키, v in 값.items()}
+    return 값
+
+
+def _응답_다듬기(원본: dict) -> dict:
+    다듬은 = _null_글자_비우기(원본)
+    if isinstance(다듬은.get("features"), dict):
+        다듬은["features"] = {키: v for 키, v in 다듬은["features"].items() if v is not None}
+    return 다듬은
 
 
 class _종류_형식_오류(ValueError):
@@ -117,7 +141,9 @@ async def normalize(state: GraphState) -> dict:
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue
         try:
-            spec = QuerySpec.model_validate(원본)
+            spec = QuerySpec.model_validate(
+                _응답_다듬기(원본) if isinstance(원본, dict) else 원본
+            )
         except ValidationError as e:
             # 어느 필드가 틀렸는지 남긴다. 골든셋을 만들 때 이 로그가 재료가 된다.
             logger.warning(
