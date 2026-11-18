@@ -4,7 +4,11 @@
 베이지안 평균을 쓴다. 후기 수가 적을수록 이번 후보들의 평균 평점 쪽으로 당긴다.
 평점 1~5 를 0~100 으로 바꾼다.
 
-전체 인기 기준이 아니면 None 이다. 평점이 없는 상품도 None 이다.
+전체 인기 기준이 아니면 None 이다.
+
+평점이 없는 상품은 0 이다. 평점과 후기가 없다는 것 자체가 인기가 없다는 뜻이다. None 으로
+두면 점수표에서 인기 항목이 빠지고 남은 항목으로 다시 나눈다. 0 이어도 다른 항목 점수로
+앞설 수 있어, 최종 순위에서는 채점(services/scoring.py)이 평점 없는 상품을 뒤로 보낸다.
 """
 from __future__ import annotations
 
@@ -24,14 +28,14 @@ async def popularity(products: list[dict[str, Any]], ctx: ScoreContext) -> dict[
 
     평점들 = [p["average_score"] for p in products if p.get("average_score") is not None]
     if not 평점들:
-        return {p["product_id"]: None for p in products}
+        return {p["product_id"]: 0.0 for p in products}
     전체_평균 = sum(평점들) / len(평점들)
 
     결과: dict[str, float | None] = {}
     for p in products:
         평점 = p.get("average_score")
         if 평점 is None:
-            결과[p["product_id"]] = None
+            결과[p["product_id"]] = 0.0
             continue
         후기_수 = max(p.get("review_count") or 0, 0)
         보정 = (후기_수 * 평점 + 기준_후기_수 * 전체_평균) / (후기_수 + 기준_후기_수)

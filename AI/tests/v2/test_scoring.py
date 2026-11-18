@@ -126,6 +126,27 @@ async def test_총점_순으로_같으면_유사도_순으로_줄_세운다(항�
 
 
 @pytest.mark.asyncio
+async def test_전체_인기_기준이면_평점_없는_상품을_평점_있는_상품_뒤에_둔다(항목들):
+    """다른 항목 점수가 높아 총점이 앞서도, 평점 1점 상품과 인기 점수가 같아도 뒤로 간다."""
+    항목들(
+        popularity=_항목({"평점": 100, "1점": 0.0, "없음A": 0.0, "없음B": 0.0}),
+        budget_fit=_항목({"평점": 0, "1점": 50, "없음A": 100, "없음B": 90}),
+    )
+    상품들 = [_상품("없음A"), _상품("없음B"), _상품("평점", average_score=4.8),
+              _상품("1점", average_score=1.0)]
+    가중치 = {"popularity": 0.35, "budget_fit": 1.0}
+    인기 = await scoring.score_products(상품들, _맥락(spec={"target": "POPULAR"}), 가중치, lite=True)
+    assert [r["product_id"] for r in 인기] == ["1점", "평점", "없음A", "없음B"]
+    # 리뷰 예시: 평점 없는 상품의 총점(74)이 평점 있는 상품(26)보다 높다
+    총점 = {r["product_id"]: r["total"] for r in 인기}
+    assert 총점["없음A"] > 총점["평점"]
+
+    # 인기 기준이 아니면 총점 순 그대로다
+    내_기준 = await scoring.score_products(상품들, _맥락(), {"budget_fit": 1.0}, lite=True)
+    assert [r["product_id"] for r in 내_기준][0] == "없음A"
+
+
+@pytest.mark.asyncio
 async def test_점수를_낼_수_없는_상품은_뺀다(항목들):
     # popularity 는 가중치가 0 이라 점수가 있어도 총점을 낼 수 없다
     항목들(review=_항목({"p1": 80}), popularity=_항목({"p2": 70}))

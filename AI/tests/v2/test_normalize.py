@@ -65,6 +65,47 @@ async def test_형식을_어기면_한_번_다시_묻는다(LLM세우기):
 
 
 @pytest.mark.asyncio
+async def test_문자열_null은_빈_값으로_읽고_다시_묻지_않는다(LLM세우기):
+    """그대로 두면 두 번 다 카테고리 검증에 실패해 되묻기로 넘어가고 예산과 세트를 잃는다."""
+    가짜 = LLM세우기([{
+        "request_type": "BUNDLE", "category": "null", "base_product_ref": "NULL",
+        "budget": {"max": "null", "total": 100000},
+        "bundle_steps": [{"category": "sun", "product_type": "선크림", "label": "선크림"},
+                         {"category": "base", "product_type": "null", "label": "쿠션"}],
+        "features": {"finish": "null"}, "conditions": ["null", "여름"],
+        "confidence": 0.9,
+    }])
+    spec = (await 모듈.normalize({"raw_query": "10만원으로 선크림이랑 쿠션 세트"}))["query_spec"]
+    assert 가짜.호출 == 1
+    assert spec["category"] is None and spec["base_product_ref"] is None
+    assert spec["budget"] == {"max": None, "total": 100000}
+    assert [단계["product_type"] for 단계 in spec["bundle_steps"]] == ["선크림", None]
+    assert spec["features"] == {} and spec["conditions"] == ["여름"]
+
+
+@pytest.mark.asyncio
+async def test_null만_든_종류_배열은_특징에서_빼고_다시_묻지_않는다(LLM세우기):
+    """빈 목록으로 남기면 형식 오류로 다시 묻고, 두 번 받으면 예산과 세트를 잃는다."""
+    가짜 = LLM세우기([{
+        "request_type": "BUNDLE", "category": "skincare",
+        "budget": {"max": None, "total": 100000},
+        "bundle_steps": [{"category": "skincare", "product_type": "토너", "label": "토너"}],
+        "features": {"product_type": ["null"]}, "confidence": 0.9,
+    }])
+    spec = (await 모듈.normalize({"raw_query": "10만원으로 토너 세트"}))["query_spec"]
+    assert 가짜.호출 == 1
+    assert spec["features"] == {} and spec["budget"]["total"] == 100000
+
+
+@pytest.mark.asyncio
+async def test_null이_아닌_글자는_그대로_둔다(LLM세우기):
+    LLM세우기([{**_제대로, "conditions": ["nullable", "논 코메도제닉"]}])
+    spec = (await 모듈.normalize({"raw_query": "쿠션"}))["query_spec"]
+    assert spec["category"] == "base"
+    assert spec["conditions"] == ["nullable", "논 코메도제닉"]
+
+
+@pytest.mark.asyncio
 async def test_두_번_어기면_되묻기로_넘긴다(LLM세우기):
     """예외로 올리면 서버 오류가 된다. 되물을 수 있는 상태로 내보낸다."""
     가짜 = LLM세우기([{"request_type": "NOPE"}, {"category": "없는것"}])
