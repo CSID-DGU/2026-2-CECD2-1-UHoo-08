@@ -144,8 +144,11 @@ python -m eval.purge_synthetic           # 넣은 것을 전부 지운다
 
 ```
 eval/reports/experiments/
-  a_router/    시나리오 결정 (Normalize → Router)
+  a_router/      시나리오 결정 (Normalize → Router)
+  b_normalize/   Normalize 모델 비교. 모델 하나가 조건 하나다
 ```
+
+모델 비교에서 연습용 문제로 한 번씩 돌려 본 결과(훑어보기)는 `<모델>_dev_<YYYYMMDD>.md` 로 쓴다.
 
 1. 데이터 개수와 파일 버전
 2. 핵심 지표 (test split 기준)
