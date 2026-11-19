@@ -224,6 +224,18 @@ def test_틀린_문제에는_몇_번_틀렸는지가_남는다():
     assert set(틀림[0]["틀린_항목"]) == {"scenario", "needs_clarification"}
 
 
+def test_시나리오가_맞아도_값을_잘못_뽑았으면_틀린_문제에_넣는다():
+    a = _문제("a", scenario="S2_SEARCH", request_type="SEARCH", budget_max=30000)
+    runs = [[_실행(a, spec={"budget": {"max": 20000, "total": None}})]]
+    틀림 = wrong_cases(runs, Thresholds())
+    assert 틀림[0]["틀린_항목"] == {"budget_max": {"기대": 30000, "실제": [20000]}}
+
+
+def test_값을_뽑지_않는_조건은_값을_틀린_문제로_세지_않는다():
+    a = _문제("a", scenario="S2_SEARCH", budget_max=30000)
+    assert wrong_cases([[_실행(a, extracts_values=False)]], Thresholds()) == []
+
+
 def test_리포트에_측정값과_틀린_문제가_들어간다():
     a = _문제("router-g-1001", scenario="S2_SEARCH", needs_clarification=False)
     runs = [[_실행(a, scenario_prob=0.9)], [_실행(a, scenario_prob=0.9, 시나리오="S1_EVALUATE")]]

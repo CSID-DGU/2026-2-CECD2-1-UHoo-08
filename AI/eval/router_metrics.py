@@ -441,6 +441,11 @@ def wrong_cases(runs: Sequence[Sequence[Trial]], thr: Thresholds) -> list[dict]:
                     되물음 = decide_clarify(t.outcome, thr)
                     if 되물음 != bool(기대["needs_clarification"]):
                         틀린["needs_clarification"] = 되물음
+                # 값 일치율과 같은 기준으로 센다. 값을 뽑지 않는 조건은 보지 않는다
+                if t.outcome.extracts_values:
+                    for 키 in VALUE_KEYS:
+                        if 키 in 기대 and _꺼내기[키](t.outcome.spec) != 기대[키]:
+                            틀린[키] = _꺼내기[키](t.outcome.spec)
             if not 틀린:
                 continue
             항목 = 문제별.setdefault(t.rec["id"], {
