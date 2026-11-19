@@ -1,14 +1,14 @@
 """질의를 QuerySpec 으로 옮긴다.
 
-READS:  raw_query, clarify_question, clarify_answer
+READS:  raw_query, clarify_question, clarify_answer, clarify_count
 WRITES: query_spec
 
 LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한다(router).
 그래야 같은 질문이 매번 같은 곳으로 가고, 흔들리는 자리가 여기 하나로
 좁혀져 골든셋으로 잴 수 있다.
 
-검증에 실패하면 한 번만 다시 묻는다. 두 번째도 실패하면 확신도 0 으로
-비워 내보낸다. 라우터가 그것을 보고 되묻기로 넘긴다. 실패를 예외로 올리면
+검증에 실패하면 한 번만 다시 묻는다. 두 번째도 실패하면 단서가 없는 빈 값을
+내보낸다. 라우터가 그것을 보고 되묻기로 넘긴다. 실패를 예외로 올리면
 "무슨 말인지 모르겠다"가 서버 오류로 나간다.
 
 제품 종류는 표준 이름으로 바꾼다(rules/product_types.py). "스킨"은 "토너"가 된다.
@@ -45,9 +45,13 @@ logger = logging.getLogger(__name__)
 _최대_시도 = 2
 
 
-def _빈_스펙(raw_query: str) -> QuerySpec:
-    """해석하지 못했을 때 내보내는 값. 확신도 0 이라 라우터가 되묻기로 보낸다."""
-    return QuerySpec(request_type=RequestType.SEARCH, conditions=[raw_query], confidence=0.0)
+def _빈_스펙(raw_query: str, 이미_물음: bool = False) -> QuerySpec:
+    """해석하지 못했을 때 내보내는 값. 단서가 하나도 없어 라우터가 되묻기로 보낸다.
+
+    이미 한 번 물었다면 라우터가 더 묻지 않고 진행한다. 그때는 검색 문장에 쓸 수
+    있게 질의를 문장 조건으로 넣어 둔다.
+    """
+    return QuerySpec(request_type=RequestType.SEARCH, conditions=[raw_query] if 이미_물음 else [])
 
 
 def _사용자_말(state: GraphState, raw: str) -> str:
@@ -140,11 +144,12 @@ async def parse_query(
     *,
     system: str = QUERY_NORMALIZE_SYSTEM,
     temperature: float = 0.0,
+    model: type[QuerySpec] = QuerySpec,
 ) -> QuerySpec | None:
     """LLM 에 물어 QuerySpec 을 만든다. 두 번 시도해도 읽지 못하면 None.
 
-    프롬프트와 temperature 를 바꿔 부를 수 있게 노드에서 떼어 두었다. 평가 도구가
-    같은 해석 과정을 다른 설정으로 태워 견준다. raw 는 로그에만 쓴다.
+    프롬프트와 temperature, 읽어 들일 양식을 바꿔 부를 수 있게 노드에서 떼어 두었다.
+    평가 도구가 같은 해석 과정을 다른 설정으로 태워 견준다. raw 는 로그에만 쓴다.
     """
     # 부를 일이 생긴 뒤에 가져온다. 최상단에 두면 설정과 SDK 를 통째로 불러온다.
     from services.llm import LLMRole, get_llm
@@ -157,7 +162,7 @@ async def parse_query(
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue
         try:
-            spec = QuerySpec.model_validate(
+            spec = model.model_validate(
                 _응답_다듬기(원본) if isinstance(원본, dict) else 원본
             )
         except ValidationError as e:
@@ -179,11 +184,12 @@ async def parse_query(
 
 async def normalize(state: GraphState) -> dict:
     raw = (state.get("raw_query") or "").strip()
+    이미_물음 = (state.get("clarify_count") or 0) >= 1
     if not raw:
         return {"query_spec": _빈_스펙("").model_dump(mode="json")}
 
     spec = await parse_query(_사용자_말(state, raw), raw)
     if spec is None:
         logger.warning("normalize: 해석 실패, 되묻기로 넘긴다 %r", raw)
-        spec = _빈_스펙(raw)
+        spec = _빈_스펙(raw, 이미_물음)
     return {"query_spec": spec.model_dump(mode="json")}

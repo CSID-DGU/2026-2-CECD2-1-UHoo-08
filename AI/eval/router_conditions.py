@@ -27,36 +27,68 @@ class Condition:
     thresholds: Thresholds = Thresholds()
 
 
+# 서비스는 확신 점수를 쓰지 않는다. 지금 방식과 견주려면 예전 방식을 그대로 돌릴 수
+# 있어야 하므로, 프롬프트와 양식에 확신 점수를 되돌려 넣은 것을 여기에만 둔다.
+예전_확신_기준 = 0.6
+_예시_확신_점수 = ("0.92", "0.95", "0.9", "0.2")
+_확신_점수_설명 = (
+    "[confidence]\n"
+    "무엇을 원하는지 얼마나 분명한지. 문장이 짧고 모호하면 낮춘다.\n"
+    '"추천해줘" 처럼 조건이 하나도 없으면 0.3 이하.\n\n'
+)
+
+
+def legacy_confidence_prompt() -> str:
+    """확신 점수를 묻던 예전 프롬프트. 지금 프롬프트에 그 자리만 되돌려 넣는다."""
+    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+
+    글 = QUERY_NORMALIZE_SYSTEM
+    for 찾을, 바꿀 in (
+        ('  "value_seeking": false\n}', '  "value_seeking": false,\n  "confidence": 0.0~1.0\n}'),
+        ("[규칙]\n", _확신_점수_설명 + "[규칙]\n"),
+    ):
+        assert 글.count(찾을) == 1, 찾을
+        글 = 글.replace(찾을, 바꿀)
+    점수 = iter(_예시_확신_점수)
+    글, 바꾼_수 = re.subn(r"(?m)^(출력: \{.*)\}$", lambda m: f'{m.group(1)},"confidence":{next(점수)}}}', 글)
+    assert 바꾼_수 == len(_예시_확신_점수)
+    return 글
+
+
 async def _a1(입력: dict) -> Outcome:
-    """지금 방식. LLM 이 스스로 적은 확신 점수를 그대로 쓴다.
+    """예전 방식. LLM 이 스스로 적은 확신 점수를 그대로 쓴다.
 
     확신 점수 하나에 "어느 시나리오인지 헷갈린다"와 "조건이 없다"가 섞여 있다.
-    따로 낼 수 없으므로 이 숫자를 시나리오 확률 자리에 둔다.
+    따로 낼 수 없으므로 이 숫자를 시나리오 확률 자리에 둔다. 해석하지 못하면
+    예전처럼 확신 점수 0 으로 보고 검색으로 둔다.
     """
-    from contracts.query_spec import QuerySpec
-    from graph.nodes.normalize import normalize
-    from graph.nodes.router import router
+    from pydantic import Field
 
-    상태: dict = dict(입력)
-    상태.update(await normalize(상태))
-    상태.update(await router(상태))
-    spec = 상태["query_spec"]
+    from contracts.query_spec import QuerySpec, RequestType
+    from graph.nodes.normalize import _사용자_말, parse_query
+    from graph.registry import ROUTE
+
+    class 확신_점수_스펙(QuerySpec):
+        confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    raw = (입력.get("raw_query") or "").strip()
+    읽은 = await parse_query(
+        _사용자_말(입력, raw), raw, system=legacy_confidence_prompt(), model=확신_점수_스펙,
+    )
     if 입력.get("parent_job_id"):
-        return Outcome(spec=spec, scenario=상태["scenario"])
+        spec = 읽은.model_dump(mode="json") if 읽은 else {"request_type": "REFINE"}
+        return Outcome(spec=spec, scenario=ROUTE[RequestType.REFINE])
+    if 읽은 is None:
+        return Outcome(spec={"request_type": "SEARCH"}, scenario=ROUTE[RequestType.SEARCH],
+                       scenario_prob=0.0)
 
-    읽은 = QuerySpec.model_validate(spec)
+    종류 = RequestType.SEARCH if 읽은.request_type is RequestType.REFINE else 읽은.request_type
     return Outcome(
-        spec=spec,
-        scenario=상태["scenario"],
+        spec=읽은.model_dump(mode="json"),
+        scenario=ROUTE[종류],
         clarify_rule=bool(읽은.missing_required()),
         scenario_prob=읽은.confidence,
     )
-
-
-def _a1_기준() -> Thresholds:
-    from contracts.query_spec import CONFIDENCE_THRESHOLD
-
-    return Thresholds(scenario=CONFIDENCE_THRESHOLD)
 
 
 # ── B0. 규칙만 ──────────────────────────────────────────────────────────────
@@ -126,63 +158,13 @@ async def _b0(입력: dict) -> Outcome:
 
 
 # ── A2. LLM + 구조 규칙 ─────────────────────────────────────────────────────
-
-def is_underspecified(spec: dict) -> bool:
-    """찾을 단서가 하나도 없는가.
-
-    카테고리, 특징, 조건, 예산, 기준 제품이 모두 비었으면 무엇을 추천할지 정할 수
-    없다. LLM 이 매긴 숫자가 아니라 양식이 얼마나 비었는지로 본다.
-    """
-    예산 = spec.get("budget") or {}
-    return not any((
-        spec.get("category"),
-        spec.get("features"),
-        spec.get("conditions"),
-        예산.get("max") is not None,
-        예산.get("total") is not None,
-        spec.get("base_product_ref"),
-    ))
-
-
-# 제품을 가리키기만 하고 이름은 알려 주지 않는 말
-_이름_없는_말 = frozenset({
-    "이", "그", "저", "이거", "그거", "저거", "이것", "그것", "저것", "요거", "고거",
-    "이런", "그런", "방금", "아까", "저번", "제품", "상품", "거", "것",
-})
-
-
-def names_a_product(기준_제품: Optional[str]) -> bool:
-    """기준 제품 자리의 말이 어떤 제품인지 알려 주는가.
-
-    "이거", "그 선크림"처럼 가리키는 말과 종류 이름뿐이면 어떤 제품인지 알 수 없다.
-    LLM 은 이런 말도 기준 제품 자리에 그대로 옮겨 적으므로, 자리가 찼는지만 보면
-    되물어야 할 질문을 놓친다.
-    """
-    남은 = [
-        낱말 for 낱말 in (기준_제품 or "").split()
-        if 낱말 not in _이름_없는_말 and 낱말 not in _종류_이름()
-    ]
-    return bool(남은)
-
-
-def structural_clarify(spec: Optional[dict], 빠진_필수: Sequence[str]) -> bool:
-    """구조 규칙으로 되물을지 정한다.
-
-    되묻는 경우는 넷이다. LLM 의 답을 양식으로 읽지 못했다, 요청 종류에 꼭 필요한
-    값이 비었다, 평가 요청인데 기준 제품이 어떤 제품인지 알 수 없다, 찾을 단서가
-    하나도 없다.
-    """
-    if spec is None:
-        return True
-    if spec.get("request_type") == "EVALUATE" and not names_a_product(spec.get("base_product_ref")):
-        return True
-    return bool(빠진_필수) or is_underspecified(spec)
-
+#
+# 서비스가 쓰는 방식이다. 되물을지는 rules/clarify.py 의 규칙으로 정한다.
 
 async def _구조_규칙으로_해석(
     입력: dict, temperature: float = 0.0, 덧붙일_말: str = "",
 ) -> tuple[Optional[dict], str, bool]:
-    """확신 점수를 묻지 않는 프롬프트로 한 번 해석한다. (spec, 시나리오, 되물을지)
+    """서비스와 같은 프롬프트로 한 번 해석한다. (spec, 시나리오, 되물을지)
 
     해석하지 못하면 spec 은 None 이고 검색으로 둔 채 되묻는다.
     덧붙일_말은 사용자 말 뒤에 붙여 함께 보낸다.
@@ -190,12 +172,11 @@ async def _구조_규칙으로_해석(
     from contracts.query_spec import RequestType
     from graph.nodes.normalize import _사용자_말, parse_query
     from graph.registry import ROUTE
-    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM_NO_CONFIDENCE
+    from rules.clarify import needs_clarification
 
     raw = (입력.get("raw_query") or "").strip()
     읽은 = await parse_query(
-        _사용자_말(입력, raw) + 덧붙일_말, raw,
-        system=QUERY_NORMALIZE_SYSTEM_NO_CONFIDENCE, temperature=temperature,
+        _사용자_말(입력, raw) + 덧붙일_말, raw, temperature=temperature,
     )
     if 입력.get("parent_job_id"):
         spec = 읽은.model_dump(mode="json") if 읽은 else {"request_type": "REFINE"}
@@ -206,11 +187,11 @@ async def _구조_규칙으로_해석(
     spec = 읽은.model_dump(mode="json")
     # 직전 결과 없이 조건 수정으로 읽히면 수정할 대상이 없다. 라우터와 같이 새 검색으로 본다
     종류 = RequestType.SEARCH if 읽은.request_type is RequestType.REFINE else 읽은.request_type
-    return spec, ROUTE[종류], structural_clarify(spec, 읽은.missing_required())
+    return spec, ROUTE[종류], needs_clarification(읽은)
 
 
 async def _a2(입력: dict) -> Outcome:
-    """확신 점수를 없애고, 양식이 얼마나 비었는지를 보고 코드가 되물을지 정한다."""
+    """확신 점수 없이, 양식이 얼마나 비었는지를 보고 코드가 되물을지 정한다."""
     spec, 시나리오, 되물음 = await _구조_규칙으로_해석(입력)
     return Outcome(spec=spec or {}, scenario=시나리오, clarify_rule=되물음)
 
@@ -423,7 +404,7 @@ async def _a7(입력: dict) -> Outcome:
 
 CONDITIONS: dict[str, Condition] = {
     "b0": Condition("b0", "B0. 규칙만", _b0),
-    "a1": Condition("a1", "A1. LLM + 스스로 매긴 확신 점수", _a1, _a1_기준()),
+    "a1": Condition("a1", "A1. LLM + 스스로 매긴 확신 점수", _a1, Thresholds(scenario=예전_확신_기준)),
     "a2": Condition("a2", "A2. LLM + 구조 규칙", _a2),
     # 다섯 번 중 세 번 이상 같은 답이면 처리한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),

@@ -19,6 +19,14 @@ class 가짜LLM:
         return self.응답들.pop(0) if self.응답들 else None
 
 
+def _단서가_없다(spec: dict) -> bool:
+    """라우터가 되묻기로 넘길 빈 값인가."""
+    from contracts.query_spec import QuerySpec
+    from rules.clarify import is_underspecified
+
+    return is_underspecified(QuerySpec.model_validate(spec))
+
+
 @pytest.fixture
 def LLM세우기(monkeypatch):
     import sys
@@ -42,7 +50,6 @@ _제대로 = {
     "request_type": "SEARCH", "category": "base",
     "budget": {"max": 30000, "total": None},
     "features": {"finish": "세미매트"}, "conditions": ["여름"],
-    "confidence": 0.9,
 }
 
 
@@ -73,7 +80,6 @@ async def test_문자열_null은_빈_값으로_읽고_다시_묻지_않는다(LL
         "bundle_steps": [{"category": "sun", "product_type": "선크림", "label": "선크림"},
                          {"category": "base", "product_type": "null", "label": "쿠션"}],
         "features": {"finish": "null"}, "conditions": ["null", "여름"],
-        "confidence": 0.9,
     }])
     spec = (await 모듈.normalize({"raw_query": "10만원으로 선크림이랑 쿠션 세트"}))["query_spec"]
     assert 가짜.호출 == 1
@@ -90,7 +96,7 @@ async def test_null만_든_종류_배열은_특징에서_빼고_다시_묻지_�
         "request_type": "BUNDLE", "category": "skincare",
         "budget": {"max": None, "total": 100000},
         "bundle_steps": [{"category": "skincare", "product_type": "토너", "label": "토너"}],
-        "features": {"product_type": ["null"]}, "confidence": 0.9,
+        "features": {"product_type": ["null"]},
     }])
     spec = (await 모듈.normalize({"raw_query": "10만원으로 토너 세트"}))["query_spec"]
     assert 가짜.호출 == 1
@@ -111,7 +117,14 @@ async def test_두_번_어기면_되묻기로_넘긴다(LLM세우기):
     가짜 = LLM세우기([{"request_type": "NOPE"}, {"category": "없는것"}])
     나온 = await 모듈.normalize({"raw_query": "이상한 질의"})
     assert 가짜.호출 == 2
-    assert 나온["query_spec"]["confidence"] == 0.0
+    assert _단서가_없다(나온["query_spec"])
+
+
+@pytest.mark.asyncio
+async def test_이미_물은_뒤에_또_어기면_질의를_문장_조건으로_넣는다(LLM세우기):
+    """라우터가 더 묻지 않고 진행하므로, 검색 문장에 쓸 것은 남겨 둔다."""
+    LLM세우기([{"request_type": "NOPE"}, {"category": "없는것"}])
+    나온 = await 모듈.normalize({"raw_query": "이상한 질의", "clarify_count": 1})
     assert 나온["query_spec"]["conditions"] == ["이상한 질의"]
 
 
@@ -138,7 +151,7 @@ async def test_빈_질의는_부르지도_않는다(LLM세우기):
     가짜 = LLM세우기([_제대로])
     나온 = await 모듈.normalize({"raw_query": "   "})
     assert 가짜.호출 == 0
-    assert 나온["query_spec"]["confidence"] == 0.0
+    assert _단서가_없다(나온["query_spec"])
 
 
 @pytest.mark.asyncio
@@ -184,7 +197,7 @@ async def test_답이_없으면_질의만_넘긴다(LLM세우기):
 
 def _종류_응답(category, product_type, **값):
     return {"request_type": "SEARCH", "category": category,
-            "features": {"product_type": product_type}, "confidence": 0.9, **값}
+            "features": {"product_type": product_type}, **값}
 
 
 @pytest.mark.asyncio
@@ -244,7 +257,7 @@ async def test_문자열_하나로_맞출_수_없는_종류는_다시_묻는다(
 async def test_종류_형식을_두_번_어기면_되묻기로_넘긴다(LLM세우기):
     LLM세우기([_종류_응답("skincare", ["토너", "크림"])] * 2)
     spec = (await 모듈.normalize({"raw_query": "질의"}))["query_spec"]
-    assert spec["confidence"] == 0.0
+    assert _단서가_없다(spec)
 
 
 @pytest.mark.asyncio
@@ -264,7 +277,6 @@ async def test_세트_단계의_종류도_바꾸고_모르면_비운다(LLM세�
             {"category": "skincare", "product_type": "스킨", "label": "스킨"},
             {"category": "skincare", "product_type": "핸드크림", "label": "핸드크림"},
         ],
-        "confidence": 0.9,
     }])
     spec = (await 모듈.normalize({"raw_query": "10만원으로 스킨, 핸드크림"}))["query_spec"]
     assert [단계["product_type"] for 단계 in spec["bundle_steps"]] == ["토너", None]

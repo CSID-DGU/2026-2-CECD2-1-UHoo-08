@@ -12,7 +12,6 @@
 종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가 한 번 더 표준 이름으로
 바꾼다(graph/nodes/normalize.py).
 """
-import re
 
 from prompts.product_types_text import (
     group_text,
@@ -39,8 +38,7 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
   "exclude_ingredients": [],
   "target": "SELF | POPULAR | OTHER",
   "use_env": false,
-  "value_seeking": false,
-  "confidence": 0.0~1.0
+  "value_seeking": false
 }
 
 [request_type]
@@ -83,10 +81,6 @@ __특징_절__
 - target: 본인 기준이면 SELF, "요즘 인기 있는" 이면 POPULAR,
   "20대 지성 피부인 친구에게" 처럼 다른 사람 조건이면 OTHER
 
-[confidence]
-무엇을 원하는지 얼마나 분명한지. 문장이 짧고 모호하면 낮춘다.
-"추천해줘" 처럼 조건이 하나도 없으면 0.3 이하.
-
 [규칙]
 - 쿼리에 없는 값을 추측해 채우지 마라. 모르면 null, 빈 배열, 빈 객체로 둔다
 - 위에 적힌 키 외의 키를 만들지 마라
@@ -96,16 +90,16 @@ __특징_절__
 
 [예시]
 입력: "여름에 안 무너지는 세미매트 쿠션 3만원 이하"
-출력: {"request_type":"SEARCH","category":"base","base_product_ref":null,"budget":{"max":30000,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션","finish":"세미매트","lasting_power":"높음"},"conditions":["여름"],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.92}
+출력: {"request_type":"SEARCH","category":"base","base_product_ref":null,"budget":{"max":30000,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션","finish":"세미매트","lasting_power":"높음"},"conditions":["여름"],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
 
 입력: "라네즈 네오쿠션 21호 어때?"
-출력: {"request_type":"EVALUATE","category":"base","base_product_ref":"라네즈 네오쿠션 21호","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.95}
+출력: {"request_type":"EVALUATE","category":"base","base_product_ref":"라네즈 네오쿠션 21호","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
 
 입력: "에스트라 아토베리어 크림 대신 쓸 만한 거 있어?"
-출력: {"request_type":"EVALUATE","category":"skincare","base_product_ref":"에스트라 아토베리어 크림","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"크림"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.9}
+출력: {"request_type":"EVALUATE","category":"skincare","base_product_ref":"에스트라 아토베리어 크림","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"크림"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
 
 입력: "추천해줘"
-출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.2}"""
+출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}"""
 
 # 본문에 JSON 중괄호가 많아 format 대신 자리 표시를 바꿔 끼운다
 QUERY_NORMALIZE_SYSTEM = (
@@ -116,16 +110,3 @@ QUERY_NORMALIZE_SYSTEM = (
     .replace("__묶음_설명__", group_text())
 )
 
-
-def _확신_점수_빼기(글: str) -> str:
-    """프롬프트에서 confidence 를 다루는 자리를 모두 뺀다."""
-    글 = 글.replace(',\n  "confidence": 0.0~1.0', "")
-    글 = re.sub(r"\[confidence\]\n.*?\n\n", "", 글, flags=re.S)
-    글 = re.sub(r',"confidence":[0-9.]+', "", 글)
-    assert "confidence" not in 글, "confidence 를 다루는 자리가 남았다"
-    return 글
-
-
-# 확신 점수를 묻지 않는 프롬프트. 되물을지를 LLM 의 숫자가 아니라 코드 규칙으로
-# 정하는 방식을 견줄 때 쓴다. 나머지 지시는 위와 글자 하나까지 같아야 비교가 된다.
-QUERY_NORMALIZE_SYSTEM_NO_CONFIDENCE = _확신_점수_빼기(QUERY_NORMALIZE_SYSTEM)

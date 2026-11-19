@@ -48,7 +48,7 @@ _이전_컬럼 = "id, scenario, result, query_spec, state_snapshot"
 _이번_컬럼 = "id, refine_presets"
 
 # 바뀌었는지 볼 때 빼는 칸. 조건 수정이면 늘 바뀌는 값이다
-_비교_제외 = frozenset({"request_type", "base_product_ref", "confidence"})
+_비교_제외 = frozenset({"request_type", "base_product_ref"})
 
 
 async def _읽기(job_id: str | None, columns: str) -> dict[str, Any] | None:
@@ -179,7 +179,7 @@ async def refine(state: GraphState) -> dict:
     합친 = refine_presets.apply(합친, 선택지, 이전_스펙, 이전_결과)
     직접 = await _직접_쓴_스펙(state, refine_presets.strip_sentences(state.get("raw_query")))
     합친 = _합치기(합친, 직접).model_copy(update={
-        "request_type": RequestType.REFINE, "base_product_ref": None, "confidence": 1.0,
+        "request_type": RequestType.REFINE, "base_product_ref": None,
         "target": 이전_스펙.target,
     })
     # 합친 뒤 같은 값이 겹치지 않게 다시 검증한다

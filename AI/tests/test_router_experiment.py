@@ -327,3 +327,26 @@ async def test_이중_확인_조건은_값을_읽지_못하면_견주지_않고_
 
     assert 나온.agreement is None
     assert 나온.clarify_rule and 나온.scenario == "S1_EVALUATE"
+
+
+@pytest.mark.asyncio
+async def test_확신_점수_조건은_예전_프롬프트로_묻고_그_숫자를_확률로_쓴다(가짜_llm):
+    """서비스는 확신 점수를 쓰지 않는다. 견주기 위한 예전 방식은 평가 도구에만 남아 있다."""
+    from eval.router_conditions import CONDITIONS
+
+    llm = 가짜_llm([_답("EVALUATE", category="base", base_product_ref="그 쿠션", confidence=0.7)])
+    나온 = await CONDITIONS["a1"].run({"raw_query": "그 쿠션 어때?"})
+
+    assert '"confidence": 0.0~1.0' in llm.받은[0][0] and "[confidence]" in llm.받은[0][0]
+    assert 나온.scenario == "S1_EVALUATE"
+    assert 나온.scenario_prob == 0.7
+    assert not 나온.clarify_rule          # 예전 방식은 가리키는 말을 규칙으로 잡지 않는다
+
+
+@pytest.mark.asyncio
+async def test_확신_점수_조건은_답을_읽지_못하면_확률을_0으로_둔다(가짜_llm):
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([None])
+    나온 = await CONDITIONS["a1"].run({"raw_query": "쿠션 추천"})
+    assert 나온.scenario == "S2_SEARCH" and 나온.scenario_prob == 0.0
