@@ -17,6 +17,12 @@
     python -m eval.run_router_eval --condition a3 --dump a3.json        실행 결과를 남긴다
     python -m eval.run_router_eval --condition a3 --load a3.json --threshold 0.8   다시 채점만 한다
 
+모델을 고르면 Normalize 에 그 모델을 끼워 서비스와 같은 방식(a2)으로 돈다.
+후보와 부르는 곳은 eval/model_candidates.py 에 있다.
+
+    python -m eval.run_router_eval --model claude-haiku-5-5 --split dev --runs 1
+    python -m eval.run_router_eval --model claude-haiku-5-5 --out eval/reports/experiments/b_normalize/claude-haiku-5-5_20261120.md
+
 수치는 test 로 낸다. 프롬프트는 dev 를 보고만 고친다. 골든셋에 맞춰 튜닝한
 결과를 성능이라고 부르지 않기 위해서다.
 
@@ -225,7 +231,23 @@ def _기준값_목록(글: str | None) -> list[float] | None:
     return [float(x) for x in 글.split(",")] if 글 else None
 
 
+def _조건_돌리기(args, 기록: list[dict], 조건: Callable[[dict], Awaitable[Any]]) -> list[list]:
+    """조건을 돌린다. 모델을 골랐으면 그동안만 Normalize 의 모델을 그 후보로 바꿔 끼운다."""
+    def 돌리기() -> list[list]:
+        return asyncio.run(run_condition(기록, 조건, args.runs, args.concurrency))
+
+    if not args.model:
+        return 돌리기()
+
+    from eval.model_candidates import use_candidate
+    from services.llm import LLMRole
+
+    with use_candidate(LLMRole.NORMALIZE, args.model):
+        return 돌리기()
+
+
 def _실험(args, 기록: list[dict]) -> None:
+    from eval.model_candidates import CANDIDATES
     from eval.router_conditions import CONDITIONS
     from eval.router_metrics import (
         Thresholds,
@@ -236,12 +258,13 @@ def _실험(args, 기록: list[dict]) -> None:
     )
 
     조건 = CONDITIONS[args.condition]
+    후보 = CANDIDATES[args.model] if args.model else None
     지금_코드 = _코드_버전()
     if args.load:
         # 이미 실행해 둔 결과를 읽는다. 기준값만 바꿔 다시 채점할 때 LLM 을 또 부르지 않는다
         runs, 실행_코드 = _실행_결과_읽기(Path(args.load), 기록)
     else:
-        runs = asyncio.run(run_condition(기록, 조건.run, args.runs, args.concurrency))
+        runs = _조건_돌리기(args, 기록, 조건.run)
         실행_코드 = 지금_코드
     if args.dump:
         Path(args.dump).write_text(
@@ -273,16 +296,23 @@ def _실험(args, 기록: list[dict]) -> None:
             "날짜": str(date.today()),
             "문제": f"{args.version or '전체'} `{args.split}` {len(기록)}건",
             "모델": ", ".join(모델) or "LLM 을 부르지 않음",
-            # 결과를 낸 프롬프트와 코드는 실행한 때의 커밋이다
-            "코드": 실행_코드,
         }
+        if 후보 is not None:
+            # 모델마다 부르는 곳과 설정이 달라, 시간과 비용을 읽을 때 함께 봐야 한다
+            머리말["부르는 곳"] = 후보.place
+            머리말["모델 설정"] = 후보.describe()
+        # 결과를 낸 프롬프트와 코드는 실행한 때의 커밋이다
+        머리말["코드"] = 실행_코드
         if args.load:
             머리말["다시 채점한 코드"] = 지금_코드
         if 맞춘_기준 is not None:
             머리말["이 문제에서 맞춘 기준값"] = f"{맞춘_기준} (목표 {args.fit_target:.0%})"
         if 맞춘_막연_기준 is not None:
             머리말["이 문제에서 맞춘 막연함 확률 기준값"] = str(맞춘_막연_기준)
-        본문 = to_markdown(runs=runs, thr=Thresholds(scenario=기준, vague=막연_기준), 머리말=머리말)
+        본문 = to_markdown(
+            runs=runs, thr=Thresholds(scenario=기준, vague=막연_기준), 머리말=머리말,
+            제목=f"Normalize 모델 비교: {args.model}" if args.model else None,
+        )
         if not args.out:
             print(본문)
             continue
@@ -294,11 +324,15 @@ def _실험(args, 기록: list[dict]) -> None:
 
 
 def main() -> None:
+    from eval.model_candidates import CANDIDATES
+
     ap = argparse.ArgumentParser(description="라우터 골든셋 평가")
     ap.add_argument("--split", default="test", choices=["dev", "test", "all"])
     ap.add_argument("--version", default="v2", help="문제 버전. all 이면 모든 파일")
     ap.add_argument("--out", help="리포트를 파일로 저장")
     ap.add_argument("--condition", help="실험 조건. 주면 시나리오 결정 실험으로 돈다")
+    ap.add_argument("--model", choices=sorted(CANDIDATES),
+                    help="Normalize 에 끼울 후보 모델. 주면 모델 비교 실험으로 돈다. 조건을 주지 않으면 a2 로 돈다")
     ap.add_argument("--runs", type=int, default=3, help="반복 횟수 (실험)")
     ap.add_argument("--concurrency", type=int, default=1, help="동시에 보낼 문제 수 (실험)")
     ap.add_argument("--threshold", help="시나리오 확률 기준값. 쉼표로 여럿 주면 기준값마다 리포트를 낸다")
@@ -316,6 +350,10 @@ def main() -> None:
     if not 기록:
         print(f"골든셋이 없다: {GOLDEN_DIR} (split={args.split}, version={args.version})")
         return
+
+    if args.model and not args.condition:
+        # 모델만 바꿔 견줄 때는 서비스가 쓰는 방식 그대로 돌린다
+        args.condition = "a2"
 
     if args.condition:
         if args.fit_target is not None and args.split != "dev":

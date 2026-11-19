@@ -114,7 +114,7 @@ def _실험_인자(**값):
     import argparse
 
     기본 = dict(condition="b0", runs=1, concurrency=1, threshold=None, vague_threshold=None,
-              dump=None, load=None, fit_target=None, version="v2", split="dev", out=None)
+              dump=None, load=None, fit_target=None, version="v2", split="dev", out=None, model=None)
     return argparse.Namespace(**{**기본, **값})
 
 
@@ -154,3 +154,79 @@ def test_커밋을_적기_전에_저장한_결과도_읽는다(tmp_path):
     runs, 코드 = _실행_결과_읽기(예전, 기록)
     assert len(runs[0]) == 1
     assert 코드.startswith("알 수 없음")
+
+
+def test_모델을_고른_리포트에는_부르는_곳과_모델_설정이_들어간다(tmp_path):
+    """모델마다 부르는 곳과 설정이 달라, 시간과 비용을 읽으려면 리포트에 함께 있어야 한다."""
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "haiku.json"
+    저장.write_text(json.dumps({"코드": "c1", "runs": [[{
+        "id": "q1", "seconds": 1.2, "error": "",
+        "calls": [{"model": "claude-haiku-5-5", "input_tokens": 3000, "output_tokens": 100, "seconds": 1.1}],
+        "outcome": {"spec": {"request_type": "SEARCH"}, "scenario": "S2_SEARCH", "parsed": True},
+    }]]}), encoding="utf-8")
+    리포트 = tmp_path / "haiku.md"
+
+    run_router_eval._실험(
+        _실험_인자(condition="a2", model="claude-haiku-5-5", load=str(저장), out=str(리포트)), 기록)
+
+    글 = 리포트.read_text(encoding="utf-8")
+    assert 글.startswith("# Normalize 모델 비교: claude-haiku-5-5")
+    assert "- 모델: claude-haiku-5-5" in 글
+    assert "- 부르는 곳: Anthropic API" in 글
+    assert "- 모델 설정: temperature 보내지 않음" in 글
+    assert "양식을 못 지킨 답의 비율 | 0.0%" in 글
+    # 가격표에 있는 모델이라 비용이 나온다
+    assert "1,000건당 비용(달러) | 0.350" in 글
+
+
+def test_모델을_고르지_않은_리포트는_전과_같다(tmp_path):
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "b0.json"
+    저장.write_text(json.dumps({"코드": "c1", "runs": [[{
+        "id": "q1", "seconds": 0.1, "calls": [], "error": "",
+        "outcome": {"spec": {"request_type": "SEARCH"}, "scenario": "S2_SEARCH"},
+    }]]}), encoding="utf-8")
+    리포트 = tmp_path / "b0.md"
+
+    run_router_eval._실험(_실험_인자(load=str(저장), out=str(리포트)), 기록)
+
+    글 = 리포트.read_text(encoding="utf-8")
+    assert 글.startswith("# 시나리오 결정 실험: B0")
+    assert "부르는 곳" not in 글 and "모델 설정" not in 글
+
+
+def test_모델만_주면_서비스가_쓰는_조건으로_돈다(monkeypatch):
+    import sys
+
+    from eval import run_router_eval
+
+    받은 = {}
+    monkeypatch.setattr(run_router_eval, "_실험", lambda args, 기록: 받은.update(vars(args), 문제_수=len(기록)))
+    monkeypatch.setattr(sys, "argv", ["run_router_eval", "--model", "qwen-plus", "--split", "dev", "--runs", "1"])
+
+    run_router_eval.main()
+
+    assert (받은["condition"], 받은["model"]) == ("a2", "qwen-plus")
+    assert 받은["문제_수"] == 240
+
+
+def test_후보에_없는_모델은_받지_않는다(monkeypatch):
+    import sys
+
+    from eval import run_router_eval
+
+    monkeypatch.setattr(sys, "argv", ["run_router_eval", "--model", "qwen3.8-max"])
+
+    with pytest.raises(SystemExit):
+        run_router_eval.main()

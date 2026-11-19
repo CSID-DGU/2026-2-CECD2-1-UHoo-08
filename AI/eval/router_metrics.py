@@ -64,6 +64,8 @@ class Outcome:
     # LLM 과 Jev 가 고른 요청 종류를 견준 결과. 견주지 않는 조건은 None
     # same: 처음부터 같았다, resolved: 다시 해석해 같아졌다, unresolved: 끝까지 달라 사용자에게 묻는다
     agreement: Optional[str] = None
+    # LLM 의 답을 스펙으로 읽었는가. 한 번 묻고, 못 읽으면 한 번 더 묻는 조건만 낸다. 나머지는 None
+    parsed: Optional[bool] = None
 
 
 @dataclass
@@ -184,6 +186,34 @@ def clarify_precision_recall(
         fp += (not 정답) and 예측
         fn += 정답 and not 예측
     return _비율(tp, tp + fp), _비율(tp, tp + fn)
+
+
+def _읽었는지_낸_문제(trials: Sequence[Trial]) -> list[Trial]:
+    return [t for t in trials if t.outcome is not None and t.outcome.parsed is not None]
+
+
+def format_failure_rate(trials: Sequence[Trial]) -> Optional[float]:
+    """LLM 의 답 가운데 양식에 맞지 않아 읽지 못한 답의 비율.
+
+    질문마다 부른 횟수에서 읽어 낸 답(끝내 읽었으면 하나)을 뺀 것이 못 읽은 답이다.
+    답을 읽었는지를 내는 조건만 값이 나온다. 오류가 나서 결과가 없는 질문은 세지 않는다.
+    """
+    못_읽음 = 부름 = 0
+    for t in _읽었는지_낸_문제(trials):
+        부름 += len(t.calls)
+        못_읽음 += max(0, len(t.calls) - int(t.outcome.parsed))
+    return _비율(못_읽음, 부름)
+
+
+def unread_rate(trials: Sequence[Trial]) -> Optional[float]:
+    """다시 물어도 끝내 답을 읽지 못한 질문의 비율. 이런 질문은 되묻기로 넘어간다."""
+    대상 = _읽었는지_낸_문제(trials)
+    return _비율(sum(not t.outcome.parsed for t in 대상), len(대상))
+
+
+def error_rate(trials: Sequence[Trial]) -> Optional[float]:
+    """실행 중 오류가 나서 결과가 없는 질문의 비율."""
+    return _비율(sum(t.outcome is None for t in trials), len(trials))
 
 
 def _확률_있는_문제(trials: Sequence[Trial]) -> list[Trial]:
@@ -332,6 +362,7 @@ def to_records(runs: Sequence[Sequence[Trial]]) -> list[list[dict]]:
                     "vague_prob": t.outcome.vague_prob,
                     "extracts_values": t.outcome.extracts_values,
                     "agreement": t.outcome.agreement,
+                    "parsed": t.outcome.parsed,
                 },
                 "seconds": t.seconds,
                 "calls": [
@@ -421,6 +452,9 @@ def summarize_run(trials: Sequence[Trial], thr: Thresholds) -> dict[str, Optiona
         "값 일치율": value_match_rate(trials),
         "되묻기 정밀도": 정밀도,
         "되묻기 재현율": 재현율,
+        "양식을 못 지킨 답의 비율": format_failure_rate(trials),
+        "끝내 읽지 못한 질문 비율": unread_rate(trials),
+        "오류가 난 질문 비율": error_rate(trials),
         "시나리오 확률의 오차": scenario_calibration_error(trials),
         "막연함 확률의 오차": vague_calibration_error(trials),
         "걸린 시간 가운데 값(초)": percentile(시간, 50),
@@ -483,6 +517,7 @@ def _숫자(v: Optional[float], 퍼센트: bool) -> str:
 
 _퍼센트_항목 = {
     "시나리오 일치율", "값 일치율", "되묻기 정밀도", "되묻기 재현율",
+    "양식을 못 지킨 답의 비율", "끝내 읽지 못한 질문 비율", "오류가 난 질문 비율",
 }
 
 
@@ -491,9 +526,13 @@ def to_markdown(
     runs: Sequence[Sequence[Trial]],
     thr: Thresholds,
     머리말: dict[str, str],
+    제목: Optional[str] = None,
 ) -> str:
-    """조건 하나의 리포트. 머리말에는 날짜, 조건, 모델 같은 실행 정보를 넣는다."""
-    줄 = [f"# 시나리오 결정 실험: {머리말.get('조건', '')}", ""]
+    """조건 하나의 리포트. 머리말에는 날짜, 조건, 모델 같은 실행 정보를 넣는다.
+
+    제목을 주지 않으면 시나리오 결정 실험의 조건 이름으로 단다.
+    """
+    줄 = [f"# {제목 or '시나리오 결정 실험: ' + 머리말.get('조건', '')}", ""]
     줄 += [f"- {키}: {값}" for 키, 값 in 머리말.items()]
     줄 += [
         f"- 반복: {len(runs)}번",
