@@ -145,12 +145,11 @@ async def parse_query(
     *,
     system: str = QUERY_NORMALIZE_SYSTEM,
     temperature: float = 0.0,
-    model: type[QuerySpec] = QuerySpec,
 ) -> QuerySpec | None:
     """LLM 에 물어 QuerySpec 을 만든다. 두 번 시도해도 읽지 못하면 None.
 
-    프롬프트와 temperature, 읽어 들일 양식을 바꿔 부를 수 있게 노드에서 떼어 두었다.
-    평가 도구가 같은 해석 과정을 다른 설정으로 태워 견준다. raw 는 로그에만 쓴다.
+    프롬프트와 temperature 를 바꿔 부를 수 있게 노드에서 떼어 두었다. 평가 도구가
+    같은 해석 과정을 다른 설정으로 태워 견준다. raw 는 로그에만 쓴다.
     """
     # 부를 일이 생긴 뒤에 가져온다. 최상단에 두면 설정과 SDK 를 통째로 불러온다.
     from services.llm import LLMRole, get_llm
@@ -163,7 +162,7 @@ async def parse_query(
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue
         try:
-            spec = model.model_validate(
+            spec = QuerySpec.model_validate(
                 _응답_다듬기(원본) if isinstance(원본, dict) else 원본
             )
         except ValidationError as e:
