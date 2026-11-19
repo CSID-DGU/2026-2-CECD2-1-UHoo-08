@@ -12,6 +12,7 @@
 종류가 같은 이름으로 맞는다. 해석 결과의 종류는 노드가 한 번 더 표준 이름으로
 바꾼다(graph/nodes/normalize.py).
 """
+
 from prompts.product_types_text import (
     group_text,
     query_category_lines,
@@ -37,14 +38,17 @@ QUERY_NORMALIZE_SYSTEM = """사용자가 화장품을 찾는 문장을 분석해
   "exclude_ingredients": [],
   "target": "SELF | POPULAR | OTHER",
   "use_env": false,
-  "value_seeking": false,
-  "confidence": 0.0~1.0
+  "value_seeking": false
 }
 
 [request_type]
 - SEARCH   조건으로 찾아 달라  "여름에 안 무너지는 쿠션"
 - EVALUATE 특정 상품이 어떤지 묻는다  "라네즈 네오쿠션 21호 어때?"
+  특정 상품을 대신할 것, 그 상품과 비슷한 것을 찾는 요청도 EVALUATE 다. 그 상품을 base_product_ref 에 적는다
+  "에스트라 아토베리어 크림 대신 쓸 만한 거", "헤라 블랙쿠션이랑 비슷한 제품"
 - BUNDLE   예산 안에서 여러 단계를 묶어 달라  "10만원으로 스킨케어 세트"
+  예산을 말하지 않아도 세트나 루틴을 짜 달라는 요청은 BUNDLE 이다. budget.total 은 null 로 둔다
+  "지성 피부 스킨케어 루틴 짜줘"
 - REFINE   방금 결과에 조건을 더한다  "더 저렴한 걸로", "매트한 걸로 바꿔줘"
 
 [category]
@@ -77,10 +81,6 @@ __특징_절__
 - target: 본인 기준이면 SELF, "요즘 인기 있는" 이면 POPULAR,
   "20대 지성 피부인 친구에게" 처럼 다른 사람 조건이면 OTHER
 
-[confidence]
-무엇을 원하는지 얼마나 분명한지. 문장이 짧고 모호하면 낮춘다.
-"추천해줘" 처럼 조건이 하나도 없으면 0.3 이하.
-
 [규칙]
 - 쿼리에 없는 값을 추측해 채우지 마라. 모르면 null, 빈 배열, 빈 객체로 둔다
 - 위에 적힌 키 외의 키를 만들지 마라
@@ -90,13 +90,16 @@ __특징_절__
 
 [예시]
 입력: "여름에 안 무너지는 세미매트 쿠션 3만원 이하"
-출력: {"request_type":"SEARCH","category":"base","base_product_ref":null,"budget":{"max":30000,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션","finish":"세미매트","lasting_power":"높음"},"conditions":["여름"],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.92}
+출력: {"request_type":"SEARCH","category":"base","base_product_ref":null,"budget":{"max":30000,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션","finish":"세미매트","lasting_power":"높음"},"conditions":["여름"],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
 
 입력: "라네즈 네오쿠션 21호 어때?"
-출력: {"request_type":"EVALUATE","category":"base","base_product_ref":"라네즈 네오쿠션 21호","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.95}
+출력: {"request_type":"EVALUATE","category":"base","base_product_ref":"라네즈 네오쿠션 21호","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"쿠션"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
+
+입력: "에스트라 아토베리어 크림 대신 쓸 만한 거 있어?"
+출력: {"request_type":"EVALUATE","category":"skincare","base_product_ref":"에스트라 아토베리어 크림","budget":{"max":null,"total":null},"bundle_steps":[],"features":{"product_type":"크림"},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}
 
 입력: "추천해줘"
-출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false,"confidence":0.2}"""
+출력: {"request_type":"SEARCH","category":null,"base_product_ref":null,"budget":{"max":null,"total":null},"bundle_steps":[],"features":{},"conditions":[],"exclude_ingredients":[],"target":"SELF","use_env":false,"value_seeking":false}"""
 
 # 본문에 JSON 중괄호가 많아 format 대신 자리 표시를 바꿔 끼운다
 QUERY_NORMALIZE_SYSTEM = (
@@ -106,3 +109,4 @@ QUERY_NORMALIZE_SYSTEM = (
     .replace("__특징_절__", query_feature_lines())
     .replace("__묶음_설명__", group_text())
 )
+

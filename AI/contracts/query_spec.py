@@ -12,7 +12,7 @@ LLM이 흔들릴 수 있는 곳이 Normalize 한 곳으로 좁혀지고, 골든�
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class RequestType(str, Enum):
@@ -113,7 +113,17 @@ class QuerySpec(BaseModel):
     use_env: bool = False       # "요즘 날씨에 맞는" → env_fit 점수 항목을 켠다
     value_seeking: bool = False  # "가성비" → value_signal 가중치를 올린다
 
-    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    @model_validator(mode="before")
+    @classmethod
+    def _예전_확신_점수_버리기(cls, 값):
+        """예전에 저장한 스펙에 남아 있는 confidence 를 버린다.
+
+        되물을지는 이제 양식이 얼마나 비었는지로 정한다(rules/clarify.py). 이 칸을
+        없앴지만, 조건 수정은 예전 job 의 스펙을 다시 읽으므로 받아는 준다.
+        """
+        if isinstance(값, dict) and "confidence" in 값 and "confidence" not in cls.model_fields:
+            값 = {키: v for 키, v in 값.items() if 키 != "confidence"}
+        return 값
 
     @field_validator("conditions", "exclude_ingredients")
     @classmethod
@@ -140,7 +150,7 @@ class QuerySpec(BaseModel):
         return tuple(빠진)
 
 
-# 요청 유형별 필수 필드. 하나라도 비면 되묻는다.
+# 요청 유형별 필수 필드. 하나라도 비면 되묻는다. 되물을지는 rules/clarify.py 가 정한다.
 #
 # LLM에게 "빠진 게 뭔지도 같이 알려줘"라고 시키지 않고 코드로 계산한다.
 # 값을 못 채운 모델이 무엇을 못 채웠는지는 정확히 아는 쪽이 이상하다.
@@ -151,12 +161,3 @@ REQUIRED_FIELDS: dict[RequestType, tuple[str, ...]] = {
     # REFINE 의 parent_job_id 는 질의가 아니라 화면에서 온다. state 가 갖는다.
     RequestType.REFINE: (),
 }
-
-# 이 아래면 무엇을 물어야 할지 모르는 상태로 본다. 그대로 태우면
-# 엉뚱한 시나리오로 가므로 되묻는다.
-CONFIDENCE_THRESHOLD = 0.6
-
-
-def needs_clarification(spec: QuerySpec) -> bool:
-    """되물어야 하는 질의인가."""
-    return bool(spec.missing_required()) or spec.confidence < CONFIDENCE_THRESHOLD

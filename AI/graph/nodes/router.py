@@ -6,7 +6,8 @@ WRITES: scenario, clarify_question, clarify_missing_fields
 LLM 을 부르지 않는다. 같은 값이면 언제나 같은 경로로 가야 하고, 그 보장이
 이 단계의 존재 이유다. 흔들릴 수 있는 자리는 Normalize 하나로 좁혀 둔다.
 
-되물을지도 여기서 정한다. 무엇이 비었는지는 QuerySpec 이 알고 있으므로
+되물을지도 여기서 정한다. LLM 이 매긴 확신 점수가 아니라 양식이 얼마나
+비었는지로 정한다(rules/clarify.py). 무엇이 비었는지를 알고 있으므로
 질문도 규칙으로 만든다. 문장을 LLM 에 맡기면 같은 상황에서 매번 다른 것을
 묻게 되고, 골든셋으로 잴 수 없다.
 
@@ -27,14 +28,10 @@ import logging
 
 from pydantic import ValidationError
 
-from contracts.query_spec import (
-    CONFIDENCE_THRESHOLD,
-    QuerySpec,
-    RequestType,
-    needs_clarification,
-)
+from contracts.query_spec import QuerySpec, RequestType
 from graph.registry import ROUTE
 from graph.state import GraphState
+from rules.clarify import missing_fields, needs_clarification
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +90,11 @@ async def router(state: GraphState) -> dict:
         logger.info("router: 이미 한 번 물었다. 있는 값으로 진행한다.")
         return 나감
 
-    빠진 = spec.missing_required()
+    빠진 = missing_fields(spec)
     if 빠진:
         나감["clarify_question"] = _질문.get(빠진[0], _막연할_때)
         나감["clarify_missing_fields"] = list(빠진)
     else:
-        # 필수 값은 다 있는데 무엇을 원하는지가 막연한 경우다.
-        assert spec.confidence < CONFIDENCE_THRESHOLD
+        # 필수 값은 다 있는데 찾을 단서가 하나도 없는 경우다.
         나감["clarify_question"] = _막연할_때
     return 나감

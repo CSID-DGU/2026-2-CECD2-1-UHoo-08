@@ -8,7 +8,6 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.query_spec import (
-    CONFIDENCE_THRESHOLD,
     REQUIRED_FIELDS,
     Budget,
     BundleStep,
@@ -16,7 +15,6 @@ from contracts.query_spec import (
     QuerySpec,
     RequestType,
     Target,
-    needs_clarification,
 )
 
 
@@ -88,21 +86,15 @@ def test_모든_요청_유형에_필수_필드표가_있다():
     assert set(REQUIRED_FIELDS) == set(RequestType)
 
 
-def test_확신이_낮으면_되묻는다():
-    낮음 = QuerySpec(request_type=RequestType.SEARCH, confidence=CONFIDENCE_THRESHOLD - 0.01)
-    높음 = QuerySpec(request_type=RequestType.SEARCH, confidence=CONFIDENCE_THRESHOLD)
-    assert needs_clarification(낮음) is True
-    assert needs_clarification(높음) is False
+def test_예전_스펙에_남은_확신_점수는_버리고_읽는다():
+    """조건 수정은 예전 job 의 스펙을 다시 읽는다. 없앤 칸 때문에 깨지면 안 된다."""
+    spec = QuerySpec.model_validate({"request_type": "SEARCH", "category": "base", "confidence": 0.9})
+    assert "confidence" not in spec.model_dump()
 
 
-def test_필수_필드가_비면_확신이_높아도_되묻는다():
-    spec = QuerySpec(request_type=RequestType.EVALUATE, confidence=1.0)
-    assert needs_clarification(spec) is True
-
-
-def test_confidence_는_0에서_1_사이다():
+def test_확신_점수_말고_모르는_키는_여전히_거부한다():
     with pytest.raises(ValidationError):
-        QuerySpec(request_type=RequestType.SEARCH, confidence=1.5)
+        QuerySpec.model_validate({"request_type": "SEARCH", "mood": "설렘"})
 
 
 def test_빈_라벨의_세트_단계를_거부한다():

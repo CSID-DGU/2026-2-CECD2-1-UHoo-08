@@ -66,7 +66,7 @@ async def test_이전_질의에_선택지를_합치고_재정렬한다(대역):
     나옴 = await 노드.refine(_상태())
 
     스펙 = 나옴["query_spec"]
-    assert 스펙["request_type"] == "REFINE" and 스펙["confidence"] == 1.0
+    assert 스펙["request_type"] == "REFINE"
     assert 스펙["category"] == "base" and 스펙["budget"]["max"] == 24000
     assert 스펙["features"] == {"product_type": "쿠션"} and 스펙["conditions"] == ["여름"]
     assert 나옴["refine_mode"] == 노드.재정렬

@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     LLM_AD_BASE_URL: str = ""
     LLM_AD_API_KEY: str = ""
 
+    # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
+    # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.
+    # 별칭(jev-latest) 대신 버전을 적어 둔다. 별칭은 가리키는 모델이 바뀌어
+    # 같은 실험을 다시 돌렸을 때 결과를 견줄 수 없다.
+    TYPESAFE_API_KEY: str = ""
+    TYPESAFE_BASE_URL: str = "https://api.typesafe.ai"
+    TYPESAFE_MODEL: str = "jev-1.14.0"
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str

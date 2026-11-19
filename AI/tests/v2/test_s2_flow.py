@@ -109,7 +109,7 @@ def _처음_상태():
         "query_spec": {
             "request_type": "SEARCH", "category": "base", "target": "SELF",
             "features": {"product_type": "쿠션", "finish": "매트"},
-            "conditions": ["여름"], "budget": {"max": 30000}, "confidence": 0.9,
+            "conditions": ["여름"], "budget": {"max": 30000},
         },
         "user_profile": {"skin_type": "OILY", "personal_color": "SPRING_WARM", "skin_concerns": []},
         "weight_prior": None,
