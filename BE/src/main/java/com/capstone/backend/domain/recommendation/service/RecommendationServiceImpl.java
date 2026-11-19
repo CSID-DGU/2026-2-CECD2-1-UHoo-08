@@ -175,14 +175,9 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     private void recordInterpretation(Recommendation job) {
-        Float confidence = null;
-        JsonNode spec = readTreeOrMissing(job.getQuerySpec(), job.getId());
-        if (spec.path("confidence").isNumber()) {
-            confidence = spec.path("confidence").floatValue();
-        }
         for (SearchLog searchLog : searchLogRepository.findByJobId(job.getId())) {
             if (searchLog.isInterpretationEmpty()) {
-                searchLog.recordInterpretation(job.getScenario(), job.getQuerySpec(), confidence);
+                searchLog.recordInterpretation(job.getScenario(), job.getQuerySpec());
             }
         }
     }

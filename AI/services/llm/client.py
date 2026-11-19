@@ -10,11 +10,14 @@ DashScope 도 Gemini 도 OpenAI 호환 주소를 주므로, 모델·주소·키�
 
 동기 SDK 를 to_thread 로 감싸 async 로 내보낸다. FastAPI 안에서 그대로
 부르면 이벤트 루프가 멈춘다.
+
+호출마다 모델, 토큰 수, 걸린 시간을 기록한다(services.llm.usage).
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import time
 from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, Optional
@@ -22,6 +25,7 @@ from typing import Any, Dict, Optional
 from openai import OpenAI
 
 from config import settings
+from services.llm.usage import LLMCall, record, token_counts
 
 
 class LLMRole(str, Enum):
@@ -69,9 +73,17 @@ def _설정(role: LLMRole) -> tuple[str, str, str]:
 class LLMClient:
     """채팅 호출 래퍼. 동기 SDK를 to_thread로 감싸 async 노출."""
 
-    def __init__(self, model: str, base_url: str, api_key: str) -> None:
+    def __init__(
+        self,
+        model: str,
+        base_url: str,
+        api_key: str,
+        role: Optional[LLMRole] = None,
+    ) -> None:
         self._client = OpenAI(api_key=api_key, base_url=base_url)
         self._model = model
+        # 기록에 남길 역할 이름. 역할 없이 직접 만든 클라이언트면 비워 둔다.
+        self._role = role.value if role is not None else ""
 
     async def chat(
         self,
@@ -87,8 +99,11 @@ class LLMClient:
         response_json=True면 response_format을 json_object로 강제하고
         파싱 가능한 JSON 문자열만 반환.
         timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
+
+        성공하든 실패하든 호출 기록을 하나 남긴다. 실패한 호출도 시간을 썼고,
+        빼면 느린 쪽 시간이 실제보다 좋게 나온다.
         """
-        def _do_call() -> str:
+        def _do_call() -> tuple[str, Any]:
             kwargs: Dict[str, Any] = {
                 "model": self._model,
                 "messages": [
@@ -102,9 +117,28 @@ class LLMClient:
             if timeout is not None:
                 kwargs["timeout"] = timeout
             resp = self._client.chat.completions.create(**kwargs)
-            return resp.choices[0].message.content or ""
+            return resp.choices[0].message.content or "", getattr(resp, "usage", None)
 
-        return await asyncio.to_thread(_do_call)
+        시작 = time.perf_counter()
+        try:
+            내용, usage = await asyncio.to_thread(_do_call)
+        except (Exception, asyncio.CancelledError):
+            # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
+            self._기록(시작, usage=None, ok=False)
+            raise
+        self._기록(시작, usage=usage, ok=True)
+        return 내용
+
+    def _기록(self, 시작: float, usage: Any, ok: bool) -> None:
+        입력, 출력 = token_counts(usage)
+        record(LLMCall(
+            role=self._role,
+            model=self._model,
+            input_tokens=입력,
+            output_tokens=출력,
+            seconds=time.perf_counter() - 시작,
+            ok=ok,
+        ))
 
     async def chat_json(
         self,
@@ -131,4 +165,4 @@ class LLMClient:
 def get_llm(role: LLMRole) -> LLMClient:
     """역할 하나에 클라이언트 하나. 같은 역할은 매번 같은 것을 돌려준다."""
     모델, 주소, 키 = _설정(role)
-    return LLMClient(model=모델, base_url=주소, api_key=키)
+    return LLMClient(model=모델, base_url=주소, api_key=키, role=role)

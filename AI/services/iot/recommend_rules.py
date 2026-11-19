@@ -206,6 +206,13 @@ def build_node_candidates(hist: NodeHistory, label: str) -> List[Candidate]:
     return out
 
 
+def _주_종류(값: Any) -> str:
+    """제품 종류 하나. 경계가 모호한 상품은 종류가 목록이라 첫 번째를 쓴다."""
+    if isinstance(값, list):
+        값 = next(iter(값), None)
+    return 값.strip() if isinstance(값, str) else ""
+
+
 def product_blurb(feat: Optional[Dict[str, Any]]) -> Optional[str]:
     """
     이 제품이 어떤 제품인지 한 줄.
@@ -216,7 +223,7 @@ def product_blurb(feat: Optional[Dict[str, Any]]) -> Optional[str]:
     feature_json에 있는 값만 쓴다. 없는 항목은 조용히 건너뛴다.
     """
     f = feat or {}
-    ptype = (f.get("product_type") or "").strip()
+    ptype = _주_종류(f.get("product_type"))
 
     head = _FINISH_WORD.get((f.get("finish") or "").strip()) \
         or _TEXTURE_WORD.get((f.get("texture") or "").strip())

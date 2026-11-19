@@ -10,7 +10,7 @@ from graph.nodes.router import router
 
 
 def _스펙(**덮어쓰기) -> dict:
-    기본 = dict(request_type=RequestType.SEARCH, confidence=0.9)
+    기본 = dict(request_type=RequestType.SEARCH, category="base")
     기본.update(덮어쓰기)
     return QuerySpec(**기본).model_dump(mode="json")
 
@@ -28,8 +28,10 @@ async def test_요청_유형이_경로를_정한다(유형, 기대):
         RequestType.BUNDLE: {"budget": Budget(total=100_000),
                              "bundle_steps": [BundleStep(label="토너")]},
     }.get(유형, {})
-    나옴 = await router({"query_spec": _스펙(request_type=유형, **채움),
-                        "parent_job_id": "j0"})
+    상태 = {"query_spec": _스펙(request_type=유형, **채움)}
+    if 유형 is RequestType.REFINE:
+        상태["parent_job_id"] = "j0"
+    나옴 = await router(상태)
     assert 나옴["scenario"] == 기대
     assert 나옴["clarify_question"] is None
 
@@ -68,8 +70,8 @@ async def test_예산_세트에서_빠진_것만_알린다(채움, 기대):
 
 @pytest.mark.asyncio
 async def test_막연한_질의는_조건을_더_묻는다():
-    """필수 값은 다 있는데 무엇을 원하는지가 분명하지 않은 경우다."""
-    나옴 = await router({"query_spec": _스펙(confidence=0.2)})
+    """필수 값은 다 있는데 찾을 단서가 하나도 없는 경우다."""
+    나옴 = await router({"query_spec": _스펙(category=None)})
     assert 나옴["scenario"] == "S2_SEARCH"
     assert "조금 더" in 나옴["clarify_question"]
     assert 나옴["clarify_missing_fields"] == []
@@ -78,7 +80,7 @@ async def test_막연한_질의는_조건을_더_묻는다():
 @pytest.mark.asyncio
 async def test_이미_한_번_물었으면_그냥_진행한다():
     """계속 물으면 사용자는 결과를 영영 보지 못한다."""
-    나옴 = await router({"query_spec": _스펙(confidence=0.1), "clarify_count": 1})
+    나옴 = await router({"query_spec": _스펙(category=None), "clarify_count": 1})
     assert 나옴 == {
         "scenario": "S2_SEARCH", "clarify_question": None, "clarify_missing_fields": [],
     }
@@ -103,9 +105,31 @@ async def test_스펙이_깨져_있으면_되묻는다():
 
 @pytest.mark.asyncio
 async def test_해석하지_못한_질의는_되묻는다():
-    """Normalize 가 두 번 실패하면 확신도 0 으로 내보낸다."""
-    나옴 = await router({"query_spec": _스펙(confidence=0.0)})
+    """Normalize 가 두 번 실패하면 단서가 없는 빈 값을 내보낸다."""
+    나옴 = await router({"query_spec": _스펙(category=None)})
     assert 나옴["clarify_question"]
+
+
+@pytest.mark.asyncio
+async def test_단서가_있으면_되묻지_않는다():
+    """확신 점수가 아니라 양식이 얼마나 찼는지로 정한다."""
+    for 채움 in ({"category": "base"}, {"conditions": ["여름"]}, {"budget": Budget(max=30000)}):
+        나옴 = await router({"query_spec": _스펙(**{"category": None, **채움})})
+        assert 나옴["clarify_question"] is None
+
+
+@pytest.mark.asyncio
+async def test_평가인데_어떤_제품인지_알_수_없으면_제품을_묻는다():
+    """ "그 쿠션 어때?" 는 기준 제품 자리가 차 있어도 어떤 제품인지 알 수 없다."""
+    나옴 = await router({"query_spec": _스펙(
+        request_type=RequestType.EVALUATE, base_product_ref="그 쿠션")})
+    assert 나옴["scenario"] == "S1_EVALUATE"
+    assert "어떤 제품" in 나옴["clarify_question"]
+    assert 나옴["clarify_missing_fields"] == ["base_product_ref"]
+
+    나옴 = await router({"query_spec": _스펙(
+        request_type=RequestType.EVALUATE, base_product_ref="달바 워터풀 선크림")})
+    assert 나옴["clarify_question"] is None
 
 
 @pytest.mark.asyncio
@@ -130,3 +154,35 @@ async def test_한_번_물은_뒤에는_빠진_항목을_남기지_않는다():
     })
     assert 나옴["clarify_question"] is None
     assert 나옴["clarify_missing_fields"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("유형", [RequestType.SEARCH, RequestType.EVALUATE, RequestType.BUNDLE])
+async def test_이전_job이_있으면_유형과_상관없이_조건_수정으로_간다(유형):
+    """화면의 조건 추가는 "무향 제품으로" 처럼 조건 탐색으로 읽히는 문장을 보낸다.
+    그래도 이전 결과와 이어져야 한다."""
+    나옴 = await router({"query_spec": _스펙(request_type=유형), "parent_job_id": "j0"})
+    assert 나옴 == {
+        "scenario": "S7_REFINE", "clarify_question": None, "clarify_missing_fields": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_이전_job이_있으면_막연해도_되묻지_않는다():
+    """부족한 조건은 조건 수정 단계가 이전 질의에서 채운다."""
+    나옴 = await router({
+        "query_spec": _스펙(category=None),
+        "parent_job_id": "j0",
+        "clarify_question": "어떤 제품을 찾으시는지 조금 더 알려주세요.",
+        "clarify_missing_fields": ["base_product_ref"],
+    })
+    assert 나옴["scenario"] == "S7_REFINE"
+    assert 나옴["clarify_question"] is None
+    assert 나옴["clarify_missing_fields"] == []
+
+
+@pytest.mark.asyncio
+async def test_이전_job이_있으면_스펙이_깨져도_되묻지_않는다():
+    나옴 = await router({"query_spec": {"request_type": "NOPE"}, "parent_job_id": "j0"})
+    assert 나옴["scenario"] == "S7_REFINE"
+    assert 나옴["clarify_question"] is None

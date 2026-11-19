@@ -92,7 +92,9 @@ def 저장소(monkeypatch):
 
 
 def test_기본_가중치의_키가_점수_항목과_같다():
-    assert set(preference_apply.기본_가중치) == set(SCORE_LABELS)
+    """similarity 는 대체 후보가 기준 상품과 비슷한 정도를 보여 주는 이름이다.
+    총점에 섞는 항목이 아니라 가중치가 없다."""
+    assert set(preference_apply.기본_가중치) == set(SCORE_LABELS) - {"similarity"}
 
 
 @pytest.mark.asyncio

@@ -1,12 +1,13 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Heart, Smile, Layers, Sun, Droplets, Folder } from "lucide-react";
+import { Heart, Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder } from "lucide-react";
 import { type ProductDetail, type StoreInfo, getProductDetail, recordProductView } from "../../api/productApi";
 import { addWishlist, deleteWishlist } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import { ProductThumbnail } from "../../components/common/ProductThumbnail";
 import { beginSearchAnalysis, withDeadline } from "../../lib/searchAnalysis";
 import AppLayout from "../../layouts/AppLayout";
+import { CompatibilityNotice } from "../../components/product/CompatibilityNotice";
 
 function fmt(n: number | null | undefined) {
   if (n == null) return null;
@@ -18,6 +19,8 @@ const FOLDERS = [
   { key: "base", label: "Base", Icon: Layers },
   { key: "sun", label: "Sun", Icon: Sun },
   { key: "skincare", label: "Skincare", Icon: Droplets },
+  { key: "eye", label: "Eye", Icon: Eye },
+  { key: "cheek", label: "Cheek", Icon: Sparkles },
   { key: "other", label: "기타", Icon: Folder },
 ];
 
@@ -196,6 +199,8 @@ export function ProductDetailPage() {
           </div>
         )}
 
+        {/* 보유 제품과의 궁합. 문제가 있을 때만 보인다 */}
+        {productId && <CompatibilityNotice productId={productId} />}
 
         {/* 주요 성분 */}
         {ingredients && ingredients.length > 0 && (
@@ -313,9 +318,14 @@ export function ProductDetailPage() {
       {/* 카테고리 선택 바텀시트 */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showCategorySheet}
         style={{
           transform: showCategorySheet ? "translateY(0)" : "translateY(105%)",
-          transition: sheetEverOpened ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+          // 닫힌 시트가 화면 아래로 비쳐 보이지 않게 닫히는 애니메이션 뒤에 숨긴다.
+          visibility: showCategorySheet ? "visible" : "hidden",
+          transition: sheetEverOpened
+            ? `transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear ${showCategorySheet ? "0s" : "0.32s"}`
+            : "none",
           willChange: "transform",
         }}
       >

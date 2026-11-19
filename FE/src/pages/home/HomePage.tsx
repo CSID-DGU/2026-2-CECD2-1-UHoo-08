@@ -76,12 +76,12 @@ export function HomePage() {
             </header>
             <div className="px-5">
               <div className="mb-4">
-                <HomeSearchPrompt onSubmit={handleSearch} />
+                <HomeSearchPrompt onOpen={() => navigate("/search")} />
               </div>
 
               <HomeHero
                 onSearch={handleSearch}
-                onEvaluate={() => navigate("/recommendation/lookup")}
+                onEvaluate={() => navigate("/search?pick=evaluate")}
               />
 
               <HomeOverview />

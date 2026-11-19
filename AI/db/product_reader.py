@@ -10,6 +10,8 @@ import json
 from typing import Dict, List, Optional, TypedDict
 
 from db.supabase_client import get_supabase
+# 아래 함수 인자 product_types 와 이름이 겹쳐 다른 이름으로 가져온다
+from rules.product_types import matches, product_types as 상품의_종류
 
 
 class ProductMeta(TypedDict):
@@ -135,14 +137,59 @@ def get_product_features(product_ids: List[str]) -> Dict[str, Dict]:
 
     out: Dict[str, Dict] = {}
     for r in rows:
-        f = r.get("feature_json")
-        if isinstance(f, str):
-            try:
-                f = json.loads(f)
-            except (ValueError, TypeError):
-                f = None
-        if isinstance(f, dict):
+        f = _parse_feature_json(r.get("feature_json"))
+        if f is not None:
             out[r["product_id"]] = f
+    return out
+
+
+def _parse_feature_json(f) -> Optional[Dict]:
+    """feature_json 은 컬럼 타입이 text 라 문자열로 오는 경우가 있어 둘 다 받는다."""
+    if isinstance(f, str):
+        try:
+            f = json.loads(f)
+        except (ValueError, TypeError):
+            return None
+    return f if isinstance(f, dict) else None
+
+
+_FULL_COLUMNS = (
+    "product_id, name, brand, category, image_url, original_price, lowest_price, "
+    "feature_json, average_score, review_count"
+)
+
+
+def get_products_full(product_ids: List[str]) -> Dict[str, Dict]:
+    """
+    추천 노드가 함께 쓰는 상품 정보. {product_id: {...}} 딕셔너리 반환.
+
+    feature_json 은 파싱한 dict 로, 파싱할 수 없으면 빈 dict 로 담는다.
+    존재하지 않는 id 는 결과에서 빠진다. 한 번에 1,000 개 넘게 부르지 않는다
+    (호출 쪽이 나눠서 부른다).
+    """
+    if not product_ids:
+        return {}
+    sb = get_supabase()
+    rows = (
+        sb.table("products")
+        .select(_FULL_COLUMNS)
+        .in_("product_id", product_ids)
+        .execute()
+    ).data or []
+
+    out: Dict[str, Dict] = {}
+    for r in rows:
+        out[r["product_id"]] = {
+            "name": r.get("name"),
+            "brand": r.get("brand"),
+            "category": r.get("category"),
+            "image_url": r.get("image_url"),
+            "original_price": r.get("original_price"),
+            "lowest_price": r.get("lowest_price"),
+            "feature_json": _parse_feature_json(r.get("feature_json")) or {},
+            "average_score": r.get("average_score"),
+            "review_count": r.get("review_count"),
+        }
     return out
 
 
@@ -243,8 +290,9 @@ def search_products_by_traits(
 
         score = 0
         if wanted_types:
-            ptype = (feat.get("product_type") or "").strip()
-            if ptype in wanted_types:
+            # 종류가 여럿인 상품도 있고, 동의어와 묶음도 맞아야 한다(rules/product_types.py)
+            종류들 = 상품의_종류(feat)
+            if any(matches(t, 종류들) for t in wanted_types):
                 score += 2
         if wanted_concerns:
             have = {str(c).strip() for c in (feat.get("skin_concern") or []) if c}

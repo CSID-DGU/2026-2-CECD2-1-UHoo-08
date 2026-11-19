@@ -19,13 +19,9 @@ from google.genai import types
 
 from config import settings
 from db.supabase_client import get_supabase
+from rules.product_types import CATEGORY_NAMES
 
-_CATEGORY_LABEL = {
-    "base": "베이스 메이크업",
-    "sun": "선케어",
-    "lip": "립 메이크업",
-    "skincare": "스킨케어",
-}
+_CATEGORY_LABEL = CATEGORY_NAMES
 
 
 def _make_review_prompt(brand: str, name: str, n: int) -> str:
@@ -118,7 +114,7 @@ def collect_reviews(category: str, limit: int = 10, per_product: int = 8) -> Dic
     카테고리별 상품에 대해 Gemini Google Search로 실제 리뷰를 수집·적재.
 
     Args:
-        category: base | sun | lip | skincare
+        category: base | sun | lip | skincare | eye | cheek
         limit: 리뷰를 수집할 상품 수
         per_product: 상품당 목표 리뷰 수
     """

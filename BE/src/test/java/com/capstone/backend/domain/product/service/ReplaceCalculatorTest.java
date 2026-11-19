@@ -48,6 +48,8 @@ class ReplaceCalculatorTest {
             "sun, 2027-01-01",
             "skincare, 2027-01-01",
             "lip, 2027-07-01",
+            "eye, 2026-07-01",
+            "cheek, 2028-01-01",
             // 모르는 카테고리는 12개월
             "nail, 2027-01-01",
     })

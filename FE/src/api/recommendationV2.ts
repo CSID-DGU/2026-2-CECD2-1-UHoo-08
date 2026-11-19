@@ -16,7 +16,7 @@ export type Scenario =
   | "HOME_ENV"
   | "S4_REPLENISH";
 
-export type Category = "base" | "sun" | "lip" | "skincare";
+export type Category = "base" | "sun" | "lip" | "skincare" | "eye" | "cheek";
 
 /** 누구 기준으로 추천했는지. */
 export type Target = "SELF" | "POPULAR" | "OTHER";

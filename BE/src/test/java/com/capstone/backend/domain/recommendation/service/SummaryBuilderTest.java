@@ -65,6 +65,13 @@ class SummaryBuilderTest {
     }
 
     @Test
+    void 아이와_치크_카테고리도_한글_이름을_붙인다() throws Exception {
+        assertThat(SummaryBuilder.build(json("{\"category\":\"eye\"}"), 0, RecommendationBasis.SELF, null,
+                MissingNode.getInstance()).getCategoryLabel()).isEqualTo("아이 메이크업");
+        assertThat(RecommendationCategory.labelOf("cheek")).isEqualTo("치크 메이크업");
+    }
+
+    @Test
     void 세트_예산은_총액_문구로_붙인다() throws Exception {
         assertThat(SummaryBuilder.conditions(json("{\"conditions\":[],\"budgetTotal\":100000}")))
                 .containsExactly("총 10만원");

@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.internal.v2 import agent, feedback, router
+from services import home_runner
 from contracts.internal_api import CompatibilityCheckResponse, RecognizePhotosResponse
 
 app = FastAPI()
@@ -32,6 +33,11 @@ def _실행하지_않는다(monkeypatch):
     monkeypatch.setattr(agent, "_실행", 아무것도)
     monkeypatch.setattr(agent, "_이어_돌리기", 아무것도)
     monkeypatch.setattr(feedback, "_반영", 아무것도)
+
+    async def 홈_아무것도(user_id, kind):
+        return None
+
+    monkeypatch.setattr(home_runner, "run", 홈_아무것도)
 
 # docs/internal-api.md 와 같은 목록이다.
 POST_경로 = [
@@ -61,9 +67,14 @@ def test_피드백_반영은_stub이_아니다():
     assert not 응답.json().get("stub")
 
 
+# 실제로 실행되는 경로. 추천 실행은 결과 조립 단계가 생기면서 열렸다.
+# 홈 실행은 그 경로의 필수 단계(B)가 들어오기 전까지 stub 이다(test_home_runner.py).
+_실행되는_경로 = {"/internal/feedback/apply", "/internal/agent/run/v2", "/internal/agent/clarify"}
+
+
 @pytest.mark.parametrize(
     "경로, 본문, _",
-    [경로 for 경로 in POST_경로 if 경로[0] != "/internal/feedback/apply"],
+    [경로 for 경로 in POST_경로 if 경로[0] not in _실행되는_경로],
     ids=lambda v: v if isinstance(v, str) else "",
 )
 def test_아직_stub임을_알린다(경로, 본문, _):
@@ -154,3 +165,8 @@ def test_결과를_만들_수_있으면_실행을_건다(경로, 본문, 실행,
 
     assert client.post(경로, json=본문).json()["stub"] is False
     assert 실행_기록 == [실행]
+
+
+def test_결과_조립_단계가_있으면_추천을_실행한다():
+    assert agent._결과를_만들_수_있나() is True
+    assert client.post("/internal/agent/run/v2", json=POST_경로[0][1]).json()["stub"] is False

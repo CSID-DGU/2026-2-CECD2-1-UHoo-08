@@ -15,11 +15,11 @@ from services.review_collector import collect_reviews
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
 
-CATEGORIES = Literal["base", "sun", "lip", "skincare"]
+CATEGORIES = Literal["base", "sun", "lip", "skincare", "eye", "cheek"]
 
 
 class SeedReviewRequest(BaseModel):
-    category: CATEGORIES = Field(..., description="base | sun | lip | skincare")
+    category: CATEGORIES = Field(..., description="base | sun | lip | skincare | eye | cheek")
     limit: int = Field(10, ge=1, le=30, description="리뷰 수집 대상 상품 수")
     per_product: int = Field(8, ge=1, le=20, description="상품당 목표 리뷰 수")
     auto_embed: bool = Field(

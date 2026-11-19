@@ -31,6 +31,8 @@ async def update(
     error_msg: Optional[str] = None,
     result: Optional[Dict[str, Any]] = None,
     steps: Optional[List[Dict[str, Any]]] = None,
+    scenario: Optional[str] = None,
+    query_spec: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     recommendation_jobs row를 부분 갱신.
@@ -51,6 +53,11 @@ async def update(
         payload["result"] = result
     if steps is not None:
         payload["steps"] = steps
+    # BE 의 상태 조회는 scenario 를, 검색 기록과 조건 수정 이력은 query_spec 을 읽는다.
+    if scenario is not None:
+        payload["scenario"] = scenario
+    if query_spec is not None:
+        payload["query_spec"] = query_spec
 
     def _do_update():
         sb = get_supabase()

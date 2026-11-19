@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Droplets, Heart, PackagePlus, Settings } from "lucide-react";
+import { Bell, Compass, Droplets, Heart, PackagePlus, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   type UserMeResponse,
@@ -43,6 +43,12 @@ const MENU_ITEMS: {
     desc: "등록·수정, 개봉일과 보관 위치 관리",
     path: "/my/products",
     Icon: PackagePlus,
+  },
+  {
+    title: "화담 둘러보기",
+    desc: "화담에서 할 수 있는 일 다시 보기",
+    path: "/onboarding/intro?again=1",
+    Icon: Compass,
   },
   {
     title: "앱 설정 및 고객센터",

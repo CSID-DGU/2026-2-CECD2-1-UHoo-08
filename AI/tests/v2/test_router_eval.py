@@ -108,3 +108,49 @@ async def test_입력에_적힌_값을_그대로_넘긴다():
         한_건,
     )
     assert 받은["parent_job_id"] == "prev"
+
+
+def _실험_인자(**값):
+    import argparse
+
+    기본 = dict(condition="b0", runs=1, concurrency=1, threshold=None, vague_threshold=None,
+              dump=None, load=None, fit_target=None, version="v2", split="dev", out=None)
+    return argparse.Namespace(**{**기본, **값})
+
+
+def test_불러온_결과의_리포트에는_실행한_커밋과_다시_채점한_커밋을_따로_적는다(tmp_path, monkeypatch):
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "b0.json"
+    저장.write_text(json.dumps({"코드": "c1", "runs": [[{
+        "id": "q1", "seconds": 0.1, "calls": [], "error": None,
+        "outcome": {"spec": {"request_type": "SEARCH"}, "scenario": "S2_SEARCH"},
+    }]]}), encoding="utf-8")
+
+    monkeypatch.setattr(run_router_eval, "_코드_버전", lambda: "c2")
+    리포트 = tmp_path / "2.md"
+    다시_저장 = tmp_path / "again.json"
+    run_router_eval._실험(_실험_인자(load=str(저장), out=str(리포트), dump=str(다시_저장)), 기록)
+    글 = 리포트.read_text(encoding="utf-8")
+    assert "- 코드: c1" in 글
+    assert "- 다시 채점한 코드: c2" in 글
+    # 다시 저장해도 실행한 커밋이 남는다
+    assert json.loads(다시_저장.read_text(encoding="utf-8"))["코드"] == "c1"
+
+
+def test_커밋을_적기_전에_저장한_결과도_읽는다(tmp_path):
+    import json
+
+    from eval.run_router_eval import _실행_결과_읽기
+
+    기록 = [{"id": "q1", "input": {"raw_query": "q"}, "expected": {}, "tags": []}]
+    예전 = tmp_path / "old.json"
+    예전.write_text(json.dumps([[{"id": "q1", "outcome": None, "seconds": 0.1,
+                                  "calls": [], "error": "x"}]]), encoding="utf-8")
+    runs, 코드 = _실행_결과_읽기(예전, 기록)
+    assert len(runs[0]) == 1
+    assert 코드.startswith("알 수 없음")
