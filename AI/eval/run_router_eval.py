@@ -208,6 +208,19 @@ def _코드_버전() -> str:
         return "알 수 없음"
 
 
+def _실행_결과_읽기(경로: Path, 기록: list[dict]) -> tuple[list, str]:
+    """저장해 둔 실행 결과와, 그 결과를 낸 커밋.
+
+    커밋을 함께 적기 전의 파일은 실행 결과 목록만 있으므로 커밋을 알 수 없다.
+    """
+    from eval.router_metrics import from_records
+
+    적힌 = json.loads(경로.read_text(encoding="utf-8"))
+    if isinstance(적힌, list):
+        return from_records(적힌, 기록), "알 수 없음 (커밋을 적기 전에 저장한 파일)"
+    return from_records(적힌["runs"], 기록), 적힌.get("코드") or "알 수 없음"
+
+
 def _기준값_목록(글: str | None) -> list[float] | None:
     return [float(x) for x in 글.split(",")] if 글 else None
 
@@ -218,20 +231,22 @@ def _실험(args, 기록: list[dict]) -> None:
         Thresholds,
         fit_threshold,
         fit_vague_threshold,
-        from_records,
         to_markdown,
         to_records,
     )
 
     조건 = CONDITIONS[args.condition]
+    지금_코드 = _코드_버전()
     if args.load:
         # 이미 실행해 둔 결과를 읽는다. 기준값만 바꿔 다시 채점할 때 LLM 을 또 부르지 않는다
-        runs = from_records(json.loads(Path(args.load).read_text(encoding="utf-8")), 기록)
+        runs, 실행_코드 = _실행_결과_읽기(Path(args.load), 기록)
     else:
         runs = asyncio.run(run_condition(기록, 조건.run, args.runs, args.concurrency))
+        실행_코드 = 지금_코드
     if args.dump:
         Path(args.dump).write_text(
-            json.dumps(to_records(runs), ensure_ascii=False), encoding="utf-8")
+            json.dumps({"코드": 실행_코드, "runs": to_records(runs)}, ensure_ascii=False),
+            encoding="utf-8")
         print(f"실행 결과 저장: {args.dump}")
     모든_실행 = [t for run in runs for t in run]
     모델 = sorted({c.model for t in 모든_실행 for c in t.calls})
@@ -258,8 +273,11 @@ def _실험(args, 기록: list[dict]) -> None:
             "날짜": str(date.today()),
             "문제": f"{args.version or '전체'} `{args.split}` {len(기록)}건",
             "모델": ", ".join(모델) or "LLM 을 부르지 않음",
-            "코드": _코드_버전(),
+            # 결과를 낸 프롬프트와 코드는 실행한 때의 커밋이다
+            "코드": 실행_코드,
         }
+        if args.load:
+            머리말["다시 채점한 코드"] = 지금_코드
         if 맞춘_기준 is not None:
             머리말["이 문제에서 맞춘 기준값"] = f"{맞춘_기준} (목표 {args.fit_target:.0%})"
         if 맞춘_막연_기준 is not None:
