@@ -52,7 +52,7 @@ def test_버전을_주면_그_버전_문제만_읽는다():
     v1 = read_golden("test", "v1")
     v2 = read_golden("test", "v2")
     assert len(v1) == 36
-    assert len(v2) == 180
+    assert len(v2) == 360
     assert not {r["id"] for r in v1} & {r["id"] for r in v2}
 
 
