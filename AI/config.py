@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_PROJECT: str = ""
     GOOGLE_CLOUD_LOCATION: str = "global"
 
+    # 동국 AI Gateway (OpenAI 호환). 모델 비교 실험에서 Qwen 후보를 학교 크레딧으로
+    # 부를 때만 쓴다(eval/model_candidates.py). 서비스는 읽지 않는다.
+    QWEN_GATEWAY_BASE_URL: str = ""
+    QWEN_GATEWAY_API_KEY: str = ""
+
     # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
     # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.
     # 별칭(jev-latest) 대신 버전을 적어 둔다. 별칭은 가리키는 모델이 바뀌어

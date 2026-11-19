@@ -194,8 +194,8 @@ def test_비용은_기록된_토큰으로_계산한다():
         Trial(rec=_문제("a"), outcome=None, calls=[_호출("qwen-plus", 1_000_000, 0)]),
         Trial(rec=_문제("b"), outcome=None, calls=[_호출("qwen-plus", 0, 1_000_000)]),
     ]
-    # 입력 0.26 달러 + 출력 0.78 달러를 2건이 썼다 → 1,000건이면 520 달러
-    assert cost_per_1000(실행) == pytest.approx(520.0)
+    # 입력 0.40 달러 + 출력 1.20 달러를 2건이 썼다 → 1,000건이면 800 달러
+    assert cost_per_1000(실행) == pytest.approx(800.0)
 
 
 def test_가격을_모르는_모델이_있으면_비용을_내지_않는다():
