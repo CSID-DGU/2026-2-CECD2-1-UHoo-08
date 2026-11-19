@@ -230,7 +230,10 @@ async def _a3(입력: dict) -> Outcome:
     표 = [시나리오 if spec is not None else "해석 실패" for spec, 시나리오, _ in 답들]
     답, 비율 = majority_vote(표)
     if 답 == "해석 실패":
-        return Outcome(spec={}, scenario=답들[0][1], clarify_rule=True, scenario_prob=비율)
+        # 확률은 내보내는 시나리오에 표를 준 비율이다. 해석 실패가 받은 표는 넣지 않는다
+        시나리오 = 답들[0][1]
+        return Outcome(spec={}, scenario=시나리오, clarify_rule=True,
+                       scenario_prob=표.count(시나리오) / len(표))
 
     # 값은 다수 답을 낸 첫 응답의 것을 쓴다
     spec, 시나리오, 되물음 = next(x for x in 답들 if x[0] is not None and x[1] == 답)

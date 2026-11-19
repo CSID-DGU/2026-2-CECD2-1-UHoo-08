@@ -49,3 +49,26 @@ def test_가장_많이_나온_답과_그_비율을_낸다():
 
 def test_같은_수면_먼저_나온_답을_고른다():
     assert majority_vote(["S1", "S2", "S2", "S1"]) == ("S1", 0.5)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("답들, 확률", [
+    ([None] * 5, 0.0),                                  # 다섯 번 모두 읽지 못했다
+    ([None, None, None, "S2_SEARCH", "S2_SEARCH"], 0.4),  # 내보내는 시나리오에 두 표
+])
+async def test_해석_실패가_이기면_내보내는_시나리오에_준_표의_비율을_확률로_쓴다(monkeypatch, 답들, 확률):
+    from eval import router_conditions
+
+    차례 = iter(답들)
+
+    async def 가짜_해석(입력, **_):
+        시나리오 = next(차례)
+        if 시나리오 is None:
+            return None, "S2_SEARCH", True
+        return {"request_type": "SEARCH"}, 시나리오, False
+
+    monkeypatch.setattr(router_conditions, "_구조_규칙으로_해석", 가짜_해석)
+    나온 = await CONDITIONS["a3"].run({"raw_query": "추천해줘"})
+    assert 나온.scenario == "S2_SEARCH"
+    assert 나온.clarify_rule
+    assert 나온.scenario_prob == 확률
