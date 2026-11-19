@@ -69,19 +69,37 @@ async def ask(state: Any, questions: dict[str, dict]) -> dict[str, dict]:
             응답 = await _client().post("/v1/systemone", json=본문)
         응답.raise_for_status()
         받은 = 응답.json()
+        # 답을 꺼낼 수 있어야 성공이다. 모양이 어긋난 응답은 실패로 기록한다
+        if not isinstance(받은, dict) or not isinstance(받은.get("answers"), dict):
+            raise ValueError(f"Jev 응답에 answers 가 없다: {str(받은)[:200]}")
     except (Exception, asyncio.CancelledError):
         # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
         record(LLMCall(role="jev", model=settings.TYPESAFE_MODEL, input_tokens=0,
                        output_tokens=0, seconds=time.perf_counter() - 시작, ok=False))
         raise
 
-    사용 = 받은.get("usage") or {}
+    입력, 출력 = _토큰_수(받은.get("usage"))
     record(LLMCall(
         role="jev",
         # 별칭으로 불렀어도 실제로 답한 버전을 남긴다
-        model=받은.get("model") or settings.TYPESAFE_MODEL,
-        input_tokens=int(사용.get("input_tokens") or 0),
-        output_tokens=int(사용.get("output_tokens") or 0),
+        model=받은.get("model") if isinstance(받은.get("model"), str) else settings.TYPESAFE_MODEL,
+        input_tokens=입력,
+        output_tokens=출력,
         seconds=time.perf_counter() - 시작,
     ))
     return 받은["answers"]
+
+
+def _토큰_수(사용: Any) -> tuple[int, int]:
+    """usage 의 입력, 출력 토큰 수. 읽지 못한 값은 0 으로 본다.
+
+    답은 제대로 받았는데 기록 때문에 호출이 실패하면 안 된다. LLM 쪽 기록과 같은 규칙이다.
+    """
+    if not isinstance(사용, dict):
+        return 0, 0
+
+    def _수(이름: str) -> int:
+        값 = 사용.get(이름)
+        return 값 if isinstance(값, int) and not isinstance(값, bool) else 0
+
+    return _수("input_tokens"), _수("output_tokens")

@@ -88,3 +88,26 @@ async def test_취소되어도_기록을_남기고_취소를_올린다(가짜_�
             await 작업
 
     assert len(calls) == 1 and calls[0].ok is False
+
+
+@pytest.mark.asyncio
+async def test_답이_없는_응답은_실패로_한_번_기록하고_예외를_올린다(가짜_서버):
+    가짜_서버(lambda request: httpx.Response(200, json={"usage": {}}))
+
+    with collect_calls() as calls:
+        with pytest.raises(ValueError):
+            await jev.ask("추천해줘", {"vague": jev.noul("막연한가?")})
+
+    assert len(calls) == 1 and calls[0].ok is False
+
+
+@pytest.mark.asyncio
+async def test_사용량을_읽지_못해도_답은_돌려주고_토큰은_0으로_기록한다(가짜_서버):
+    가짜_서버(lambda request: httpx.Response(200, json={**_답, "usage": "unknown"}))
+
+    with collect_calls() as calls:
+        답 = await jev.ask("추천해줘", {"vague": jev.noul("막연한가?")})
+
+    assert 답["vague"]["noul"] == 0.7
+    assert len(calls) == 1 and calls[0].ok is True
+    assert (calls[0].input_tokens, calls[0].output_tokens) == (0, 0)
