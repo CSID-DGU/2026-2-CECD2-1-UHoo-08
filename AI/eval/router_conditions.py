@@ -302,13 +302,26 @@ async def _jev_판단(질문: str) -> tuple[str, float, float]:
     return 종류, 확률, float(답["vague"]["noul"])
 
 
+async def _둘_다_기다리기(*작업: Awaitable) -> list:
+    """동시에 보낸 호출이 모두 끝난 뒤 결과를 돌려준다. 하나라도 실패했으면 그때 예외를 낸다.
+
+    asyncio.gather 는 먼저 실패한 호출의 예외를 바로 내고 나머지를 기다리지 않는다. 그러면
+    아직 도는 호출이 이 문제의 호출 수, 토큰, 시간 기록에서 빠지고 다음 문제와 겹친다.
+    """
+    결과들 = await asyncio.gather(*작업, return_exceptions=True)
+    for 결과 in 결과들:
+        if isinstance(결과, BaseException):
+            raise 결과
+    return 결과들
+
+
 async def _a4(입력: dict) -> Outcome:
     """값 뽑기는 LLM, 요청 종류와 막연함 판단은 Jev. 두 호출을 동시에 보낸다."""
     if 입력.get("parent_job_id"):
         spec, 시나리오, _ = await _구조_규칙으로_해석(입력)
         return Outcome(spec=spec or {}, scenario=시나리오)
 
-    (spec, _, _), (종류, 확률, 막연함) = await asyncio.gather(
+    (spec, _, _), (종류, 확률, 막연함) = await _둘_다_기다리기(
         _구조_규칙으로_해석(입력), _jev_판단(입력.get("raw_query") or ""),
     )
     return Outcome(
@@ -344,7 +357,7 @@ async def _a5(입력: dict) -> Outcome:
         spec, 시나리오, _ = await _구조_규칙으로_해석(입력)
         return Outcome(spec=spec or {}, scenario=시나리오)
 
-    (spec, 시나리오, 되물음), (jev_종류, _, 막연함) = await asyncio.gather(
+    (spec, 시나리오, 되물음), (jev_종류, _, 막연함) = await _둘_다_기다리기(
         _구조_규칙으로_해석(입력), _jev_판단(입력.get("raw_query") or ""),
     )
     jev_시나리오 = _시나리오(jev_종류)

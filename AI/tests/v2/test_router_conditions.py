@@ -72,3 +72,27 @@ async def test_해석_실패가_이기면_내보내는_시나리오에_준_표�
     assert 나온.scenario == "S2_SEARCH"
     assert 나온.clarify_rule
     assert 나온.scenario_prob == 확률
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("조건", ["a4", "a5"])
+async def test_jev_가_먼저_실패해도_LLM_호출이_끝난_뒤에_예외를_낸다(monkeypatch, 조건):
+    import asyncio
+
+    from eval import router_conditions
+
+    끝남 = []
+
+    async def 느린_해석(입력, **_):
+        await asyncio.sleep(0.01)
+        끝남.append("llm")
+        return {"request_type": "SEARCH"}, "S2_SEARCH", False
+
+    async def 실패하는_jev(질문):
+        raise RuntimeError("jev")
+
+    monkeypatch.setattr(router_conditions, "_구조_규칙으로_해석", 느린_해석)
+    monkeypatch.setattr(router_conditions, "_jev_판단", 실패하는_jev)
+    with pytest.raises(RuntimeError, match="jev"):
+        await CONDITIONS[조건].run({"raw_query": "선크림 추천"})
+    assert 끝남 == ["llm"]
