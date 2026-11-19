@@ -65,6 +65,45 @@ class TestLLMClient:
         out = await c.chat_json(system="s", user="u")
         assert out is None
 
+class TestThinkingOffOption:
+    """생각 기능이 기본으로 켜진 모델에만 끄는 값을 보내는지 본다."""
+
+    @staticmethod
+    def _보낸_값(mock_openai_cls):
+        return mock_openai_cls.return_value.chat.completions.create.call_args.kwargs
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_model_that_thinks_by_default_gets_the_off_value(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3.8-flash", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+
+        assert self._보낸_값(mock_openai_cls)["reasoning_effort"] == "none"
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_other_models_get_nothing_extra(self, mock_openai_cls):
+        """받지 않는 모델에 보내면 오류가 날 수 있다. 지금 쓰는 모델의 요청도 바뀌면 안 된다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen-plus", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u", response_json=True, timeout=5.0)
+
+        assert set(self._보낸_값(mock_openai_cls)) == {
+            "model", "messages", "temperature", "response_format", "timeout",
+        }
+
+
 class TestLLMCallRecord:
     """호출마다 모델, 토큰 수, 걸린 시간이 기록되는지 본다."""
 

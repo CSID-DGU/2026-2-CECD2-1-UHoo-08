@@ -89,6 +89,16 @@ def _설정(role: LLMRole) -> tuple[str, str, str]:
     )
 
 
+# 생각 기능이 기본으로 켜져 있어, 끄는 값을 함께 보내야 하는 모델.
+# 그대로 두면 짧은 변환 하나에 1분 넘게 걸리고 출력 토큰이 수십 배로 는다.
+# 여기 없는 모델에는 보내지 않는다. 이 값을 받지 않는 모델도 있다.
+_생각_끄기: dict[str, dict[str, Any]] = {
+    # enable_thinking 은 DashScope 에 직접 부를 때만 통하고 게이트웨이를 거치면 무시된다.
+    # reasoning_effort 는 양쪽에서 통한다.
+    "qwen3.8-flash": {"reasoning_effort": "none"},
+}
+
+
 class _OpenAIChat:
     """OpenAI 호환 주소로 모델 하나를 부른다."""
 
@@ -118,6 +128,7 @@ class _OpenAIChat:
             kwargs["response_format"] = {"type": "json_object"}
         if timeout is not None:
             kwargs["timeout"] = timeout
+        kwargs.update(_생각_끄기.get(self._model, {}))
         resp = self._client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content or "", *token_counts(getattr(resp, "usage", None))
 
