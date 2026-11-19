@@ -25,6 +25,7 @@ import statistics
 from pathlib import Path
 from typing import Any
 
+from contracts.query_spec import Target
 from contracts.score import ScoreContext, Scorer, build_score
 from rules.score_weights import decide
 
@@ -170,4 +171,10 @@ async def score_products(
         )
 
     매긴.sort(key=lambda 쌍: (쌍[0]["total"], 쌍[1]), reverse=True)
+    if ctx.query_spec.target is Target.POPULAR:
+        # 전체 인기 기준이면 평점 없는 상품을 평점 있는 상품 뒤에 둔다. 인기 점수가 0 이어도
+        # 다른 항목 점수가 높으면 총점이 앞설 수 있고, 평점 1점 상품과도 인기 점수가 같다.
+        # 각 묶음 안에서는 총점 순서를 지킨다(정렬이 안정적이다).
+        평점_없음 = {상품["product_id"] for 상품 in products if 상품.get("average_score") is None}
+        매긴.sort(key=lambda 쌍: 쌍[0]["product_id"] in 평점_없음)
     return [점수 for 점수, _ in 매긴]

@@ -98,6 +98,60 @@ async def test_직접_쓴_문장만_다시_해석해_합친다(대역):
 
 
 @pytest.mark.asyncio
+async def test_직접_쓴_문장에_없는_종류와_카테고리는_버린다(대역):
+    """버리지 않으면 "더 촉촉한 걸로" 에 지어낸 크림이 이전의 쿠션을 덮어쓴다."""
+    대역(_이전(), 해석={"category": "skincare", "features": {"product_type": "크림"},
+                        "conditions": ["촉촉한"]})
+    스펙 = (await 노드.refine(_상태("더 촉촉한 걸로")))["query_spec"]
+    assert 스펙["category"] == "base"
+    assert 스펙["features"] == {"product_type": "쿠션"}
+    assert 스펙["conditions"] == ["여름", "촉촉한"]
+
+
+@pytest.mark.asyncio
+async def test_다른_종류_이름_안의_동의어로는_종류를_받지_않는다(대역):
+    """"스킨틴트" 안의 "스킨" 을 토너로 보면 이전 검색이 토너로 바뀐다."""
+    대역(_이전(), 해석={"category": "skincare", "features": {"product_type": "토너"}})
+    스펙 = (await 노드.refine(_상태("스킨틴트로 바꿔줘")))["query_spec"]
+    assert 스펙["category"] == "base"
+    assert 스펙["features"] == {"product_type": "쿠션"}
+
+
+@pytest.mark.asyncio
+async def test_종류가_없어도_문장에_근거가_없는_카테고리는_버린다(대역):
+    """종류를 null 로 비운 채 카테고리만 바꾸면 skincare 의 쿠션처럼 목록에 없는 조합이 된다."""
+    대역(_이전(), 해석={"category": "skincare", "features": {}, "conditions": ["촉촉한"]})
+    스펙 = (await 노드.refine(_상태("더 촉촉한 걸로")))["query_spec"]
+    assert 스펙["category"] == "base"
+    assert 스펙["features"] == {"product_type": "쿠션"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("문장, 카테고리", [
+    ("스킨케어 제품으로", "skincare"),   # 카테고리 이름
+    ("립으로 바꿔줘", "lip"),            # 카테고리 이름의 앞 단어
+    ("토너 쪽으로", "skincare"),         # 그 카테고리의 종류
+])
+async def test_문장에_근거가_있으면_종류_없이도_카테고리를_바꾼다(대역, 문장, 카테고리):
+    대역(_이전(), 해석={"category": 카테고리, "features": {}})
+    스펙 = (await 노드.refine(_상태(문장)))["query_spec"]
+    assert 스펙["category"] == 카테고리
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("문장, 종류, 카테고리", [
+    ("선크림으로 바꿔줘", "선크림", "sun"),
+    ("스킨으로 찾아줘", "토너", "skincare"),     # 동의어
+    ("크림 종류로", "젤크림", "skincare"),       # 그 종류를 담은 묶음 이름
+])
+async def test_직접_쓴_문장에_있는_종류는_받는다(대역, 문장, 종류, 카테고리):
+    대역(_이전(), 해석={"category": 카테고리, "features": {"product_type": 종류}})
+    스펙 = (await 노드.refine(_상태(문장)))["query_spec"]
+    assert 스펙["category"] == 카테고리
+    assert 스펙["features"]["product_type"] == 종류
+
+
+@pytest.mark.asyncio
 async def test_제외_성분만_더하면_재정렬이다(대역):
     대역(_이전(), 해석={"exclude_ingredients": ["향료"]})
     나옴 = await 노드.refine(_상태("향료 빼고"))
@@ -105,14 +159,14 @@ async def test_제외_성분만_더하면_재정렬이다(대역):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("해석", [
-    {"budget": {"max": 40000}},           # 예산을 올렸다
-    {"features": {"finish": "매트"}},     # 특징을 바꿨다
-    {"category": "lip"},                 # 카테고리를 바꿨다
+@pytest.mark.parametrize("해석, 문장", [
+    ({"budget": {"max": 40000}}, "4만원까지"),         # 예산을 올렸다
+    ({"features": {"finish": "매트"}}, "매트로"),      # 특징을 바꿨다
+    ({"category": "lip"}, "립 메이크업으로"),          # 카테고리를 바꿨다
 ])
-async def test_예산을_낮추거나_제외_성분을_더한_것이_아니면_재탐색이다(대역, 해석):
+async def test_예산을_낮추거나_제외_성분을_더한_것이_아니면_재탐색이다(대역, 해석, 문장):
     대역(_이전(budget={"max": 30000}), 해석=해석)
-    나옴 = await 노드.refine(_상태("직접 쓴 조건"))
+    나옴 = await 노드.refine(_상태(문장))
     assert 나옴["refine_mode"] == 노드.재탐색
 
 
@@ -192,3 +246,31 @@ async def test_이전_job이_없으면_예외다(대역):
     대역(None)
     with pytest.raises(ValueError, match="찾지 못했다"):
         await 노드.refine(_상태())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("상품_종류, 찾을_종류", [
+    ("젤크림", "크림"),
+    (["밤", "오일"], "크림"),
+    ("스킨", "토너"),
+])
+async def test_평가한_상품의_종류는_표준_이름과_묶음으로_넓혀_찾는다(대역, 상품_종류, 찾을_종류):
+    """종류가 잘게 나뉘어 있어 그대로 쓰면 결과가 지나치게 좁아진다."""
+    이전 = _이전(scenario="S1_EVALUATE")
+    이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": "b1", "target": "SELF"}
+    이전["state_snapshot"] = {"base_product_id": "b1"}
+    대역(이전, 선택지=["CHEAPER"],
+         메타={"b1": {"category": "skincare", "feature_json": {"product_type": 상품_종류}}})
+    스펙 = (await 노드.refine(_상태()))["query_spec"]
+    assert 스펙["features"] == {"product_type": 찾을_종류}
+
+
+@pytest.mark.asyncio
+async def test_평가한_상품의_종류를_모르면_종류_조건을_넣지_않는다(대역):
+    이전 = _이전(scenario="S1_EVALUATE")
+    이전["query_spec"] = {"request_type": "EVALUATE", "base_product_ref": "b1", "target": "SELF"}
+    이전["state_snapshot"] = {"base_product_id": "b1"}
+    대역(이전, 선택지=["CHEAPER"],
+         메타={"b1": {"category": "skincare", "feature_json": {"product_type": "핸드크림"}}})
+    스펙 = (await 노드.refine(_상태()))["query_spec"]
+    assert 스펙["features"] == {}

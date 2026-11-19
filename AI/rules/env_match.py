@@ -6,10 +6,14 @@
     카테고리   기능에 카테고리가 있으면 같아야 한다
     특징       기능의 특징 조건이 상품 특징과 모두 같아야 한다. 목록이면 모두 들어 있어야 한다
                상품에 그 특징이 없으면 채운다고 보지 않는다
+    제품 종류  동의어, 묶음, 종류가 여럿인 상품은 rules/product_types.py 를 따른다.
+               "크림" 이 필요하면 젤크림도 채운다. 종류를 모르면 채운다고 보지 않는다
 """
 from __future__ import annotations
 
 from typing import Any
+
+from rules.product_types import matches, product_types
 
 
 def _같은_값(원하는: Any, 상품값: Any) -> bool:
@@ -23,10 +27,19 @@ def _같은_값(원하는: Any, 상품값: Any) -> bool:
     return str(원하는) == str(상품값)
 
 
+def _종류가_맞다(원하는: Any, 특징: dict[str, Any], 카테고리: str | None) -> bool:
+    상품_종류 = product_types(특징)
+    원하는들 = 원하는 if isinstance(원하는, list) else [원하는]
+    return all(matches(하나, 상품_종류, 카테고리) is True for 하나 in 원하는들)
+
+
 def meets(need: dict[str, Any], product: dict[str, Any]) -> bool:
     """need 는 env_summary.needs 의 항목, product 는 product_meta 의 항목이다."""
     카테고리 = need.get("category")
     if 카테고리 and product.get("category") != 카테고리:
         return False
     특징 = product.get("feature_json") or {}
-    return all(_같은_값(값, 특징.get(키)) for 키, 값 in (need.get("features") or {}).items())
+    return all(
+        _종류가_맞다(값, 특징, 카테고리) if 키 == "product_type" else _같은_값(값, 특징.get(키))
+        for 키, 값 in (need.get("features") or {}).items()
+    )

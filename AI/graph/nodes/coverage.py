@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
     "sun": "선케어",
     "lip": "립",
     "skincare": "스킨케어",
+    "eye": "아이",
+    "cheek": "치크",
 }
 
 

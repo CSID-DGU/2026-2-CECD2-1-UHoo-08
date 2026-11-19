@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Smile, Layers, Sun, Droplets, Folder, Plus, X, LayoutGrid } from "lucide-react";
+import { Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder, Plus, X, LayoutGrid } from "lucide-react";
 import { type WishlistItem, getWishlists } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -12,6 +12,8 @@ const DEFAULT_FOLDERS = [
   { key: "base", label: "Base", Icon: Layers },
   { key: "sun", label: "Sun", Icon: Sun },
   { key: "skincare", label: "Skincare", Icon: Droplets },
+  { key: "eye", label: "Eye", Icon: Eye },
+  { key: "cheek", label: "Cheek", Icon: Sparkles },
 ];
 
 function loadCustomFolders(): string[] {

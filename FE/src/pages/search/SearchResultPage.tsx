@@ -24,7 +24,11 @@ import {
   type RefinementOptions,
   type ResultItem,
 } from "../../api/recommendationQueryApi";
-import { addWishlist, deleteWishlist, getWishlists } from "../../api/wishlistApi";
+import {
+  addWishlist,
+  deleteWishlist,
+  getWishlists,
+} from "../../api/wishlistApi";
 import { BottomNav } from "../../components/common/BottomNav";
 import { ClarifyForm } from "../../components/recommendation/ClarifyForm";
 import {
@@ -69,7 +73,14 @@ const STATUS_RETRY_LIMIT = 3;
  * finding: 제품명 검색 중(빠름). products: 제품명으로 찾은 목록을 보여주는 중.
  * loading/clarify/done: AI 추천 job 흐름.
  */
-type Phase = "idle" | "finding" | "products" | "loading" | "clarify" | "done" | "error";
+type Phase =
+  | "idle"
+  | "finding"
+  | "products"
+  | "loading"
+  | "clarify"
+  | "done"
+  | "error";
 
 interface SavedSearchView {
   baseQuery: string;
@@ -87,7 +98,11 @@ const searchViews = new Map<string, SavedSearchView>();
 // 개발 모드의 effect 재실행이나 연속 클릭으로 같은 추천 job 이 두 번 만들어지지 않게 한다.
 // AI 가 job 마다 LLM 을 돌리므로 중복은 그대로 비용이다.
 const pendingQueries = new Map<string, ReturnType<typeof requestQuery>>();
-function requestQueryOnce(entry: string, query: string, basis: RecommendationBasis) {
+function requestQueryOnce(
+  entry: string,
+  query: string,
+  basis: RecommendationBasis,
+) {
   const key = JSON.stringify([entry, query, basis]);
   const pending = pendingQueries.get(key);
   if (pending) return pending;
@@ -106,7 +121,8 @@ function errorMessage(error: unknown, fallback: string): string {
   const code = apiErrorCode(error);
   if (code === "SKIN_PROFILE_NOT_FOUND")
     return "피부 정보가 없어서 내 피부 기준으로 찾을 수 없어요. 마이페이지에서 피부 정보를 먼저 등록해주세요.";
-  if (code === "JOB_NOT_COMPLETED") return "이전 검색이 아직 끝나지 않았어요. 잠시 후 다시 시도해주세요.";
+  if (code === "JOB_NOT_COMPLETED")
+    return "이전 검색이 아직 끝나지 않았어요. 잠시 후 다시 시도해주세요.";
   if (error instanceof Error && error.message === "BUNDLE_NOT_READY")
     return "예산 세트 구성 추천은 아직 준비 중이에요. 제품 한 종류로 다시 검색해 주세요.";
   if (error instanceof Error && error.message === "TIMEOUT")
@@ -160,7 +176,12 @@ function SearchResultContent() {
   const cacheKey = searchViewKey(key);
 
   /** 제품을 골랐을 때. 일반 검색이면 상세로, 고르기 모드면 추천 흐름으로 간다. */
-  function openProduct(product: { id: string; name: string; brand: string; imageUrl?: string | null }) {
+  function openProduct(product: {
+    id: string;
+    name: string;
+    brand: string;
+    imageUrl?: string | null;
+  }) {
     recordProductView(product.id).catch(() => {});
     if (picking) {
       navigate("/recommendation/extra-info", {
@@ -176,7 +197,8 @@ function SearchResultContent() {
     navigate(`/product/${product.id}`);
   }
   const [saved] = useState(() => {
-    const view = searchViews.get(cacheKey) ?? readSearchView<SavedSearchView>(cacheKey);
+    const view =
+      searchViews.get(cacheKey) ?? readSearchView<SavedSearchView>(cacheKey);
     if (!view || typeof view.baseQuery !== "string") return undefined;
     return view;
   });
@@ -184,10 +206,16 @@ function SearchResultContent() {
   const scrollContainer = useRef<HTMLDivElement>(null);
 
   const [baseQuery, setBaseQuery] = useState(saved?.baseQuery ?? initialQuery);
-  const [basis, setBasis] = useState<RecommendationBasis>(saved?.basis ?? "SELF");
+  const [basis, setBasis] = useState<RecommendationBasis>(
+    saved?.basis ?? "SELF",
+  );
   const [jobId, setJobId] = useState<string | null>(saved?.jobId ?? null);
-  const [result, setResult] = useState<QueryResult | null>(saved?.result ?? null);
-  const [products, setProducts] = useState<ProductSearchItem[] | null>(saved?.products ?? null);
+  const [result, setResult] = useState<QueryResult | null>(
+    saved?.result ?? null,
+  );
+  const [products, setProducts] = useState<ProductSearchItem[] | null>(
+    saved?.products ?? null,
+  );
   const [phase, setPhase] = useState<Phase>(
     saved?.products?.length
       ? "products"
@@ -200,17 +228,25 @@ function SearchResultContent() {
   const [error, setError] = useState("");
   const [step, setStep] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
-  const [clarify, setClarify] = useState<{ message: string; fields: ClarifyField[] } | null>(null);
+  const [clarify, setClarify] = useState<{
+    message: string;
+    fields: ClarifyField[];
+  } | null>(null);
   const [clarifySending, setClarifySending] = useState(false);
   const [clarifyError, setClarifyError] = useState("");
 
   const [sheet, setSheet] = useState<"add" | "edit" | "history" | null>(null);
   const [options, setOptions] = useState<RefinementOptions | null>(null);
-  const [historyEntries, setHistoryEntries] = useState<RefinementHistoryEntry[]>([]);
+  const [historyEntries, setHistoryEntries] = useState<
+    RefinementHistoryEntry[]
+  >([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
-  const [feedbackTarget, setFeedbackTarget] = useState<{ item: ResultItem; liked: boolean } | null>(null);
+  const [feedbackTarget, setFeedbackTarget] = useState<{
+    item: ResultItem;
+    liked: boolean;
+  } | null>(null);
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackError, setFeedbackError] = useState("");
   const [feedbackSent, setFeedbackSent] = useState<Record<string, true>>({});
@@ -227,14 +263,19 @@ function SearchResultContent() {
   const items = result?.items ?? [];
 
   // ── 관심 상품 ─────────────────────────────────────────────────────────
-  const [wishlistIds, setWishlistIds] = useState<Record<string, string> | null>(null);
+  const [wishlistIds, setWishlistIds] = useState<Record<string, string> | null>(
+    null,
+  );
   const wishlistRequest = useRef<Promise<Record<string, string>> | null>(null);
   function loadWishlistIds() {
     if (!wishlistRequest.current) {
       wishlistRequest.current = getWishlists()
         .then(({ data }) => {
-          if (!Array.isArray(data?.wishlists)) throw new Error("INVALID_WISHLIST_RESPONSE");
-          return Object.fromEntries(data.wishlists.map((item) => [item.product.id, item.wishlistId]));
+          if (!Array.isArray(data?.wishlists))
+            throw new Error("INVALID_WISHLIST_RESPONSE");
+          return Object.fromEntries(
+            data.wishlists.map((item) => [item.product.id, item.wishlistId]),
+          );
         })
         .catch((error) => {
           wishlistRequest.current = null;
@@ -267,7 +308,10 @@ function SearchResultContent() {
     } else {
       const { data } = await addWishlist(productId);
       if (!data?.wishlistId) throw new Error("INVALID_WISHLIST_RESPONSE");
-      setWishlistIds((previous) => ({ ...(previous ?? ids), [productId]: data.wishlistId }));
+      setWishlistIds((previous) => ({
+        ...(previous ?? ids),
+        [productId]: data.wishlistId,
+      }));
     }
   }
 
@@ -278,7 +322,8 @@ function SearchResultContent() {
       void findProducts(initialQuery);
     }
     // 진행 중에 떠났다가 돌아오면 같은 job 을 이어서 본다.
-    else if (saved && !saved.result && saved.jobId) void follow(saved.jobId, ++version.current);
+    else if (saved && !saved.result && saved.jobId)
+      void follow(saved.jobId, ++version.current);
     return () => {
       version.current += 1;
     };
@@ -287,7 +332,8 @@ function SearchResultContent() {
   }, []);
 
   useLayoutEffect(() => {
-    if (saved && scrollContainer.current) scrollContainer.current.scrollTop = saved.scrollTop;
+    if (saved && scrollContainer.current)
+      scrollContainer.current.scrollTop = saved.scrollTop;
   }, [saved]);
 
   useLayoutEffect(() => {
@@ -302,7 +348,8 @@ function SearchResultContent() {
     };
     searchViews.set(cacheKey, view);
     writeSearchView(cacheKey, view);
-    if (searchViews.size > 20) searchViews.delete(searchViews.keys().next().value!);
+    if (searchViews.size > 20)
+      searchViews.delete(searchViews.keys().next().value!);
   }, [cacheKey, submitted, baseQuery, basis, jobId, result, products]);
 
   useLayoutEffect(() => {
@@ -329,7 +376,10 @@ function SearchResultContent() {
   // ── job 흐름 ──────────────────────────────────────────────────────────
   function showResult(next: QueryResult) {
     // 결과 모양이 어긋나도 화면이 깨지지 않게 목록은 배열로 맞춘다.
-    const safe = { ...next, items: Array.isArray(next?.items) ? next.items : [] };
+    const safe = {
+      ...next,
+      items: Array.isArray(next?.items) ? next.items : [],
+    };
     setResult(safe);
     setPhase("done");
     saveLastSearch({
@@ -364,7 +414,11 @@ function SearchResultContent() {
           statusFailures = 0;
         } catch (error) {
           statusFailures += 1;
-          if (statusFailures >= STATUS_RETRY_LIMIT || apiErrorCode(error) === "SESSION_EXPIRED") throw error;
+          if (
+            statusFailures >= STATUS_RETRY_LIMIT ||
+            apiErrorCode(error) === "SESSION_EXPIRED"
+          )
+            throw error;
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
           continue;
         }
@@ -373,29 +427,45 @@ function SearchResultContent() {
         setStep(data.step ?? now?.label ?? "");
         setProgress(typeof data.progress === "number" ? data.progress : null);
         if (data.status === "COMPLETED") {
-          const response = await withDeadline(getQueryResult(nextJobId), 15_000);
+          const response = await withDeadline(
+            getQueryResult(nextJobId),
+            15_000,
+          );
           if (current !== version.current) return;
           showResult(response.data);
           return;
         }
         if (data.status !== "NEEDS_CLARIFICATION") waitingForAnswer = false;
-        if (data.status === "NEEDS_CLARIFICATION" && waitingForAnswer && Date.now() < answerGraceUntil) {
+        if (
+          data.status === "NEEDS_CLARIFICATION" &&
+          waitingForAnswer &&
+          Date.now() < answerGraceUntil
+        ) {
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
           continue;
         }
         if (data.status === "NEEDS_CLARIFICATION") {
-          setClarify(data.clarify ?? { message: "조금 더 구체적으로 알려주세요.", fields: [] });
+          setClarify(
+            data.clarify ?? {
+              message: "조금 더 구체적으로 알려주세요.",
+              fields: [],
+            },
+          );
           setClarifyError("");
           setPhase("clarify");
           return;
         }
         if (data.status === "FAILED")
-          throw new Error(data.scenario === "S6_BUNDLE" ? "BUNDLE_NOT_READY" : "FAILED");
+          throw new Error(
+            data.scenario === "S6_BUNDLE" ? "BUNDLE_NOT_READY" : "FAILED",
+          );
         await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
       }
     } catch (error) {
       if (current !== version.current) return;
-      setError(errorMessage(error, "추천을 완료하지 못했어요. 다시 시도해주세요."));
+      setError(
+        errorMessage(error, "추천을 완료하지 못했어요. 다시 시도해주세요."),
+      );
       setPhase("error");
     }
   }
@@ -404,7 +474,11 @@ function SearchResultContent() {
    * AI 추천을 시작한다. display 는 화면 맨 위와 조건 칩에 보일 문장이다.
    * 조건 수정처럼 보내는 문장(조건을 붙인 것)과 보여줄 문장이 다를 때 넘긴다.
    */
-  async function startQuery(query: string, nextBasis: RecommendationBasis, display?: string) {
+  async function startQuery(
+    query: string,
+    nextBasis: RecommendationBasis,
+    display?: string,
+  ) {
     const text = query.trim();
     if (!text) return;
     const current = ++version.current;
@@ -423,12 +497,17 @@ function SearchResultContent() {
     setError("");
     setPhase("loading");
     try {
-      const { data } = await withDeadline(requestQueryOnce(cacheKey, text, nextBasis), 30_000);
+      const { data } = await withDeadline(
+        requestQueryOnce(cacheKey, text, nextBasis),
+        30_000,
+      );
       if (current !== version.current) return;
       await follow(data.jobId, current);
     } catch (error) {
       if (current !== version.current) return;
-      setError(errorMessage(error, "검색을 시작하지 못했어요. 다시 시도해주세요."));
+      setError(
+        errorMessage(error, "검색을 시작하지 못했어요. 다시 시도해주세요."),
+      );
       setPhase("error");
     }
   }
@@ -479,7 +558,9 @@ function SearchResultContent() {
     });
   }
 
-  async function sendClarification(answers: Parameters<typeof answerClarification>[1]) {
+  async function sendClarification(
+    answers: Parameters<typeof answerClarification>[1],
+  ) {
     if (!jobId) return;
     const current = ++version.current;
     setClarifySending(true);
@@ -496,7 +577,8 @@ function SearchResultContent() {
           ? "이미 답변이 반영됐어요. 결과를 다시 불러올게요."
           : "답변을 보내지 못했어요. 다시 시도해주세요.",
       );
-      if (apiErrorCode(error) === "CLARIFY_NOT_REQUIRED") void follow(jobId, current);
+      if (apiErrorCode(error) === "CLARIFY_NOT_REQUIRED")
+        void follow(jobId, current);
     } finally {
       setClarifySending(false);
     }
@@ -515,7 +597,9 @@ function SearchResultContent() {
 
   async function addConditions(selected: string[]) {
     if (!jobId) return;
-    const presetByLabel = new Map(options?.presets.map((preset) => [preset.label, preset.key]));
+    const presetByLabel = new Map(
+      options?.presets.map((preset) => [preset.label, preset.key]),
+    );
     const presetKeys: RefinePresetKey[] = [];
     const free: string[] = [];
     for (const text of selected) {
@@ -538,7 +622,9 @@ function SearchResultContent() {
       await follow(data.jobId, current);
     } catch (error) {
       if (current !== version.current) return;
-      setError(errorMessage(error, "조건을 추가하지 못했어요. 다시 시도해주세요."));
+      setError(
+        errorMessage(error, "조건을 추가하지 못했어요. 다시 시도해주세요."),
+      );
       setPhase("error");
     }
   }
@@ -546,7 +632,9 @@ function SearchResultContent() {
   /** 조건 수정은 문장을 다시 쓴 새 검색이다. 남긴 조건은 문장 뒤에 붙인다. */
   function editConditions(nextConditions: string[], editedBase?: string) {
     const base = (editedBase ?? baseQuery).trim();
-    const query = nextConditions.length ? `${base}\n추가 조건: ${nextConditions.join(", ")}` : base;
+    const query = nextConditions.length
+      ? `${base}\n추가 조건: ${nextConditions.join(", ")}`
+      : base;
     void startQuery(query, basis, base);
   }
 
@@ -598,9 +686,13 @@ function SearchResultContent() {
       const { data } = await submitFeedback(jobId, {
         productId: feedbackTarget.item.productId,
         vote: value.liked ? "UP" : "DOWN",
-        reasonTags: value.liked || !value.reasons.length ? undefined : value.reasons,
+        reasonTags:
+          value.liked || !value.reasons.length ? undefined : value.reasons,
       });
-      setFeedbackSent((previous) => ({ ...previous, [feedbackTarget.item.productId]: true }));
+      setFeedbackSent((previous) => ({
+        ...previous,
+        [feedbackTarget.item.productId]: true,
+      }));
       setFeedbackTarget(null);
       setToast(data?.message || "의견을 다음 추천에 반영할게요");
     } catch {
@@ -617,7 +709,10 @@ function SearchResultContent() {
       return;
     }
     // 기준을 바꾸면 처음 문장으로 다시 찾는다. 조건 추가로 더한 조건은 이어지지 않으니 알려준다.
-    if (result?.parentJobId) setToast("기준을 바꿔 처음 검색 문장으로 다시 찾았어요. 더한 조건은 다시 추가해 주세요.");
+    if (result?.parentJobId)
+      setToast(
+        "기준을 바꿔 처음 검색 문장으로 다시 찾았어요. 더한 조건은 다시 추가해 주세요.",
+      );
     void startQuery(baseQuery, next);
   }
 
@@ -648,7 +743,9 @@ function SearchResultContent() {
               onBack={() => navigate(-1)}
               onSubmit={search}
               onLens={() => setLensOpen(true)}
-              placeholder={picking ? "평가할 제품 이름을 입력하세요" : undefined}
+              placeholder={
+                picking ? "평가할 제품 이름을 입력하세요" : undefined
+              }
               onSelectProduct={(product) => {
                 addRecentSearch(product.name);
                 openProduct(product);
@@ -656,8 +753,9 @@ function SearchResultContent() {
             />
             {picking && (
               <p className="mt-3 rounded-xl bg-primary-50 px-3.5 py-2.5 text-xs leading-5 text-primary-600">
-                <span className="font-semibold">평가할 제품을 골라주세요.</span> 고른 제품이 내 피부에 맞는지,
-                더 나은 대체 제품이 있는지 분석해 드려요.
+                <span className="font-semibold">평가할 제품을 골라주세요.</span>{" "}
+                고른 제품이 내 피부에 맞는지, 더 나은 대체 제품이 있는지 분석해
+                드려요.
               </p>
             )}
 
@@ -682,11 +780,14 @@ function SearchResultContent() {
                         event.key === "ArrowRight"
                           ? (index + 1) % RESULT_BASES.length
                           : event.key === "ArrowLeft"
-                            ? (index + RESULT_BASES.length - 1) % RESULT_BASES.length
+                            ? (index + RESULT_BASES.length - 1) %
+                              RESULT_BASES.length
                             : null;
                       if (next != null) {
                         event.preventDefault();
-                        document.getElementById(`basis-tab-${RESULT_BASES[next].id}`)?.focus();
+                        document
+                          .getElementById(`basis-tab-${RESULT_BASES[next].id}`)
+                          ?.focus();
                       }
                     }}
                     className={`min-h-10 rounded-lg px-1 text-xs font-semibold transition-colors ${basis === item.id ? "bg-[#9DBDE9] text-[#203D66]" : "text-slate-500 hover:bg-white/60"}`}
@@ -707,7 +808,10 @@ function SearchResultContent() {
             )}
 
             {ready && (
-              <section aria-label="검색 조건" className="mt-2 border-b border-slate-100 pb-4">
+              <section
+                aria-label="검색 조건"
+                className="mt-2 border-b border-slate-100 pb-4"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-slate-500">현재 조건</p>
                   <button
@@ -715,7 +819,8 @@ function SearchResultContent() {
                     onClick={() => setSheet("edit")}
                     className="flex min-h-10 items-center text-xs text-primary-600"
                   >
-                    조건 수정 <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+                    조건 수정{" "}
+                    <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -731,10 +836,19 @@ function SearchResultContent() {
               </section>
             )}
 
-            {loading && <SearchAnalysisLoading searching={false} step={step} progress={progress} />}
+            {loading && (
+              <SearchAnalysisLoading
+                searching={false}
+                step={step}
+                progress={progress}
+              />
+            )}
 
             {phase === "finding" && (
-              <p role="status" className="mt-10 text-center text-caption text-slate-500">
+              <p
+                role="status"
+                className="mt-10 text-center text-caption text-slate-500"
+              >
                 제품을 찾고 있어요
               </p>
             )}
@@ -742,29 +856,39 @@ function SearchResultContent() {
             {phase === "products" && products && (
               <section aria-labelledby="found-products-title" className="mt-5">
                 <div className="flex items-end justify-between gap-2">
-                  <h2 id="found-products-title" className="text-base font-semibold text-slate-800">
+                  <h2
+                    id="found-products-title"
+                    className="text-base font-semibold text-slate-800"
+                  >
                     검색한 제품
                   </h2>
-                  <span className="text-xs text-slate-500">{products.length}개</span>
+                  <span className="text-xs text-slate-500">
+                    {products.length}개
+                  </span>
                 </div>
-                {!picking && <button
-                  type="button"
-                  onClick={() => void startQuery(baseQuery, "SELF")}
-                  className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F2F6FC] p-3.5 text-left"
-                >
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary-600">
-                    <Sparkles aria-hidden="true" className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-caption font-semibold text-slate-800">
-                      내 피부에 맞게 AI 추천받기
+                {!picking && (
+                  <button
+                    type="button"
+                    onClick={() => void startQuery(baseQuery, "SELF")}
+                    className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F2F6FC] p-3.5 text-left"
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary-600">
+                      <Sparkles aria-hidden="true" className="h-5 w-5" />
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-slate-500">
-                      ‘{baseQuery}’로 피부 정보와 후기를 함께 비교해요
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-caption font-semibold text-slate-800">
+                        내 피부에 맞게 AI 추천받기
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-slate-500">
+                        ‘{baseQuery}’로 피부 정보와 후기를 함께 비교해요
+                      </span>
                     </span>
-                  </span>
-                  <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
-                </button>}
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-slate-400"
+                    />
+                  </button>
+                )}
                 <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5">
                   {products.map((item, index) => (
                     <SearchProductCard
@@ -805,7 +929,12 @@ function SearchResultContent() {
                 <p className="text-body2 leading-6 text-gray-400">{error}</p>
                 <button
                   type="button"
-                  onClick={() => void startQuery(baseQuery, READY_BASES.includes(basis) ? basis : "SELF")}
+                  onClick={() =>
+                    void startQuery(
+                      baseQuery,
+                      READY_BASES.includes(basis) ? basis : "SELF",
+                    )
+                  }
                   className="mt-3 min-h-10 text-caption font-semibold text-primary-600"
                 >
                   다시 검색
@@ -814,7 +943,11 @@ function SearchResultContent() {
             )}
 
             {phase === "done" && (
-              <div id="basis-results" role="tabpanel" aria-labelledby={`basis-tab-${basis}`}>
+              <div
+                id="basis-results"
+                role="tabpanel"
+                aria-labelledby={`basis-tab-${basis}`}
+              >
                 {!READY_BASES.includes(basis) && (
                   <div className="px-4 py-14 text-center">
                     <p className="text-sm font-semibold text-gray-500">
@@ -846,19 +979,26 @@ function SearchResultContent() {
                   <>
                     <div className="mt-5 flex items-center justify-between gap-2">
                       <div>
-                        <h2 className="mb-1 text-base font-semibold text-slate-800">요청에 맞는 제품</h2>
+                        <h2 className="mb-1 text-base font-semibold text-slate-800">
+                          요청에 맞는 제품
+                        </h2>
                         <p className="text-xs leading-5 text-slate-500">
-                          {result?.summary?.categoryLabel ? `${result.summary.categoryLabel} · ` : ""}
+                          {result?.summary?.categoryLabel
+                            ? `${result.summary.categoryLabel} · `
+                            : ""}
                           {items.length}개 결과
                         </p>
                       </div>
                       {result?.summary?.basisLabel && (
-                        <span className="text-xs text-slate-500">{result.summary.basisLabel}</span>
+                        <span className="text-xs text-slate-500">
+                          {result.summary.basisLabel}
+                        </span>
                       )}
                     </div>
                     {result?.excluded && result.excluded.count > 0 && (
                       <p className="mt-1 text-[11px] text-slate-500">
-                        보유 제품과 겹치거나 함께 쓰기 어려운 제품 {result.excluded.count}개는 뺐어요
+                        보유 제품과 겹치거나 함께 쓰기 어려운 제품{" "}
+                        {result.excluded.count}개는 뺐어요
                       </p>
                     )}
                     <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5">
@@ -894,7 +1034,9 @@ function SearchResultContent() {
                 )}
                 {ready && !items.length && (
                   <div className="mt-12 text-center">
-                    <p className="text-body2 text-gray-400">검색 결과가 없어요</p>
+                    <p className="text-body2 text-gray-400">
+                      검색 결과가 없어요
+                    </p>
                     <p className="mt-2 text-caption text-gray-300">
                       조건을 수정하거나 다른 표현으로 다시 검색해 보세요
                     </p>
@@ -958,8 +1100,12 @@ function SearchResultContent() {
         >
           <div className="w-full max-w-[300px] rounded-2xl bg-white p-6 text-center">
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-[3px] border-primary-100 border-t-primary-500" />
-            <p className="mt-4 text-body2 font-semibold text-slate-800">사진 속 제품을 찾고 있어요</p>
-            <p className="mt-1 text-caption text-slate-500">몇 초 정도 걸려요</p>
+            <p className="mt-4 text-body2 font-semibold text-slate-800">
+              사진 속 제품을 찾고 있어요
+            </p>
+            <p className="mt-1 text-caption text-slate-500">
+              몇 초 정도 걸려요
+            </p>
           </div>
         </div>
       )}
@@ -969,7 +1115,11 @@ function SearchResultContent() {
           className="fixed bottom-[150px] left-1/2 z-40 flex w-[calc(100%-36px)] max-w-[394px] -translate-x-1/2 items-center gap-2 rounded-xl bg-slate-800/90 px-4 py-3 text-xs text-white"
         >
           <span className="flex-1">{lens.error}</span>
-          <button type="button" onClick={lens.clearError} className="shrink-0 font-semibold">
+          <button
+            type="button"
+            onClick={lens.clearError}
+            className="shrink-0 font-semibold"
+          >
             닫기
           </button>
         </div>
@@ -983,12 +1133,17 @@ function SearchResultContent() {
           conditions={conditions}
           options={
             sheet === "add" && options?.presets.length
-              ? options.presets.map(({ label, frequent }) => ({ label, frequent }))
+              ? options.presets.map(({ label, frequent }) => ({
+                  label,
+                  frequent,
+                }))
               : undefined
           }
           onClose={() => setSheet(null)}
           onApply={(selected, editedBase) =>
-            sheet === "add" ? void addConditions(selected) : editConditions(selected, editedBase)
+            sheet === "add"
+              ? void addConditions(selected)
+              : editConditions(selected, editedBase)
           }
         />
       )}

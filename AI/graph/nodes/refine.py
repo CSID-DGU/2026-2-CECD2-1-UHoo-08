@@ -16,7 +16,9 @@ BE 는 고른 선택지의 문장과 직접 쓴 문장을 쉼표로 이어 raw_q
          문장 조건, 제외 성분 합친다
          환경, 가성비        하나라도 켜져 있으면 켠다
          추천 기준           이전 그대로다
-       이전이 상품 평가였으면 기준 상품의 카테고리와 제품 종류를 조건으로 옮겨 검색으로 바꾼다
+       이전이 상품 평가였으면 기준 상품의 카테고리와 제품 종류를 조건으로 옮겨 검색으로 바꾼다.
+       종류는 묶음 이름으로 넓힌다. 젤크림을 평가했으면 크림으로 찾는다. 종류가 잘게
+       나뉘어 있어 그대로 쓰면 결과가 지나치게 좁아진다
     5. 찾는 방식을 정한다. 예산을 낮추거나 제외 성분을 더한 것뿐이고 이전 후보가 남아
        있으면 이전 후보를 다시 줄 세운다(RERANK). 아니면 새로 찾는다(RESEARCH)
 
@@ -30,6 +32,7 @@ from typing import Any
 from contracts.query_spec import QuerySpec, RequestType
 from graph.state import GraphState
 from rules import refine_presets
+from rules.product_types import broader, category_mentioned, mentioned, product_types
 from services import product_meta, product_resolver
 
 logger = logging.getLogger(__name__)
@@ -57,13 +60,32 @@ async def _읽기(job_id: str | None, columns: str) -> dict[str, Any] | None:
 
 
 async def _직접_쓴_스펙(state: GraphState, 문장: str) -> QuerySpec | None:
-    """직접 쓴 문장만 다시 해석한다. 해석하지 못하면 문장 그대로 조건에 둔다."""
+    """직접 쓴 문장만 다시 해석한다. 해석하지 못하면 문장 그대로 조건에 둔다.
+
+    "더 촉촉한 걸로" 처럼 종류나 카테고리를 말하지 않은 문장에도 질의 해석이 그 값을
+    채우는 일이 있다. 그대로 합치면 이전 검색의 값을 덮어써 다른 종류의 상품이 나온다.
+    문장에 그 종류의 이름이 없으면 종류를 버린다. 카테고리는 남은 종류가 있거나, 문장에
+    그 카테고리를 가리키는 말이 있을 때만 받는다.
+    """
     if not 문장:
         return None
     from graph.nodes.normalize import normalize
 
     나옴 = await normalize({**state, "raw_query": 문장, "clarify_answer": None})
-    return QuerySpec.model_validate(나옴["query_spec"])
+    스펙 = QuerySpec.model_validate(나옴["query_spec"])
+    특징 = dict(스펙.features)
+    종류 = 특징.get("product_type")
+    if 종류 is not None and not mentioned(종류, 문장):
+        logger.info("refine: 문장에 없는 종류를 버린다 %r (%r)", 종류, 문장)
+        특징.pop("product_type")
+    카테고리 = 스펙.category
+    if (
+        카테고리 is not None and "product_type" not in 특징
+        and not category_mentioned(카테고리.value, 문장)
+    ):
+        logger.info("refine: 문장에 근거가 없는 카테고리를 버린다 %r (%r)", 카테고리.value, 문장)
+        카테고리 = None
+    return 스펙.model_copy(update={"features": 특징, "category": 카테고리})
 
 
 def _합치기(바탕: QuerySpec, 새: QuerySpec | None) -> QuerySpec:
@@ -110,8 +132,10 @@ async def _평가를_검색으로(spec: QuerySpec, 이전: dict) -> QuerySpec:
     값 = spec.model_dump()
     if not 값["category"] and 정보.get("category"):
         값["category"] = 정보["category"]
-    종류 = (정보.get("feature_json") or {}).get("product_type")
-    if 종류:
+    # 종류가 여럿인 상품은 앞의 것이 주 종류다
+    종류들 = product_types(정보.get("feature_json"), 정보.get("category"))
+    if 종류들:
+        종류 = broader(종류들[0], 정보.get("category"))
         값["features"] = {"product_type": 종류, **값["features"]}
     return QuerySpec.model_validate(값)
 
