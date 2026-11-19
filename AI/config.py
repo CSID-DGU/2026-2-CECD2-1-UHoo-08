@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     LLM_AD_BASE_URL: str = ""
     LLM_AD_API_KEY: str = ""
 
+    # Claude (Anthropic). 역할의 모델 이름이 claude- 로 시작하면 OpenAI 호환 주소가
+    # 아니라 Anthropic SDK 로 부르고, 역할에 키를 따로 주지 않았으면 이 키를 쓴다.
+    # Claude 를 쓰는 역할이 없으면 비워 둬도 된다.
+    ANTHROPIC_API_KEY: str = ""
+
     # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
     # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.
     # 별칭(jev-latest) 대신 버전을 적어 둔다. 별칭은 가리키는 모델이 바뀌어
