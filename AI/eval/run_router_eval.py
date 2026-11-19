@@ -13,7 +13,7 @@
 
     python -m eval.run_router_eval --condition a1 --runs 3
     python -m eval.run_router_eval --condition a1 --split dev --fit-target 0.97
-    python -m eval.run_router_eval --condition a1 --threshold 0.6,0.8 --out eval/reports/a1.md
+    python -m eval.run_router_eval --condition a1 --threshold 0.6,0.8 --out eval/reports/experiments/a_router/a1_20261119.md
     python -m eval.run_router_eval --condition a1 --dump a1.json        실행 결과를 남긴다
     python -m eval.run_router_eval --condition a1 --load a1.json --threshold 0.8   다시 채점만 한다
 
