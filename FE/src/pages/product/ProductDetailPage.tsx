@@ -7,6 +7,7 @@ import { PageHeader } from "../../components/common/PageHeader";
 import { ProductThumbnail } from "../../components/common/ProductThumbnail";
 import { beginSearchAnalysis, withDeadline } from "../../lib/searchAnalysis";
 import AppLayout from "../../layouts/AppLayout";
+import { CompatibilityNotice } from "../../components/product/CompatibilityNotice";
 
 function fmt(n: number | null | undefined) {
   if (n == null) return null;
@@ -198,6 +199,8 @@ export function ProductDetailPage() {
           </div>
         )}
 
+        {/* 보유 제품과의 궁합. 문제가 있을 때만 보인다 */}
+        {productId && <CompatibilityNotice productId={productId} />}
 
         {/* 주요 성분 */}
         {ingredients && ingredients.length > 0 && (

@@ -18,3 +18,6 @@ interface ApiResponse<T> {
 
 export const socialLogin = (code: string) =>
   api.post<ApiResponse<TokenResponse>>("/auth/social", { code });
+
+export const googleLogin = (code: string) =>
+  api.post<ApiResponse<TokenResponse>>("/auth/google", { code });

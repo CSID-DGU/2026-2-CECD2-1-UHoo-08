@@ -6,13 +6,19 @@ import AppLayout from "../../layouts/AppLayout";
 export function ProductRecognizePage() {
   const navigate = useNavigate();
   const { state } = useLocation() as {
-    state: { result: RecognizeResult } | null;
+    // next: 검색에서 찍었으면 "detail"(제품 상세로), 추천 흐름에서 왔으면 비어 있다.
+    state: { result: RecognizeResult; next?: "detail" } | null;
   };
 
   const result = state?.result;
+  const toDetail = state?.next === "detail";
 
   function handleConfirm() {
     if (!result?.productId) return;
+    if (toDetail) {
+      navigate(`/product/${result.productId}`, { replace: true });
+      return;
+    }
     navigate("/recommendation/extra-info", {
       state: { productId: result.productId },
     });
@@ -63,7 +69,7 @@ export function ProductRecognizePage() {
             onClick={handleConfirm}
             type="button"
           >
-            맞아요, 추천받기 →
+            {toDetail ? "맞아요, 제품 보기 →" : "맞아요, 추천받기 →"}
           </button>
           <button
             className="h-12 w-full rounded-xl border border-gray-200 text-body2 text-gray-500"

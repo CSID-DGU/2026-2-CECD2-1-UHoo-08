@@ -2,15 +2,24 @@ import { useState } from "react";
 import { BottomSheet } from "../common/BottomSheet";
 import { PrimaryButton } from "../common/PrimaryButton";
 
-const OPTIONS = ["더 저렴하게", "향 없는 걸로", "커버력 높게", "지속력 좋은", "자외선 차단", "민감성도 괜찮은"];
+const DEFAULT_OPTIONS = ["더 저렴하게", "향 없는 걸로", "커버력 높게", "지속력 좋은", "자외선 차단", "민감성도 괜찮은"].map(label => ({ label, frequent: false }));
 
-export function RecommendationRefinementSheet({ conditions, baseQuery, mode = "add", onClose, onApply }: {
+export interface RefinementOption {
+  label: string;
+  /** 최근 자주 고른 조건. 앞쪽에 표시한다 */
+  frequent: boolean;
+}
+
+export function RecommendationRefinementSheet({ conditions, baseQuery, mode = "add", options = DEFAULT_OPTIONS, onClose, onApply }: {
   conditions: string[];
   baseQuery: string;
   mode?: "add" | "edit";
+  /** 서버가 내려준 고를 수 있는 조건. 없으면 기본 목록을 쓴다 */
+  options?: RefinementOption[];
   onClose: () => void;
   onApply: (conditions: string[], baseQuery?: string) => void;
 }) {
+  const ordered = [...options].sort((a, b) => Number(b.frequent) - Number(a.frequent));
   const editing = mode === "edit";
   const [selected, setSelected] = useState(() => (editing ? conditions : []).map(text => ({ id: crypto.randomUUID(), text })));
   const [custom, setCustom] = useState("");
@@ -35,7 +44,7 @@ export function RecommendationRefinementSheet({ conditions, baseQuery, mode = "a
         <div className="mt-2 flex flex-wrap gap-1.5">{[baseQuery, ...conditions].map(condition => <span key={condition} className="max-w-full break-words rounded-md bg-gray-100 px-2 py-1 text-[11px] text-gray-400">{condition}</span>)}</div>
       </>}
       <fieldset className="mt-5"><legend className="mb-2 w-full text-caption font-semibold">골라서 더하기 <span className="float-right text-[11px] font-normal text-gray-300">복수 선택돼요</span></legend>
-        <div className="grid grid-cols-2 gap-2">{OPTIONS.map(option => <button type="button" key={option} disabled={!editing && conditions.includes(option)} aria-pressed={selected.some(item => item.text === option)} onClick={() => setSelected(previous => previous.some(item => item.text === option) ? previous.filter(item => item.text !== option) : [...previous, { id: crypto.randomUUID(), text: option }])} className={`min-h-11 rounded-xl px-2 py-3 text-caption disabled:opacity-40 ${selected.some(item => item.text === option) ? "bg-primary-300 text-white" : "bg-gray-100 text-gray-500"}`}>{option}</button>)}</div>
+        <div className="grid grid-cols-2 gap-2">{ordered.map(({ label: option, frequent }) => <button type="button" key={option} disabled={!editing && conditions.includes(option)} aria-pressed={selected.some(item => item.text === option)} onClick={() => setSelected(previous => previous.some(item => item.text === option) ? previous.filter(item => item.text !== option) : [...previous, { id: crypto.randomUUID(), text: option }])} className={`min-h-11 rounded-xl px-2 py-3 text-caption disabled:opacity-40 ${selected.some(item => item.text === option) ? "bg-primary-300 text-white" : "bg-gray-100 text-gray-500"}`}>{option}{frequent && <span className="ml-1 text-[10px] opacity-70">자주 고름</span>}</button>)}</div>
       </fieldset>
       <label className="mt-5 block text-caption font-semibold" htmlFor="custom-refinement">직접 쓰기</label>
       <input id="custom-refinement" value={custom} maxLength={100} onChange={event => setCustom(event.target.value)} placeholder="예) 팩트 말고 쿠션만 보여줘" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-caption outline-primary-500" />

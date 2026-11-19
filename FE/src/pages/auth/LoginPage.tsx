@@ -1,5 +1,7 @@
 ﻿import Spline from "@splinetool/react-spline";
-import appleIcon from "../../assets/Apple.png";
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { startGoogleLogin } from "../../lib/googleAuth";
 import googleIcon from "../../assets/Google.png";
 import kakaoIcon from "../../assets/Kakao.png";
 import HwadamLogo from "../../assets/Hwadam.svg";
@@ -7,7 +9,8 @@ import HwadamLogo from "../../assets/Hwadam.svg";
 // 배포 도메인마다 콜백 주소가 달라지므로 현재 origin에서 유도한다.
 // 고정이 필요하면 VITE_KAKAO_REDIRECT_URI로 덮어쓸 수 있다.
 const KAKAO_REDIRECT_URI =
-  import.meta.env.VITE_KAKAO_REDIRECT_URI || `${window.location.origin}/auth/social`;
+  import.meta.env.VITE_KAKAO_REDIRECT_URI ||
+  `${window.location.origin}/auth/social`;
 
 const KAKAO_AUTH_URL =
   `https://kauth.kakao.com/oauth/authorize` +
@@ -17,7 +20,6 @@ const KAKAO_AUTH_URL =
 
 const COPY = {
   kakao: "카카오로 계속하기",
-  apple: "Apple으로 계속하기",
   google: "Google으로 계속하기",
   terms: "로그인 시 이용약관 및 개인정보처리방침에 동의합니다",
 };
@@ -32,18 +34,31 @@ const socialButtons = [
     },
   },
   {
-    label: COPY.apple,
-    icon: appleIcon,
-    className: "bg-white",
-  },
-  {
     label: COPY.google,
     icon: googleIcon,
     className: "bg-white",
+    onClick: startGoogleLogin,
   },
 ];
 
 export function LoginPage() {
+  const location = useLocation();
+  const [loginError, setLoginError] = useState<string | null>(
+    location.state?.loginError ?? null,
+  );
+  const handleLogin = (onClick?: () => void) => {
+    setLoginError(null);
+    try {
+      onClick?.();
+    } catch (error) {
+      setLoginError(
+        error instanceof Error
+          ? error.message
+          : "로그인을 시작할 수 없습니다. 다시 시도해 주세요.",
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0d1b2a]">
       <div className="relative mx-auto min-h-screen w-full max-w-[430px] overflow-hidden">
@@ -77,7 +92,7 @@ export function LoginPage() {
                   className={`relative flex h-[54px] items-center justify-center rounded-xl text-black backdrop-blur-lg ${className}`}
                   key={label}
                   type="button"
-                  onClick={onClick}
+                  onClick={() => handleLogin(onClick)}
                 >
                   <img
                     alt=""
@@ -91,6 +106,14 @@ export function LoginPage() {
             </div>
           </div>
 
+          {loginError && (
+            <p
+              role="alert"
+              className="mx-6 mt-4 rounded-xl bg-white/90 p-3 text-body2 text-red-700"
+            >
+              {loginError}
+            </p>
+          )}
           <div className="mt-auto px-6 pb-6">
             <p className="text-center text-caption text-gray-300">
               {COPY.terms}

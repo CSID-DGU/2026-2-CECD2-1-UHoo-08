@@ -119,7 +119,7 @@ const CONCERN_MAP: Record<string, string> = {
 };
 
 export const saveOnboardingProducts = (productIds: string[]) =>
-  api.post<ApiResponse<number>>("/onboarding/favorites/items/batch", { productIds });
+  api.post<ApiResponse<number>>("/onboarding/frequently-used-products/batch", { productIds });
 
 export const completeOnboarding = () =>
   api.patch<ApiResponse<unknown>>("/onboarding");
