@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # Claude 를 쓰는 역할이 없으면 비워 둬도 된다.
     ANTHROPIC_API_KEY: str = ""
 
+    # Gemini 를 Vertex AI 로 부를 때 쓰는 구글 클라우드 프로젝트와 위치.
+    # 역할의 모델 이름이 gemini- 로 시작하고 주소를 따로 주지 않았으면 Vertex AI 로
+    # 부른다. 키 대신 로그인 정보를 쓴다(로컬은 gcloud auth application-default login).
+    # 프로젝트를 비워 두면 Vertex AI 로 부르지 않는다.
+    #
+    # GOOGLE_GENAI_USE_VERTEXAI 는 여기서 읽지 않는다. 그 값이 실제 환경 변수로
+    # 들어가면 키로 부르던 다른 Gemini 호출(상품 정보 추출 등)까지 Vertex AI 로 바뀐다.
+    GOOGLE_CLOUD_PROJECT: str = ""
+    GOOGLE_CLOUD_LOCATION: str = "global"
+
     # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
     # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.
     # 별칭(jev-latest) 대신 버전을 적어 둔다. 별칭은 가리키는 모델이 바뀌어

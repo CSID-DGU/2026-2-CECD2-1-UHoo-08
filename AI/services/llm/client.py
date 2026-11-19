@@ -3,8 +3,9 @@
 DashScope 도 Gemini 도 OpenAI 호환 주소를 주므로, 모델, 주소, 키만 바꾸면
 같은 코드로 다른 제공자를 쓸 수 있다. 어떤 값을 쓸지는 역할이 정한다.
 
-Claude 만 다르게 부른다. 모델 이름이 claude- 로 시작하면 Anthropic SDK 를
-쓴다(services.llm.claude). 부르는 쪽 코드는 같다.
+둘은 다르게 부른다. 모델 이름이 claude- 로 시작하면 Anthropic SDK 를
+쓰고(services.llm.claude), gemini- 로 시작하는데 주소를 따로 주지 않았으면
+Vertex AI 로 부른다(services.llm.vertex). 부르는 쪽 코드는 같다.
 
     from services.llm import LLMRole, get_llm
 
@@ -31,6 +32,7 @@ from config import settings
 from services.llm.claude import DEFAULT_BASE_URL as CLAUDE_BASE_URL
 from services.llm.claude import ClaudeChat, is_claude
 from services.llm.usage import LLMCall, record, token_counts
+from services.llm.vertex import VertexChat, is_gemini
 
 
 class LLMRole(str, Enum):
@@ -68,6 +70,9 @@ def _설정(role: LLMRole) -> tuple[str, str, str]:
 
     주소와 키의 기본값은 모델을 보고 고른다. 모델만 Claude 로 바꿨는데
     Qwen 주소와 키로 부르는 일이 없게 한다.
+
+    Gemini 는 주소를 비운 채로 돌려준다. 주소가 없는 Gemini 를 LLMClient 가
+    Vertex AI 로 부른다. 구글 클라우드 프로젝트를 정해 두었을 때만 그렇게 한다.
     """
     이름 = role.name
     모델 = getattr(settings, f"LLM_{이름}_MODEL", "") or _기본_모델[role]()
@@ -75,6 +80,8 @@ def _설정(role: LLMRole) -> tuple[str, str, str]:
     키 = getattr(settings, f"LLM_{이름}_API_KEY", "")
     if is_claude(모델):
         return 모델, 주소 or CLAUDE_BASE_URL, 키 or settings.ANTHROPIC_API_KEY
+    if is_gemini(모델) and not 주소 and settings.GOOGLE_CLOUD_PROJECT:
+        return 모델, "", ""
     return (
         모델,
         주소 or _기본_주소.get(role, lambda: settings.QWEN_TEXT_BASE_URL)(),
@@ -125,9 +132,14 @@ class LLMClient:
         api_key: str,
         role: Optional[LLMRole] = None,
     ) -> None:
-        # 모델 이름을 보고 부르는 방법을 고른다. Claude 는 OpenAI 호환 주소로 부르지 않는다
-        부르는_방법 = ClaudeChat if is_claude(model) else _OpenAIChat
-        self._호출 = 부르는_방법(model, base_url, api_key)
+        # 모델 이름을 보고 부르는 방법을 고른다
+        if is_claude(model):
+            self._호출 = ClaudeChat(model, base_url, api_key)
+        elif is_gemini(model) and not base_url:
+            # 주소 없이 온 Gemini 는 Vertex AI 로 부른다. 키 대신 프로젝트와 위치를 쓴다
+            self._호출 = VertexChat(model, settings.GOOGLE_CLOUD_PROJECT, settings.GOOGLE_CLOUD_LOCATION)
+        else:
+            self._호출 = _OpenAIChat(model, base_url, api_key)
         self._model = model
         # 기록에 남길 역할 이름. 역할 없이 직접 만든 클라이언트면 비워 둔다.
         self._role = role.value if role is not None else ""
@@ -148,6 +160,7 @@ class LLMClient:
         timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
 
         Claude 는 response_json 과 temperature 를 받지 않아 보내지 않는다.
+        Vertex AI 의 Gemini 에는 temperature 를 보내지 않는다.
 
         성공하든 실패하든 호출 기록을 하나 남긴다. 실패한 호출도 시간을 썼고,
         빼면 느린 쪽 시간이 실제보다 좋게 나온다.

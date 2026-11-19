@@ -375,3 +375,212 @@ class TestRoleSettings:
         assert client._설정(client.LLMRole.NORMALIZE) == (
             client.settings.QWEN_TEXT_MODEL, client.settings.QWEN_TEXT_BASE_URL, "dashscope-key",
         )
+
+
+class TestVertexGemini:
+    """주소 없이 고른 Gemini 를 Vertex AI 로 부르는지 본다."""
+
+    @pytest.fixture(autouse=True)
+    def _프로젝트(self, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "my-project")
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_LOCATION", "global")
+
+    @staticmethod
+    def _응답(글='{"a": 1}', **토큰):
+        토큰 = 토큰 or {"prompt_token_count": 100, "candidates_token_count": 20}
+        조각들 = [
+            MagicMock(text="속으로 한 생각", thought=True),
+            MagicMock(text=None, thought=None),
+            MagicMock(text=글, thought=None),
+        ]
+        return MagicMock(
+            candidates=[MagicMock(content=MagicMock(parts=조각들))],
+            usage_metadata=MagicMock(**토큰),
+        )
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    @patch("google.genai.Client")
+    async def test_gemini_without_address_goes_to_vertex(self, mock_genai_cls, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        out = await c.chat_json(system="s", user="u", temperature=0.0)
+
+        assert out == {"a": 1}
+        mock_openai_cls.assert_not_called()
+        만든 = mock_genai_cls.call_args.kwargs
+        assert (만든["vertexai"], 만든["project"], 만든["location"]) == (True, "my-project", "global")
+        보낸 = generate.call_args.kwargs
+        assert (보낸["model"], 보낸["contents"]) == ("gemini-3.8-flash", "u")
+        설정 = 보낸["config"]
+        assert 설정.system_instruction == "s"
+        assert 설정.response_mime_type == "application/json"
+        # 기본값으로 두라고 안내하는 값은 보내지 않는다
+        assert 설정.temperature is None
+        assert 설정.http_options is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_plain_chat_does_not_ask_for_json(self, mock_genai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답(글="hello")
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert await c.chat(system="s", user="u") == "hello"
+        assert generate.call_args.kwargs["config"].response_mime_type is None
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    @patch("google.genai.Client")
+    async def test_gemini_with_address_stays_on_openai_compatible(self, mock_genai_cls, mock_openai_cls):
+        """주소를 줬으면 전처럼 그 주소의 OpenAI 호환 방식으로 부른다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="http://x", api_key="k")
+
+        assert await c.chat(system="s", user="u") == "hello"
+        mock_genai_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("model, 단계", [
+        ("gemini-3.5-flash-lite", "MINIMAL"),
+        ("gemini-3.8-flash", "LOW"),
+        ("gemini-3.1-pro-preview", "LOW"),
+    ])
+    @patch("google.genai.Client")
+    async def test_thinking_is_set_to_lowest_level_per_model(self, mock_genai_cls, model, 단계):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model=model, base_url="", api_key="")
+        await c.chat(system="s", user="u")
+
+        assert generate.call_args.kwargs["config"].thinking_config.thinking_level.value == 단계
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_unlisted_model_keeps_its_default_thinking(self, mock_genai_cls):
+        """가장 낮은 단계를 모르는 모델에는 보내지 않는다. 받지 않는 단계는 오류가 난다."""
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-4-carbon", base_url="", api_key="")
+        await c.chat(system="s", user="u")
+
+        assert generate.call_args.kwargs["config"].thinking_config is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_timeout_is_passed_in_milliseconds(self, mock_genai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        await c.chat(system="s", user="u", timeout=15.0)
+
+        assert generate.call_args.kwargs["config"].http_options.timeout == 15000
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_retries_like_the_other_sdks(self, mock_genai_cls):
+        """이 SDK 는 정하지 않으면 다시 보내지 않는다. 다른 SDK 처럼 두 번까지 다시 보낸다."""
+        from services.llm.client import LLMClient
+
+        LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert mock_genai_cls.call_args.kwargs["http_options"].retry_options.attempts == 3
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_records_tokens_including_thinking(self, mock_genai_cls):
+        from services.llm.client import LLMClient, LLMRole
+        from services.llm.usage import collect_calls
+
+        mock_genai_cls.return_value.models.generate_content.return_value = self._응답(
+            prompt_token_count=100, candidates_token_count=20, thoughts_token_count=30,
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="", role=LLMRole.NORMALIZE)
+        with collect_calls() as calls:
+            await c.chat(system="s", user="u")
+
+        call = calls[0]
+        assert (call.role, call.model, call.ok) == ("normalize", "gemini-3.8-flash", True)
+        assert (call.input_tokens, call.output_tokens) == (100, 50)
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_blocked_answer_is_empty(self, mock_genai_cls):
+        """답이 막히면 후보가 없다. 빈 답이 되고 JSON 으로는 None 이다."""
+        from services.llm.client import LLMClient
+
+        mock_genai_cls.return_value.models.generate_content.return_value = MagicMock(
+            candidates=[], usage_metadata=MagicMock(prompt_token_count=5),
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert await c.chat(system="s", user="u") == ""
+        assert await c.chat_json(system="s", user="u") is None
+
+    def test_missing_project_is_rejected(self, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "")
+
+        with pytest.raises(RuntimeError, match="GOOGLE_CLOUD_PROJECT"):
+            client.LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+
+class TestGeminiRoleSettings:
+    """Gemini 를 고른 역할이 Vertex AI 로 갈지, OpenAI 호환 주소로 갈지 본다."""
+
+    @staticmethod
+    def _역할_값(monkeypatch, 주소="", 키="", 프로젝트="my-project"):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_MODEL", "gemini-3.8-flash")
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_BASE_URL", 주소)
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_API_KEY", 키)
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", 프로젝트)
+        monkeypatch.setattr(client.settings, "DASHSCOPE_API_KEY", "dashscope-key")
+        return client
+
+    def test_without_address_address_stays_empty_for_vertex(self, monkeypatch):
+        client = self._역할_값(monkeypatch)
+
+        assert client._설정(client.LLMRole.NORMALIZE) == ("gemini-3.8-flash", "", "")
+
+    def test_with_address_uses_that_address_and_key(self, monkeypatch):
+        client = self._역할_값(monkeypatch, 주소="https://gemini.example/openai/", 키="gemini-key")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "gemini-3.8-flash", "https://gemini.example/openai/", "gemini-key",
+        )
+
+    def test_without_project_behaves_as_before(self, monkeypatch):
+        """프로젝트를 정하지 않은 곳에서는 Vertex AI 로 보내지 않는다."""
+        client = self._역할_값(monkeypatch, 프로젝트="")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "gemini-3.8-flash", client.settings.QWEN_TEXT_BASE_URL, "dashscope-key",
+        )
