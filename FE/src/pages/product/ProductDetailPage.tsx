@@ -318,9 +318,14 @@ export function ProductDetailPage() {
       {/* 카테고리 선택 바텀시트 */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showCategorySheet}
         style={{
           transform: showCategorySheet ? "translateY(0)" : "translateY(105%)",
-          transition: sheetEverOpened ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+          // 닫힌 시트가 화면 아래로 비쳐 보이지 않게 닫히는 애니메이션 뒤에 숨긴다.
+          visibility: showCategorySheet ? "visible" : "hidden",
+          transition: sheetEverOpened
+            ? `transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear ${showCategorySheet ? "0s" : "0.32s"}`
+            : "none",
           willChange: "transform",
         }}
       >

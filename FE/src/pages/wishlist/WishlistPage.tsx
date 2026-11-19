@@ -144,8 +144,14 @@ export function WishlistPage() {
       )}
 
       <div
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6 transition-transform duration-300"
-        style={{ transform: showAddSheet ? "translateY(0)" : "translateY(100%)" }}
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showAddSheet}
+        style={{
+          transform: showAddSheet ? "translateY(0)" : "translateY(100%)",
+          // 닫힌 시트가 화면 아래로 비쳐 보이지 않게 닫히는 애니메이션 뒤에 숨긴다.
+          visibility: showAddSheet ? "visible" : "hidden",
+          transition: `transform 0.3s ease, visibility 0s linear ${showAddSheet ? "0s" : "0.3s"}`,
+        }}
       >
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200" />
         <h2 className="text-h3 text-gray-500">폴더 이름 입력</h2>

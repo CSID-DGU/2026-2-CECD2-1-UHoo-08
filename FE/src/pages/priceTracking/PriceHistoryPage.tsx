@@ -247,9 +247,15 @@ export function PriceHistoryPage() {
       {/* 바텀시트 */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showSheet}
         style={{
           transform: showSheet ? "translateY(0)" : "translateY(105%)",
-          transition: sheetEverOpened ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+          // 닫힌 시트는 화면 아래에 밀어 두기만 하면, 끝까지 스크롤하거나 모바일 주소창이
+          // 접힐 때 아래로 비쳐 보인다. 닫히는 애니메이션이 끝나면 아예 숨긴다.
+          visibility: showSheet ? "visible" : "hidden",
+          transition: sheetEverOpened
+            ? `transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear ${showSheet ? "0s" : "0.32s"}`
+            : "none",
           willChange: "transform",
           pointerEvents: showSheet ? "auto" : "none",
         }}
