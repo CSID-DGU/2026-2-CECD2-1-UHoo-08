@@ -11,11 +11,11 @@
 조건을 고르면 시나리오 결정 실험으로 돈다. 같은 문제를 여러 번 반복해 평균과
 흩어진 정도를 내고, 되묻기 판단, 확률의 오차, 시간, 비용까지 잰다.
 
-    python -m eval.run_router_eval --condition a1 --runs 3
-    python -m eval.run_router_eval --condition a1 --split dev --fit-target 0.97
-    python -m eval.run_router_eval --condition a1 --threshold 0.6,0.8 --out eval/reports/experiments/a_router/a1_20261119.md
-    python -m eval.run_router_eval --condition a1 --dump a1.json        실행 결과를 남긴다
-    python -m eval.run_router_eval --condition a1 --load a1.json --threshold 0.8   다시 채점만 한다
+    python -m eval.run_router_eval --condition a2 --runs 3
+    python -m eval.run_router_eval --condition a3 --split dev --fit-target 0.97
+    python -m eval.run_router_eval --condition a3 --threshold 0.6,0.8 --out eval/reports/experiments/a_router/a3_20261119.md
+    python -m eval.run_router_eval --condition a3 --dump a3.json        실행 결과를 남긴다
+    python -m eval.run_router_eval --condition a3 --load a3.json --threshold 0.8   다시 채점만 한다
 
 수치는 test 로 낸다. 프롬프트는 dev 를 보고만 고친다. 골든셋에 맞춰 튜닝한
 결과를 성능이라고 부르지 않기 위해서다.

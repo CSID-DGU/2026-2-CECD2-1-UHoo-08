@@ -121,7 +121,7 @@ class QuerySpec(BaseModel):
         되물을지는 이제 양식이 얼마나 비었는지로 정한다(rules/clarify.py). 이 칸을
         없앴지만, 조건 수정은 예전 job 의 스펙을 다시 읽으므로 받아는 준다.
         """
-        if isinstance(값, dict) and "confidence" in 값 and "confidence" not in cls.model_fields:
+        if isinstance(값, dict) and "confidence" in 값:
             값 = {키: v for 키, v in 값.items() if 키 != "confidence"}
         return 값
 

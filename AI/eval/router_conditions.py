@@ -6,6 +6,9 @@ eval/router_metrics.py 가 한다.
 
 직전 결과가 있는 질문은 어느 조건에서나 규칙으로 조건 수정에 보내고,
 되묻지 않으며, 확률도 내지 않는다.
+
+LLM 이 스스로 매긴 확신 점수로 되묻던 예전 방식(A1)은 채택되지 않아 뺐다.
+그 결과는 eval/reports/experiments/a_router 의 a1 리포트에 남아 있다.
 """
 from __future__ import annotations
 
@@ -25,70 +28,6 @@ class Condition:
     run: Callable[[dict], Awaitable[Outcome]]
     # 기준값을 따로 주지 않았을 때 쓰는 값
     thresholds: Thresholds = Thresholds()
-
-
-# 서비스는 확신 점수를 쓰지 않는다. 지금 방식과 견주려면 예전 방식을 그대로 돌릴 수
-# 있어야 하므로, 프롬프트와 양식에 확신 점수를 되돌려 넣은 것을 여기에만 둔다.
-예전_확신_기준 = 0.6
-_예시_확신_점수 = ("0.92", "0.95", "0.9", "0.2")
-_확신_점수_설명 = (
-    "[confidence]\n"
-    "무엇을 원하는지 얼마나 분명한지. 문장이 짧고 모호하면 낮춘다.\n"
-    '"추천해줘" 처럼 조건이 하나도 없으면 0.3 이하.\n\n'
-)
-
-
-def legacy_confidence_prompt() -> str:
-    """확신 점수를 묻던 예전 프롬프트. 지금 프롬프트에 그 자리만 되돌려 넣는다."""
-    from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
-
-    글 = QUERY_NORMALIZE_SYSTEM
-    for 찾을, 바꿀 in (
-        ('  "value_seeking": false\n}', '  "value_seeking": false,\n  "confidence": 0.0~1.0\n}'),
-        ("[규칙]\n", _확신_점수_설명 + "[규칙]\n"),
-    ):
-        assert 글.count(찾을) == 1, 찾을
-        글 = 글.replace(찾을, 바꿀)
-    점수 = iter(_예시_확신_점수)
-    글, 바꾼_수 = re.subn(r"(?m)^(출력: \{.*)\}$", lambda m: f'{m.group(1)},"confidence":{next(점수)}}}', 글)
-    assert 바꾼_수 == len(_예시_확신_점수)
-    return 글
-
-
-async def _a1(입력: dict) -> Outcome:
-    """예전 방식. LLM 이 스스로 적은 확신 점수를 그대로 쓴다.
-
-    확신 점수 하나에 "어느 시나리오인지 헷갈린다"와 "조건이 없다"가 섞여 있다.
-    따로 낼 수 없으므로 이 숫자를 시나리오 확률 자리에 둔다. 해석하지 못하면
-    예전처럼 확신 점수 0 으로 보고 검색으로 둔다.
-    """
-    from pydantic import Field
-
-    from contracts.query_spec import QuerySpec, RequestType
-    from graph.nodes.normalize import _사용자_말, parse_query
-    from graph.registry import ROUTE
-
-    class 확신_점수_스펙(QuerySpec):
-        confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-
-    raw = (입력.get("raw_query") or "").strip()
-    읽은 = await parse_query(
-        _사용자_말(입력, raw), raw, system=legacy_confidence_prompt(), model=확신_점수_스펙,
-    )
-    if 입력.get("parent_job_id"):
-        spec = 읽은.model_dump(mode="json") if 읽은 else {"request_type": "REFINE"}
-        return Outcome(spec=spec, scenario=ROUTE[RequestType.REFINE])
-    if 읽은 is None:
-        return Outcome(spec={"request_type": "SEARCH"}, scenario=ROUTE[RequestType.SEARCH],
-                       scenario_prob=0.0)
-
-    종류 = RequestType.SEARCH if 읽은.request_type is RequestType.REFINE else 읽은.request_type
-    return Outcome(
-        spec=읽은.model_dump(mode="json"),
-        scenario=ROUTE[종류],
-        clarify_rule=bool(읽은.missing_required()),
-        scenario_prob=읽은.confidence,
-    )
 
 
 # ── B0. 규칙만 ──────────────────────────────────────────────────────────────
@@ -420,7 +359,6 @@ async def _a7(입력: dict) -> Outcome:
 
 CONDITIONS: dict[str, Condition] = {
     "b0": Condition("b0", "B0. 규칙만", _b0),
-    "a1": Condition("a1", "A1. LLM + 스스로 매긴 확신 점수", _a1, Thresholds(scenario=예전_확신_기준)),
     "a2": Condition("a2", "A2. LLM + 구조 규칙", _a2),
     # 다섯 번 중 세 번 이상 같은 답이면 처리한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),

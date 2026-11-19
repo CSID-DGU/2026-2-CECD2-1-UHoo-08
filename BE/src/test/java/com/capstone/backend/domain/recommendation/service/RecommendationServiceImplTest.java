@@ -222,8 +222,8 @@ class RecommendationServiceImplTest {
     }
 
     @Test
-    void 처음_끝난_상태가_되면_검색_기록에_시나리오와_해석_결과와_확신도를_남긴다() {
-        String spec = "{\"category\":\"base\",\"confidence\":0.82}";
+    void 처음_끝난_상태가_되면_검색_기록에_시나리오와_해석_결과를_남긴다() {
+        String spec = "{\"category\":\"base\"}";
         givenJob(v2Job(JobStatus.COMPLETED).scenario("S2_SEARCH").querySpec(spec).build());
         SearchLog searchLog = SearchLog.builder().jobId(jobId).rawQuery("쿠션").build();
         given(searchLogRepository.findByJobId(jobId)).willReturn(List.of(searchLog));
@@ -232,24 +232,23 @@ class RecommendationServiceImplTest {
 
         assertThat(searchLog.getScenario()).isEqualTo("S2_SEARCH");
         assertThat(searchLog.getQuerySpec()).isEqualTo(spec);
-        assertThat(searchLog.getConfidence()).isEqualTo(0.82f);
     }
 
     @Test
     void 이미_해석_결과를_남긴_검색_기록은_다시_채우지_않는다() {
-        givenJob(v2Job(JobStatus.COMPLETED).scenario("S6_BUNDLE").querySpec("{\"confidence\":0.9}").build());
+        givenJob(v2Job(JobStatus.COMPLETED).scenario("S6_BUNDLE").querySpec("{\"category\":\"skincare\"}").build());
         SearchLog searchLog = SearchLog.builder().jobId(jobId).rawQuery("세트").scenario("S2_SEARCH")
-                .querySpec("{\"confidence\":0.4}").confidence(0.4f).build();
+                .querySpec("{\"category\":\"base\"}").build();
         given(searchLogRepository.findByJobId(jobId)).willReturn(List.of(searchLog));
 
         service.getStatus(userId, jobId);
 
         assertThat(searchLog.getScenario()).isEqualTo("S2_SEARCH");
-        assertThat(searchLog.getConfidence()).isEqualTo(0.4f);
+        assertThat(searchLog.getQuerySpec()).isEqualTo("{\"category\":\"base\"}");
     }
 
     @Test
-    void 해석_전에_실패한_job은_확신도_없이_남긴다() {
+    void 해석_전에_실패한_job은_해석_결과_없이_남긴다() {
         givenJob(v2Job(JobStatus.FAILED).build());
         SearchLog searchLog = SearchLog.builder().jobId(jobId).rawQuery("쿠션").build();
         given(searchLogRepository.findByJobId(jobId)).willReturn(List.of(searchLog));
@@ -257,7 +256,7 @@ class RecommendationServiceImplTest {
         service.getStatus(userId, jobId);
 
         assertThat(searchLog.getScenario()).isNull();
-        assertThat(searchLog.getConfidence()).isNull();
+        assertThat(searchLog.getQuerySpec()).isNull();
     }
 
     @Test
