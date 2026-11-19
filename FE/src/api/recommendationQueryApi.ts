@@ -1,4 +1,5 @@
 import { api } from "../lib/api";
+import { isMockJob, mockBundleSlotOptions, mockSwapBundle } from "../mocks/unready";
 
 /**
  * 자연어 추천(v2) API.
@@ -92,6 +93,75 @@ export interface QueryResult {
     count: number;
     items: { productId: string; name: string | null; reason: string; detail: string | null }[];
   } | null;
+  /** 상품 평가·조건 수정의 비슷한 대체 상품. 이미지는 BE 가 내려주지 않는다 */
+  alternatives: AlternativeItem[] | null;
+  /** 점수 기준 미달로 뺀 대체 후보 수 */
+  alternativesDroppedCount: number;
+  /** 피부 타입·고민이 비슷한 사람들이 쓰는 제품. 이미지는 BE 가 내려주지 않는다 */
+  similarUserProducts: SimilarUserProduct[] | null;
+  /** 예산 세트(S6) 조합. 다른 시나리오에서는 빈 배열 */
+  bundles: Bundle[] | null;
+}
+
+/** 예산 세트 조합 하나 (BE RecommendationResultV2Response.Bundle) */
+export interface Bundle {
+  /** 1부터 */
+  index: number;
+  type: string | null;
+  /** "균형형", "알뜰형" 같은 성격 이름 */
+  label: string;
+  total: number;
+  /** 예산 - 합계. 예산이 없으면 null, 넘었으면 음수 */
+  remaining: number | null;
+  totalScore: number;
+  slots: BundleSlot[];
+}
+
+export interface BundleSlot {
+  slotKey: string;
+  /** "토너", "세럼" 같은 칸 이름 */
+  label: string | null;
+  productId: string;
+  name: string;
+  price: number | null;
+  score: number | null;
+}
+
+/** 세트의 한 칸을 바꿀 때 고를 수 있는 후보 (BE BundleSlotOptionsResponse) */
+export interface BundleSlotOptions {
+  budget: number | null;
+  currentTotal: number;
+  options: {
+    productId: string;
+    name: string;
+    price: number;
+    score: number | null;
+    /** 이 후보로 바꿨을 때의 합계 */
+    newTotal: number;
+    remaining: number | null;
+    /** 지금 들어 있는 제품 */
+    current: boolean;
+    /** 예산 안이면 true */
+    selectable: boolean;
+    overBudgetBy: number | null;
+  }[];
+}
+
+export interface AlternativeItem {
+  productId: string;
+  name: string;
+  brand: string;
+  price: number | null;
+  /** 0~1. AI 가 점수에 유사도를 넣었을 때만 */
+  similarity: number | null;
+  totalScore: number | null;
+}
+
+export interface SimilarUserProduct {
+  productId: string;
+  name: string;
+  brand: string;
+  price: number | null;
 }
 
 export interface RefinementOptions {
@@ -163,6 +233,24 @@ export const submitFeedback = (
     `/recommendations/${jobId}/feedback`,
     body,
   );
+
+/** 세트 한 칸의 교체 후보. 목데이터 세트(jobId 가 mock- 으로 시작)면 목데이터로 답한다. */
+export const getBundleSlotOptions = async (jobId: string, bundleIndex: number, slotKey: string) => {
+  if (isMockJob(jobId)) return { success: true, data: mockBundleSlotOptions(bundleIndex, slotKey) };
+  return api.get<ApiResponse<BundleSlotOptions>>(
+    `/recommendations/${jobId}/bundles/${bundleIndex}/slots/${encodeURIComponent(slotKey)}/options`,
+  );
+};
+
+/** 세트 한 칸을 고른 제품으로 바꾼다. 예산을 넘으면 서버가 422 BUNDLE_OVER_BUDGET */
+export const swapBundleProduct = async (
+  jobId: string,
+  bundleIndex: number,
+  body: { slotKey: string; productId: string },
+) => {
+  if (isMockJob(jobId)) return { success: true, data: { bundle: mockSwapBundle(bundleIndex, body) } };
+  return api.patch<ApiResponse<{ bundle: Bundle }>>(`/recommendations/${jobId}/bundles/${bundleIndex}`, body);
+};
 
 /** 서버 오류 본문에서 코드와 문구를 꺼낸다. 모양이 달라도 터지지 않게 한다. */
 export function apiErrorCode(error: unknown): string | null {

@@ -1,6 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronRight, History, Plus, Sparkles } from "lucide-react";
+import {
+  ChevronRight,
+  History,
+  Plus,
+  Shuffle,
+  Sparkles,
+  UsersRound,
+} from "lucide-react";
 import {
   recordProductView,
   searchProducts,
@@ -44,6 +51,9 @@ import { SearchAnalysisLoading } from "../../components/search/SearchAnalysisLoa
 import { SearchEntry } from "../../components/search/SearchEntry";
 import { SearchProductCard } from "../../components/search/SearchProductCard";
 import { SearchTopBar } from "../../components/search/SearchTopBar";
+import { RelatedProductRow } from "../../components/search/RelatedProductRow";
+import { BundleResult } from "../../components/search/BundleResult";
+import { MOCK_UNREADY, isMockJob, mockBundleResult } from "../../mocks/unready";
 import { ProductLensSheet } from "../../components/search/ProductLensSheet";
 import { useProductLens } from "../../components/search/useProductLens";
 import { addRecentSearch, saveLastSearch } from "../../lib/localHistory";
@@ -379,6 +389,10 @@ function SearchResultContent() {
     const safe = {
       ...next,
       items: Array.isArray(next?.items) ? next.items : [],
+      alternatives: Array.isArray(next?.alternatives) ? next.alternatives : [],
+      similarUserProducts: Array.isArray(next?.similarUserProducts)
+        ? next.similarUserProducts
+        : [],
     };
     setResult(safe);
     setPhase("done");
@@ -453,6 +467,13 @@ function SearchResultContent() {
           );
           setClarifyError("");
           setPhase("clarify");
+          return;
+        }
+        if (data.status === "FAILED" && data.scenario === "S6_BUNDLE" && MOCK_UNREADY) {
+          // AI 의 예산 세트 단계가 아직 없어 실패한다. 목데이터 모드에서는 예시 세트를 보여준다.
+          const mock = mockBundleResult();
+          setJobId(mock.jobId);
+          showResult(mock);
           return;
         }
         if (data.status === "FAILED")
@@ -724,6 +745,10 @@ function SearchResultContent() {
 
   const loading = phase === "loading";
   const ready = phase === "done" && READY_BASES.includes(basis);
+  // 예산 세트 결과는 제품 목록 대신 조합을 보여준다.
+  const bundleResult = ready && Boolean(result?.bundles?.length);
+  // 목데이터 결과는 서버에 job 이 없어, 조건 추가·피드백처럼 job 을 쓰는 동작을 숨긴다.
+  const mockResult = isMockJob(jobId);
 
   return (
     <AppLayout>
@@ -1032,7 +1057,25 @@ function SearchResultContent() {
                     </div>
                   </>
                 )}
-                {ready && !items.length && (
+                {bundleResult && result?.bundles && jobId && (
+                  <BundleResult
+                    jobId={jobId}
+                    bundles={result.bundles}
+                    onChange={(updated) =>
+                      setResult((previous) =>
+                        previous
+                          ? {
+                              ...previous,
+                              bundles: (previous.bundles ?? []).map((b) =>
+                                b.index === updated.index ? updated : b,
+                              ),
+                            }
+                          : previous,
+                      )
+                    }
+                  />
+                )}
+                {ready && !items.length && !bundleResult && (
                   <div className="mt-12 text-center">
                     <p className="text-body2 text-gray-400">
                       검색 결과가 없어요
@@ -1042,13 +1085,56 @@ function SearchResultContent() {
                     </p>
                   </div>
                 )}
+                {ready && result && (
+                  <>
+                    {/* 화담의 핵심: 피부 타입·고민이 비슷한 사람들이 실제로 쓰는 제품 */}
+                    <RelatedProductRow
+                      icon={UsersRound}
+                      title="나와 비슷한 사람들이 쓰는 제품"
+                      description="피부 타입과 고민이 비슷한 분들이 만족한 제품이에요"
+                      products={(result.similarUserProducts ?? []).map((p) => ({
+                        productId: p.productId,
+                        name: p.name,
+                        brand: p.brand,
+                        price: p.price,
+                      }))}
+                      onOpen={(p) =>
+                        openProduct({ id: p.productId, name: p.name, brand: p.brand })
+                      }
+                    />
+                    <RelatedProductRow
+                      icon={Shuffle}
+                      title="비슷한 대체 제품"
+                      description={
+                        result.alternativesDroppedCount > 0
+                          ? `기준에 못 미친 후보 ${result.alternativesDroppedCount}개는 뺐어요`
+                          : "성분과 특징이 비슷한 다른 선택지예요"
+                      }
+                      products={(result.alternatives ?? []).map((p) => ({
+                        productId: p.productId,
+                        name: p.name,
+                        brand: p.brand,
+                        price: p.price,
+                        tag:
+                          p.similarity != null
+                            ? `유사도 ${Math.round(p.similarity * 100)}%`
+                            : p.totalScore != null
+                              ? `적합 ${p.totalScore}점`
+                              : null,
+                      }))}
+                      onOpen={(p) =>
+                        openProduct({ id: p.productId, name: p.name, brand: p.brand })
+                      }
+                    />
+                  </>
+                )}
               </div>
             )}
           </section>
         </div>
       </div>
 
-      {ready && (
+      {ready && !mockResult && (
         <div
           className="pointer-events-none fixed bottom-[88px] left-1/2 z-30 flex w-full max-w-[430px] -translate-x-1/2 items-center gap-3 px-[18px]"
           style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
