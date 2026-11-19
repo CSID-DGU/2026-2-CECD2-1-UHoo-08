@@ -122,7 +122,8 @@ class LLMClient:
         시작 = time.perf_counter()
         try:
             내용, usage = await asyncio.to_thread(_do_call)
-        except Exception:
+        except (Exception, asyncio.CancelledError):
+            # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
             self._기록(시작, usage=None, ok=False)
             raise
         self._기록(시작, usage=usage, ok=True)

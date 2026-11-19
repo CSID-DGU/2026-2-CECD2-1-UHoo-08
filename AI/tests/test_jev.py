@@ -69,3 +69,22 @@ def test_질문을_만드는_함수():
         "type": "choice", "instructions": "종류?", "criteria": {"A": "가", "B": "나"},
     }
     assert jev.noul("맞나?") == {"type": "noul", "instructions": "맞나?"}
+
+
+@pytest.mark.asyncio
+async def test_취소되어도_기록을_남기고_취소를_올린다(가짜_서버):
+    import asyncio
+
+    async def 끝나지_않는_처리(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(10)
+        return httpx.Response(200, json=_답)
+
+    가짜_서버(끝나지_않는_처리)
+    with collect_calls() as calls:
+        작업 = asyncio.create_task(jev.ask("추천해줘", {"vague": jev.noul("막연한가?")}))
+        await asyncio.sleep(0.01)
+        작업.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await 작업
+
+    assert len(calls) == 1 and calls[0].ok is False

@@ -133,6 +133,28 @@ class TestLLMCallRecord:
 
     @pytest.mark.asyncio
     @patch("services.llm.client.OpenAI")
+    async def test_cancelled_call_is_recorded_and_reraised(self, mock_openai_cls):
+        import asyncio
+
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        mock_openai_cls.return_value = MagicMock()
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+
+        async def 취소된_스레드(*_args, **_kwargs):
+            raise asyncio.CancelledError
+
+        with patch("services.llm.client.asyncio.to_thread", 취소된_스레드):
+            with collect_calls() as calls:
+                with pytest.raises(asyncio.CancelledError):
+                    await c.chat(system="s", user="u")
+
+        assert len(calls) == 1
+        assert calls[0].ok is False
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
     async def test_concurrent_calls_are_collected_together(self, mock_openai_cls):
         import asyncio
 

@@ -69,7 +69,8 @@ async def ask(state: Any, questions: dict[str, dict]) -> dict[str, dict]:
             응답 = await _client().post("/v1/systemone", json=본문)
         응답.raise_for_status()
         받은 = 응답.json()
-    except Exception:
+    except (Exception, asyncio.CancelledError):
+        # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
         record(LLMCall(role="jev", model=settings.TYPESAFE_MODEL, input_tokens=0,
                        output_tokens=0, seconds=time.perf_counter() - 시작, ok=False))
         raise
