@@ -247,6 +247,17 @@ def test_막연함_확률_기준값은_되묻기_판단이_가장_잘_맞는_값
     assert fit_vague_threshold(실행, None) == 0.6
 
 
+def test_가장_낮은_확률의_문제까지_되물어야_하면_기준값_0을_고른다():
+    from eval.router_metrics import fit_vague_threshold
+
+    실행 = [
+        _실행(_문제("a", needs_clarification=True), vague_prob=0.7),
+        _실행(_문제("b", needs_clarification=True), vague_prob=0.9),
+    ]
+    # 0.7 이면 0.7 은 넘지 못해 하나만 되묻는다(F1 2/3). 0 이면 둘 다 되묻는다(F1 1)
+    assert fit_vague_threshold(실행, None) == 0.0
+
+
 def test_막연함_확률을_내지_않는_조건은_기준값이_없다():
     from eval.router_metrics import fit_vague_threshold
 

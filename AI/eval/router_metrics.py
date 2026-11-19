@@ -254,13 +254,16 @@ def fit_vague_threshold(trials: Sequence[Trial], scenario: Optional[float]) -> O
     """되묻기 판단의 F1 이 가장 높아지는 막연함 확률 기준값.
 
     시나리오 확률 기준값은 먼저 정해 두고 그대로 둔 채 찾는다. 후보는 실제로 나온
-    확률들이다. F1 이 같으면 낮은 기준값을 고른다. 연습용 문제에서만 쓴다.
+    확률들과 0 이다. 기준을 넘어야 되묻으므로, 나온 확률만 보면 가장 낮은 확률의 문제는
+    어느 기준으로도 되묻지 않는다. 0 을 넣어 모두 되묻는 경우도 견준다.
+    F1 이 같으면 낮은 기준값을 고른다. 연습용 문제에서만 쓴다.
     막연함 확률을 내지 않는 조건이면 None.
     """
-    후보 = sorted({
+    나온 = {
         t.outcome.vague_prob for t in trials
         if t.outcome is not None and t.outcome.vague_prob is not None
-    })
+    }
+    후보 = sorted({0.0, *나온}) if 나온 else []
     가장_좋은: tuple[float, Optional[float]] = (-1.0, None)
     for 기준 in 후보:
         정밀도, 재현율 = clarify_precision_recall(trials, Thresholds(scenario=scenario, vague=기준))
