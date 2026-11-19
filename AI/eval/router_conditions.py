@@ -417,7 +417,7 @@ async def _a7(입력: dict) -> Outcome:
                    scenario_prob=확률, vague_prob=막연함, extracts_values=False)
 
 
-# 아래 기준값은 연습용 문제(v2 dev)에서 정했다. 시나리오 확률 기준은 처리한 질문의
+# 아래 기준값은 연습용 문제(v2 dev 240건)에서 정했다. 시나리오 확률 기준은 처리한 질문의
 # 시나리오 일치율이 97% 이상이 되는 가장 낮은 값이고, 막연함 확률 기준은 되묻기
 # 판단의 F1 이 가장 높은 값이다. 프롬프트나 문제가 바뀌면 --fit-target 으로 다시 정한다.
 
@@ -427,8 +427,8 @@ CONDITIONS: dict[str, Condition] = {
     "a2": Condition("a2", "A2. LLM + 구조 규칙", _a2),
     # 다섯 번 중 세 번 이상 같은 답이면 처리한다
     "a3": Condition("a3", "A3. LLM + 구조 규칙 + 반복 질문", _a3, Thresholds(scenario=0.6)),
-    "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, Thresholds(scenario=0.5, vague=0.62)),
-    "a5": Condition("a5", "A5. LLM 과 Jev 의 이중 확인", _a5, Thresholds(vague=0.62)),
-    "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.09)),
-    "a7": Condition("a7", "A7. Jev 만", _a7, Thresholds(scenario=0.52, vague=0.6)),
+    "a4": Condition("a4", "A4. LLM 과 Jev 가 나눠 맡기", _a4, Thresholds(scenario=0.48, vague=0.63)),
+    "a5": Condition("a5", "A5. LLM 과 Jev 의 이중 확인", _a5, Thresholds(vague=0.66)),
+    "a6": Condition("a6", "A6. LLM 결과를 Jev 가 확인", _a6, Thresholds(scenario=0.11)),
+    "a7": Condition("a7", "A7. Jev 만", _a7, Thresholds(scenario=0.5, vague=0.61)),
 }
