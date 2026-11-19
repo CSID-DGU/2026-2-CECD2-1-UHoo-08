@@ -129,6 +129,14 @@ async def test_이미_물은_뒤에_또_어기면_질의를_문장_조건으로_
 
 
 @pytest.mark.asyncio
+async def test_조건_수정에서_어기면_질의를_문장_조건으로_넣는다(LLM세우기):
+    """조건 수정은 이전 질의가 있어 되묻지 않는다. 원문을 버리면 수정 조건이 사라진다."""
+    LLM세우기([{"request_type": "NOPE"}, {"category": "없는것"}])
+    나온 = await 모듈.normalize({"raw_query": "더 촉촉한 걸로", "parent_job_id": "prev"})
+    assert 나온["query_spec"]["conditions"] == ["더 촉촉한 걸로"]
+
+
+@pytest.mark.asyncio
 async def test_세_번_이상_묻지_않는다(LLM세우기):
     """형식을 두 번 어긴 모델이 세 번째에 지킬 가능성은 낮고,
     그동안 사용자는 계속 기다린다."""

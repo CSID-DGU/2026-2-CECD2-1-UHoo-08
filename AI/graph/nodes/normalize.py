@@ -1,6 +1,6 @@
 """질의를 QuerySpec 으로 옮긴다.
 
-READS:  raw_query, clarify_question, clarify_answer, clarify_count
+READS:  raw_query, clarify_question, clarify_answer, clarify_count, parent_job_id
 WRITES: query_spec
 
 LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한다(router).
@@ -45,13 +45,14 @@ logger = logging.getLogger(__name__)
 _최대_시도 = 2
 
 
-def _빈_스펙(raw_query: str, 이미_물음: bool = False) -> QuerySpec:
+def _빈_스펙(raw_query: str, 원문_남김: bool = False) -> QuerySpec:
     """해석하지 못했을 때 내보내는 값. 단서가 하나도 없어 라우터가 되묻기로 보낸다.
 
-    이미 한 번 물었다면 라우터가 더 묻지 않고 진행한다. 그때는 검색 문장에 쓸 수
-    있게 질의를 문장 조건으로 넣어 둔다.
+    되묻지 않고 진행하는 경우에는 검색 문장에 쓸 수 있게 질의를 문장 조건으로 넣어 둔다.
+    이미 한 번 물었으면 라우터가 더 묻지 않는다. 조건 수정이면 이전 질의가 있어 되묻지
+    않는데, 원문까지 버리면 사용자가 쓴 수정 조건이 사라지고 이전 결과가 그대로 나온다.
     """
-    return QuerySpec(request_type=RequestType.SEARCH, conditions=[raw_query] if 이미_물음 else [])
+    return QuerySpec(request_type=RequestType.SEARCH, conditions=[raw_query] if 원문_남김 else [])
 
 
 def _사용자_말(state: GraphState, raw: str) -> str:
@@ -184,12 +185,12 @@ async def parse_query(
 
 async def normalize(state: GraphState) -> dict:
     raw = (state.get("raw_query") or "").strip()
-    이미_물음 = (state.get("clarify_count") or 0) >= 1
+    원문_남김 = (state.get("clarify_count") or 0) >= 1 or bool(state.get("parent_job_id"))
     if not raw:
         return {"query_spec": _빈_스펙("").model_dump(mode="json")}
 
     spec = await parse_query(_사용자_말(state, raw), raw)
     if spec is None:
         logger.warning("normalize: 해석 실패, 되묻기로 넘긴다 %r", raw)
-        spec = _빈_스펙(raw, 이미_물음)
+        spec = _빈_스펙(raw, 원문_남김)
     return {"query_spec": spec.model_dump(mode="json")}
