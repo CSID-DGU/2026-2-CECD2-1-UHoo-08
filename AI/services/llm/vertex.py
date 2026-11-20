@@ -33,6 +33,10 @@ _가장_낮은_생각: dict[str, str] = {
 # 그대로 두면 Gemini 만 실패가 많게 잡힌다.
 _시도_횟수 = 3
 
+# 부르는 쪽이 기다리는 시간을 주지 않았을 때 요청 하나를 기다리는 시간(초). 이 SDK 는 따로
+# 정하지 않으면 끝없이 기다린다. OpenAI, Anthropic SDK 의 기본값(10분)과 맞춘다
+_기본_기다림 = 600
+
 
 def is_gemini(model: str) -> bool:
     """Gemini 모델인가. 주소 없이 고르면 Vertex AI 로 부른다."""
@@ -83,6 +87,8 @@ class VertexChat:
             project=project,
             location=location,
             http_options=types.HttpOptions(
+                # 이 SDK 는 기다리는 시간을 밀리초로 받는다
+                timeout=_기본_기다림 * 1000,
                 retry_options=types.HttpRetryOptions(attempts=_시도_횟수),
             ),
         )
@@ -112,7 +118,7 @@ class VertexChat:
         if 단계 is not None:
             설정["thinking_config"] = types.ThinkingConfig(thinking_level=단계)
         if timeout is not None:
-            # 이 SDK 는 기다리는 시간을 밀리초로 받는다
+            # 부르는 쪽이 준 시간이 기본값보다 먼저다
             설정["http_options"] = types.HttpOptions(timeout=int(timeout * 1000))
         resp = self._client.models.generate_content(
             model=self._model,
