@@ -309,3 +309,21 @@ async def test_세트_단계의_종류도_바꾸고_모르면_비운다(LLM세�
     spec = (await 모듈.normalize({"raw_query": "10만원으로 스킨, 핸드크림"}))["query_spec"]
     assert [단계["product_type"] for 단계 in spec["bundle_steps"]] == ["토너", None]
     assert [단계["label"] for 단계 in spec["bundle_steps"]] == ["스킨", "핸드크림"]
+
+
+@pytest.mark.asyncio
+async def test_카테고리의_특징_표에_없는_키는_버린다(LLM세우기):
+    """스키마는 모든 카테고리의 키를 열어 두므로, 스킨케어에 waterproof 가 올 수 있다."""
+    LLM세우기([{**_제대로, "category": "skincare", "conditions": [],
+                "features": {"product_type": "크림", "texture": "가벼운", "waterproof": False}}])
+    spec = (await 모듈.normalize({"raw_query": "여름용 산뜻한 수분크림"}))["query_spec"]
+    assert spec["features"] == {"product_type": "크림", "texture": "가벼운"}
+    # 사용자가 말한 조건이 아니므로 문장 조건으로도 옮기지 않는다
+    assert spec["conditions"] == []
+
+
+@pytest.mark.asyncio
+async def test_카테고리를_모르면_어느_카테고리의_키든_남긴다(LLM세우기):
+    LLM세우기([{**_제대로, "category": None, "features": {"waterproof": True}}])
+    spec = (await 모듈.normalize({"raw_query": "워터프루프"}))["query_spec"]
+    assert spec["features"] == {"waterproof": True}

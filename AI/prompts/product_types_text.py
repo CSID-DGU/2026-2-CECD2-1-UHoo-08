@@ -99,6 +99,12 @@ def query_feature_kinds() -> dict[str, str]:
     return 모양
 
 
+def query_feature_keys(category: str | None) -> frozenset[str]:
+    """그 카테고리의 질의 features 에 올 수 있는 키. 카테고리를 모르면 모든 카테고리의 키다."""
+    줄들 = [QUERY_FEATURES[category]] if category in QUERY_FEATURES else list(QUERY_FEATURES.values())
+    return frozenset({"product_type", *(키 for 줄 in 줄들 for 키, _ in re.findall(r"(\w+)\(([^)]*)\)", 줄))})
+
+
 def group_text() -> str:
     """묶음 이름과 그 안의 종류. 예: "크림(젤크림, 아이크림, 톤업크림, 밤), ..." """
     return ", ".join(
