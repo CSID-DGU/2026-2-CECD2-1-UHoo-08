@@ -151,9 +151,22 @@ def test_커밋을_적기_전에_저장한_결과도_읽는다(tmp_path):
     예전 = tmp_path / "old.json"
     예전.write_text(json.dumps([[{"id": "q1", "outcome": None, "seconds": 0.1,
                                   "calls": [], "error": "x"}]]), encoding="utf-8")
-    runs, 코드 = _실행_결과_읽기(예전, 기록)
+    runs, 코드, 설정 = _실행_결과_읽기(예전, 기록)
     assert len(runs[0]) == 1
     assert 코드.startswith("알 수 없음")
+    assert 설정.startswith("확인 불가")
+
+
+_하이쿠_설정 = {
+    "이름": "claude-haiku-5-5", "부르는 곳": "Anthropic API",
+    "모델 설정": "temperature 보내지 않음, 생각 기능 예전 설정, JSON 응답 프롬프트",
+}
+
+_하이쿠_실행 = [[{
+    "id": "q1", "seconds": 1.2, "error": "",
+    "calls": [{"model": "claude-haiku-5-5", "input_tokens": 3000, "output_tokens": 100, "seconds": 1.1}],
+    "outcome": {"spec": {"request_type": "SEARCH"}, "scenario": "S2_SEARCH", "parsed": True},
+}]]
 
 
 def test_모델을_고른_리포트에는_부르는_곳과_모델_설정이_들어간다(tmp_path):
@@ -165,7 +178,7 @@ def test_모델을_고른_리포트에는_부르는_곳과_모델_설정이_들�
     기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
              "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
     저장 = tmp_path / "haiku.json"
-    저장.write_text(json.dumps({"코드": "c1", "runs": [[{
+    저장.write_text(json.dumps({"코드": "c1", "모델 후보": _하이쿠_설정, "runs": [[{
         "id": "q1", "seconds": 1.2, "error": "",
         "calls": [{"model": "claude-haiku-5-5", "input_tokens": 3000, "output_tokens": 100, "seconds": 1.1}],
         "outcome": {"spec": {"request_type": "SEARCH"}, "scenario": "S2_SEARCH", "parsed": True},
@@ -230,3 +243,63 @@ def test_후보에_없는_모델은_받지_않는다(monkeypatch):
 
     with pytest.raises(SystemExit):
         run_router_eval.main()
+
+
+def test_다시_채점하면_실행한_때의_모델_설정을_적는다(tmp_path):
+    """지금 후보 설정이 바뀌었어도 결과를 낸 설정을 적는다."""
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "haiku.json"
+    저장.write_text(json.dumps({"코드": "c1", "모델 후보": _하이쿠_설정, "runs": _하이쿠_실행}),
+                    encoding="utf-8")
+    리포트 = tmp_path / "haiku.md"
+    다시_저장 = tmp_path / "again.json"
+
+    # --model 없이 읽어도 저장된 후보로 적는다
+    run_router_eval._실험(
+        _실험_인자(condition="a2", load=str(저장), out=str(리포트), dump=str(다시_저장)), 기록)
+
+    글 = 리포트.read_text(encoding="utf-8")
+    assert 글.startswith("# Normalize 모델 비교: claude-haiku-5-5")
+    assert "- 모델 설정: temperature 보내지 않음, 생각 기능 예전 설정, JSON 응답 프롬프트" in 글
+    assert json.loads(다시_저장.read_text(encoding="utf-8"))["모델 후보"] == _하이쿠_설정
+
+
+@pytest.mark.parametrize("저장된_후보", [_하이쿠_설정, None])
+def test_저장된_모델과_고른_모델이_다르면_멈춘다(tmp_path, 저장된_후보):
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "saved.json"
+    저장.write_text(json.dumps({"코드": "c1", "모델 후보": 저장된_후보, "runs": _하이쿠_실행}),
+                    encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        run_router_eval._실험(
+            _실험_인자(condition="a2", model="qwen-plus", load=str(저장)), 기록)
+
+
+def test_설정을_적기_전에_저장한_결과는_확인_불가로_적는다(tmp_path):
+    import json
+
+    from eval import run_router_eval
+
+    기록 = [{"id": "q1", "input": {"raw_query": "선크림 추천"},
+             "expected": {"scenario": "S2_SEARCH"}, "tags": []}]
+    저장 = tmp_path / "old.json"
+    저장.write_text(json.dumps({"코드": "c1", "runs": _하이쿠_실행}), encoding="utf-8")
+    리포트 = tmp_path / "old.md"
+
+    run_router_eval._실험(
+        _실험_인자(condition="a2", model="claude-haiku-5-5", load=str(저장), out=str(리포트)), 기록)
+
+    글 = 리포트.read_text(encoding="utf-8")
+    assert "- 부르는 곳: 확인 불가" in 글
+    assert "- 모델 설정: 확인 불가" in 글

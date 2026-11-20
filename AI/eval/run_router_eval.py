@@ -214,17 +214,34 @@ def _코드_버전() -> str:
         return "알 수 없음"
 
 
-def _실행_결과_읽기(경로: Path, 기록: list[dict]) -> tuple[list, str]:
-    """저장해 둔 실행 결과와, 그 결과를 낸 커밋.
+# 실행한 때의 모델 설정을 적기 전에 저장한 파일
+_설정_모름 = "확인 불가 (모델 설정을 적기 전에 저장한 파일)"
+
+
+def _실행_결과_읽기(경로: Path, 기록: list[dict]) -> tuple[list, str, Any]:
+    """저장해 둔 실행 결과, 그 결과를 낸 커밋, 그때 부른 모델 후보의 설정.
 
     커밋을 함께 적기 전의 파일은 실행 결과 목록만 있으므로 커밋을 알 수 없다.
+    모델 설정을 적기 전의 파일이면 설정 자리에 _설정_모름 을 돌려준다. 모델을 고르지
+    않고 돌린 결과면 None 이다.
     """
     from eval.router_metrics import from_records
 
     적힌 = json.loads(경로.read_text(encoding="utf-8"))
     if isinstance(적힌, list):
-        return from_records(적힌, 기록), "알 수 없음 (커밋을 적기 전에 저장한 파일)"
-    return from_records(적힌["runs"], 기록), 적힌.get("코드") or "알 수 없음"
+        return from_records(적힌, 기록), "알 수 없음 (커밋을 적기 전에 저장한 파일)", _설정_모름
+    return (
+        from_records(적힌["runs"], 기록),
+        적힌.get("코드") or "알 수 없음",
+        적힌.get("모델 후보", _설정_모름),
+    )
+
+
+def _후보_설정(후보) -> dict[str, str] | None:
+    """저장 파일과 리포트에 적을 모델 후보의 설정."""
+    if 후보 is None:
+        return None
+    return {"이름": 후보.model, "부르는 곳": 후보.place, "모델 설정": 후보.describe()}
 
 
 def _기준값_목록(글: str | None) -> list[float] | None:
@@ -258,18 +275,25 @@ def _실험(args, 기록: list[dict]) -> None:
     )
 
     조건 = CONDITIONS[args.condition]
-    후보 = CANDIDATES[args.model] if args.model else None
     지금_코드 = _코드_버전()
     if args.load:
         # 이미 실행해 둔 결과를 읽는다. 기준값만 바꿔 다시 채점할 때 LLM 을 또 부르지 않는다
-        runs, 실행_코드 = _실행_결과_읽기(Path(args.load), 기록)
+        runs, 실행_코드, 실행_후보 = _실행_결과_읽기(Path(args.load), 기록)
+        # 다시 채점할 때는 모델을 부르지 않는다. 다른 모델의 결과에 그 모델 이름을 붙이면 안 된다
+        if args.model and isinstance(실행_후보, dict) and 실행_후보["이름"] != args.model:
+            raise SystemExit(
+                f"저장된 결과는 {실행_후보['이름']} 로 돌린 것이다. --model {args.model} 과 다르다")
+        if args.model and 실행_후보 is None:
+            raise SystemExit(f"저장된 결과는 모델을 고르지 않고 돌린 것이다. --model {args.model} 과 다르다")
     else:
         runs = _조건_돌리기(args, 기록, 조건.run)
         실행_코드 = 지금_코드
+        실행_후보 = _후보_설정(CANDIDATES[args.model] if args.model else None)
     if args.dump:
-        Path(args.dump).write_text(
-            json.dumps({"코드": 실행_코드, "runs": to_records(runs)}, ensure_ascii=False),
-            encoding="utf-8")
+        저장 = {"코드": 실행_코드, "runs": to_records(runs)}
+        if 실행_후보 != _설정_모름:
+            저장["모델 후보"] = 실행_후보
+        Path(args.dump).write_text(json.dumps(저장, ensure_ascii=False), encoding="utf-8")
         print(f"실행 결과 저장: {args.dump}")
     모든_실행 = [t for run in runs for t in run]
     모델 = sorted({c.model for t in 모든_실행 for c in t.calls})
@@ -290,6 +314,7 @@ def _실험(args, 기록: list[dict]) -> None:
             막연_기준 = 맞춘_막연_기준
             print(f"되묻기 판단이 가장 잘 맞는 막연함 확률 기준값: {맞춘_막연_기준}")
 
+    모델_이름 = args.model or (실행_후보["이름"] if isinstance(실행_후보, dict) else None)
     for 기준 in 기준들:
         머리말 = {
             "조건": 조건.name,
@@ -297,10 +322,14 @@ def _실험(args, 기록: list[dict]) -> None:
             "문제": f"{args.version or '전체'} `{args.split}` {len(기록)}건",
             "모델": ", ".join(모델) or "LLM 을 부르지 않음",
         }
-        if 후보 is not None:
-            # 모델마다 부르는 곳과 설정이 달라, 시간과 비용을 읽을 때 함께 봐야 한다
-            머리말["부르는 곳"] = 후보.place
-            머리말["모델 설정"] = 후보.describe()
+        # 모델마다 부르는 곳과 설정이 달라, 시간과 비용을 읽을 때 함께 봐야 한다.
+        # 저장된 결과를 읽었으면 지금 설정이 아니라 실행한 때의 설정을 적는다
+        if isinstance(실행_후보, dict):
+            머리말["부르는 곳"] = 실행_후보["부르는 곳"]
+            머리말["모델 설정"] = 실행_후보["모델 설정"]
+        elif 실행_후보 == _설정_모름 and args.model:
+            머리말["부르는 곳"] = _설정_모름
+            머리말["모델 설정"] = _설정_모름
         # 결과를 낸 프롬프트와 코드는 실행한 때의 커밋이다
         머리말["코드"] = 실행_코드
         if args.load:
@@ -311,7 +340,7 @@ def _실험(args, 기록: list[dict]) -> None:
             머리말["이 문제에서 맞춘 막연함 확률 기준값"] = str(맞춘_막연_기준)
         본문 = to_markdown(
             runs=runs, thr=Thresholds(scenario=기준, vague=막연_기준), 머리말=머리말,
-            제목=f"Normalize 모델 비교: {args.model}" if args.model else None,
+            제목=f"Normalize 모델 비교: {모델_이름}" if 모델_이름 else None,
         )
         if not args.out:
             print(본문)
