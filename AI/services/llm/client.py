@@ -1,7 +1,11 @@
-"""OpenAI 호환 엔드포인트를 쓰는 채팅 클라이언트.
+"""역할별 채팅 클라이언트.
 
-DashScope 도 Gemini 도 OpenAI 호환 주소를 주므로, 모델·주소·키만 바꾸면
+DashScope 도 Gemini 도 OpenAI 호환 주소를 주므로, 모델, 주소, 키만 바꾸면
 같은 코드로 다른 제공자를 쓸 수 있다. 어떤 값을 쓸지는 역할이 정한다.
+
+둘은 다르게 부른다. 모델 이름이 claude- 로 시작하면 Anthropic SDK 를
+쓰고(services.llm.claude), gemini- 로 시작하는데 주소를 따로 주지 않았으면
+Vertex AI 로 부른다(services.llm.vertex). 부르는 쪽 코드는 같다.
 
     from services.llm import LLMRole, get_llm
 
@@ -25,7 +29,10 @@ from typing import Any, Dict, Optional
 from openai import OpenAI
 
 from config import settings
+from services.llm.claude import DEFAULT_BASE_URL as CLAUDE_BASE_URL
+from services.llm.claude import ClaudeChat, is_claude
 from services.llm.usage import LLMCall, record, token_counts
+from services.llm.vertex import VertexChat, is_gemini
 
 
 class LLMRole(str, Enum):
@@ -59,15 +66,75 @@ _기본_주소 = {
 
 
 def _설정(role: LLMRole) -> tuple[str, str, str]:
-    """역할 하나가 쓸 모델·주소·키. 비어 있으면 기본값으로 떨어진다."""
+    """역할 하나가 쓸 모델, 주소, 키. 비어 있으면 기본값으로 떨어진다.
+
+    주소와 키의 기본값은 모델을 보고 고른다. 모델만 Claude 로 바꿨는데
+    Qwen 주소와 키로 부르는 일이 없게 한다.
+
+    Gemini 는 주소를 비운 채로 돌려준다. 주소가 없는 Gemini 를 LLMClient 가
+    Vertex AI 로 부른다. 구글 클라우드 프로젝트를 정해 두었을 때만 그렇게 한다.
+    """
     이름 = role.name
     모델 = getattr(settings, f"LLM_{이름}_MODEL", "") or _기본_모델[role]()
-    주소 = (
-        getattr(settings, f"LLM_{이름}_BASE_URL", "")
-        or _기본_주소.get(role, lambda: settings.QWEN_TEXT_BASE_URL)()
+    주소 = getattr(settings, f"LLM_{이름}_BASE_URL", "")
+    키 = getattr(settings, f"LLM_{이름}_API_KEY", "")
+    if is_claude(모델):
+        return 모델, 주소 or CLAUDE_BASE_URL, 키 or settings.ANTHROPIC_API_KEY
+    if is_gemini(모델) and not 주소 and settings.GOOGLE_CLOUD_PROJECT:
+        return 모델, "", ""
+    return (
+        모델,
+        주소 or _기본_주소.get(role, lambda: settings.QWEN_TEXT_BASE_URL)(),
+        키 or settings.DASHSCOPE_API_KEY,
     )
-    키 = getattr(settings, f"LLM_{이름}_API_KEY", "") or settings.DASHSCOPE_API_KEY
-    return 모델, 주소, 키
+
+
+# 생각 기능이 기본으로 켜져 있어, 끄는 값을 함께 보내야 하는 모델.
+# 그대로 두면 짧은 변환 하나에 1분 넘게 걸리고 출력 토큰이 수십 배로 는다.
+# 여기 없는 모델에는 보내지 않는다. 이 값을 받지 않는 모델도 있다.
+_생각_끄기: dict[str, dict[str, Any]] = {
+    # enable_thinking 은 DashScope 에 직접 부를 때만 통하고 게이트웨이를 거치면 무시된다.
+    # reasoning_effort 는 양쪽에서 통한다.
+    "qwen3.8-flash": {"reasoning_effort": "none"},
+}
+
+
+class _OpenAIChat:
+    """OpenAI 호환 주소로 모델 하나를 부른다."""
+
+    def __init__(self, model: str, base_url: str, api_key: str) -> None:
+        self._client = OpenAI(api_key=api_key, base_url=base_url)
+        self._model = model
+
+    def call(
+        self,
+        system: str,
+        user: str,
+        *,
+        response_json: bool = False,
+        temperature: float = 0.0,
+        timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
+    ) -> tuple[str, int, int]:
+        """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
+
+        schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
+        """
+        kwargs: Dict[str, Any] = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "temperature": temperature,
+        }
+        if response_json:
+            kwargs["response_format"] = {"type": "json_object"}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        kwargs.update(_생각_끄기.get(self._model, {}))
+        resp = self._client.chat.completions.create(**kwargs)
+        return resp.choices[0].message.content or "", *token_counts(getattr(resp, "usage", None))
 
 
 class LLMClient:
@@ -80,7 +147,14 @@ class LLMClient:
         api_key: str,
         role: Optional[LLMRole] = None,
     ) -> None:
-        self._client = OpenAI(api_key=api_key, base_url=base_url)
+        # 모델 이름을 보고 부르는 방법을 고른다
+        if is_claude(model):
+            self._호출 = ClaudeChat(model, base_url, api_key)
+        elif is_gemini(model) and not base_url:
+            # 주소 없이 온 Gemini 는 Vertex AI 로 부른다. 키 대신 프로젝트와 위치를 쓴다
+            self._호출 = VertexChat(model, settings.GOOGLE_CLOUD_PROJECT, settings.GOOGLE_CLOUD_LOCATION)
+        else:
+            self._호출 = _OpenAIChat(model, base_url, api_key)
         self._model = model
         # 기록에 남길 역할 이름. 역할 없이 직접 만든 클라이언트면 비워 둔다.
         self._role = role.value if role is not None else ""
@@ -92,45 +166,42 @@ class LLMClient:
         response_json: bool = False,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        chat completion 호출.
+        채팅 호출.
 
-        response_json=True면 response_format을 json_object로 강제하고
-        파싱 가능한 JSON 문자열만 반환.
+        response_json=True면 JSON 으로만 답하게 하고(OpenAI 호환 주소는
+        response_format 을 json_object 로 강제) 파싱 가능한 JSON 문자열만 반환.
         timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
+        schema(JSON 스키마)를 주면 Claude 는 답의 모양을 그 스키마로 강제한다.
+        다른 모델은 스키마를 쓰지 않고 JSON 응답 옵션만 켠다.
+
+        Claude 는 response_json 과 temperature 를 받지 않아 보내지 않는다.
+        Vertex AI 의 Gemini 에는 temperature 를 보내지 않는다.
 
         성공하든 실패하든 호출 기록을 하나 남긴다. 실패한 호출도 시간을 썼고,
         빼면 느린 쪽 시간이 실제보다 좋게 나온다.
         """
-        def _do_call() -> tuple[str, Any]:
-            kwargs: Dict[str, Any] = {
-                "model": self._model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                "temperature": temperature,
-            }
-            if response_json:
-                kwargs["response_format"] = {"type": "json_object"}
-            if timeout is not None:
-                kwargs["timeout"] = timeout
-            resp = self._client.chat.completions.create(**kwargs)
-            return resp.choices[0].message.content or "", getattr(resp, "usage", None)
-
         시작 = time.perf_counter()
         try:
-            내용, usage = await asyncio.to_thread(_do_call)
+            내용, 입력, 출력 = await asyncio.to_thread(
+                self._호출.call,
+                system,
+                user,
+                response_json=response_json,
+                temperature=temperature,
+                timeout=timeout,
+                schema=schema,
+            )
         except (Exception, asyncio.CancelledError):
             # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
-            self._기록(시작, usage=None, ok=False)
+            self._기록(시작, 0, 0, ok=False)
             raise
-        self._기록(시작, usage=usage, ok=True)
+        self._기록(시작, 입력, 출력, ok=True)
         return 내용
 
-    def _기록(self, 시작: float, usage: Any, ok: bool) -> None:
-        입력, 출력 = token_counts(usage)
+    def _기록(self, 시작: float, 입력: int, 출력: int, ok: bool) -> None:
         record(LLMCall(
             role=self._role,
             model=self._model,
@@ -146,9 +217,12 @@ class LLMClient:
         user: str,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """JSON 응답 호출 + 파싱. 파싱 실패 시 None."""
-        raw = await self.chat(system, user, response_json=True, temperature=temperature, timeout=timeout)
+        raw = await self.chat(
+            system, user, response_json=True, temperature=temperature, timeout=timeout, schema=schema,
+        )
         if not raw:
             return None
         # 코드블록 펜스 방어

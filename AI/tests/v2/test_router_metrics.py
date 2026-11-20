@@ -15,13 +15,16 @@ from eval.router_metrics import (
     cost_per_1000,
     coverage_curve,
     decide_clarify,
+    error_rate,
     fit_threshold,
+    format_failure_rate,
     mean_and_spread,
     percentile,
     repeat_agreement,
     request_type_macro_f1,
     scenario_accuracy,
     to_markdown,
+    unread_rate,
     value_match_rate,
     wrong_cases,
 )
@@ -194,8 +197,8 @@ def test_비용은_기록된_토큰으로_계산한다():
         Trial(rec=_문제("a"), outcome=None, calls=[_호출("qwen-plus", 1_000_000, 0)]),
         Trial(rec=_문제("b"), outcome=None, calls=[_호출("qwen-plus", 0, 1_000_000)]),
     ]
-    # 입력 0.26 달러 + 출력 0.78 달러를 2건이 썼다 → 1,000건이면 520 달러
-    assert cost_per_1000(실행) == pytest.approx(520.0)
+    # 입력 0.40 달러 + 출력 1.20 달러를 2건이 썼다 → 1,000건이면 800 달러
+    assert cost_per_1000(실행) == pytest.approx(800.0)
 
 
 def test_가격을_모르는_모델이_있으면_비용을_내지_않는다():
@@ -342,3 +345,75 @@ def test_견주지_않는_조건의_리포트에는_견주기_항목이_없다()
     문제 = _문제("a", scenario="S2_SEARCH")
     글 = to_markdown(runs=[[_실행(문제)]], thr=Thresholds(), 머리말={"조건": "A2"})
     assert "견주기" not in 글
+
+
+def _읽기(읽었나: bool, 부른_횟수: int) -> Trial:
+    return Trial(
+        rec=_문제("a"),
+        outcome=Outcome(spec={}, scenario="S2_SEARCH", parsed=읽었나),
+        calls=[_호출("m", 1, 1) for _ in range(부른_횟수)],
+    )
+
+
+def test_양식을_못_지킨_답은_부른_횟수에서_읽어_낸_답을_뺀_것이다():
+    실행 = [
+        _읽기(True, 1),    # 한 번에 읽었다
+        _읽기(True, 2),    # 처음 답을 못 읽어 다시 물어 읽었다
+        _읽기(False, 2),   # 두 번 다 못 읽었다
+    ]
+    # 다섯 번 불러 세 번을 못 읽었다
+    assert format_failure_rate(실행) == pytest.approx(3 / 5)
+    assert unread_rate(실행) == pytest.approx(1 / 3)
+
+
+def test_답을_읽었는지_내지_않는_조건은_양식_비율이_없다():
+    실행 = [_실행(_문제("a"))]
+    assert format_failure_rate(실행) is None
+    assert unread_rate(실행) is None
+
+
+def test_오류가_난_질문은_양식_비율에서_빼고_오류_비율로_센다():
+    """오류는 모델이 양식을 어긴 것이 아니라 답을 받지 못한 것이다."""
+    실행 = [
+        Trial(rec=_문제("a"), outcome=None, error="boom", calls=[_호출("m", 0, 0)]),
+        _읽기(True, 1),
+    ]
+    assert format_failure_rate(실행) == 0.0
+    assert error_rate(실행) == pytest.approx(0.5)
+
+
+def test_읽었는지는_적었다가_다시_읽어도_남는다():
+    from eval.router_metrics import from_records, to_records
+
+    실행 = [_읽기(True, 2), _읽기(False, 2)]
+    for t in 실행:
+        for c in t.calls:
+            c.seconds = 0.5
+
+    읽은 = from_records(to_records([실행]), [_문제("a")])
+    assert [t.outcome.parsed for t in 읽은[0]] == [True, False]
+    assert format_failure_rate(읽은[0]) == format_failure_rate(실행)
+
+
+def test_읽었는지를_적기_전에_저장한_결과도_읽는다():
+    from eval.router_metrics import from_records
+
+    예전 = [[{"id": "a", "seconds": 0.1, "calls": [], "error": "",
+              "outcome": {"spec": {}, "scenario": "S2_SEARCH"}}]]
+    읽은 = from_records(예전, [_문제("a")])
+    assert 읽은[0][0].outcome.parsed is None
+
+
+def test_리포트에_양식과_오류_비율이_들어간다():
+    글 = to_markdown(runs=[[_읽기(True, 1), _읽기(True, 2)]], thr=Thresholds(), 머리말={"조건": "A2"})
+    assert "양식을 못 지킨 답의 비율 | 33.3%" in 글
+    assert "끝내 읽지 못한 질문 비율 | 0.0%" in 글
+    assert "오류가 난 질문 비율 | 0.0%" in 글
+
+
+def test_리포트_제목을_따로_줄_수_있다():
+    runs = [[_실행(_문제("a"))]]
+    기본 = to_markdown(runs=runs, thr=Thresholds(), 머리말={"조건": "A2"})
+    바꾼 = to_markdown(runs=runs, thr=Thresholds(), 머리말={"조건": "A2"}, 제목="Normalize 모델 비교: m")
+    assert 기본.startswith("# 시나리오 결정 실험: A2")
+    assert 바꾼.startswith("# Normalize 모델 비교: m")

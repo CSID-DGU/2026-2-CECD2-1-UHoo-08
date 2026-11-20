@@ -187,6 +187,26 @@ async def test_되물은_답을_원래_질의와_함께_읽는다(LLM세우기):
 
 
 @pytest.mark.asyncio
+async def test_출력_양식_스키마를_함께_넘긴다(LLM세우기):
+    """스키마로 답의 모양을 강제하는 모델이 이 스키마를 쓴다."""
+    from prompts.query_normalize import QUERY_SPEC_SCHEMA
+
+    받은 = {}
+
+    class 기록하는LLM(가짜LLM):
+        async def chat_json(self, system, user, **kwargs):
+            받은.update(kwargs)
+            return await super().chat_json(system, user, **kwargs)
+
+    가짜 = LLM세우기([_제대로])
+    가짜.__class__ = 기록하는LLM
+
+    await 모듈.normalize({"raw_query": "여름 쿠션"})
+
+    assert 받은["schema"] is QUERY_SPEC_SCHEMA
+
+
+@pytest.mark.asyncio
 async def test_답이_없으면_질의만_넘긴다(LLM세우기):
     """원래 질의에 군더더기가 붙으면 모델이 그것까지 조건으로 읽는다."""
     받은 = {}
@@ -289,3 +309,21 @@ async def test_세트_단계의_종류도_바꾸고_모르면_비운다(LLM세�
     spec = (await 모듈.normalize({"raw_query": "10만원으로 스킨, 핸드크림"}))["query_spec"]
     assert [단계["product_type"] for 단계 in spec["bundle_steps"]] == ["토너", None]
     assert [단계["label"] for 단계 in spec["bundle_steps"]] == ["스킨", "핸드크림"]
+
+
+@pytest.mark.asyncio
+async def test_카테고리의_특징_표에_없는_키는_버린다(LLM세우기):
+    """스키마는 모든 카테고리의 키를 열어 두므로, 스킨케어에 waterproof 가 올 수 있다."""
+    LLM세우기([{**_제대로, "category": "skincare", "conditions": [],
+                "features": {"product_type": "크림", "texture": "가벼운", "waterproof": False}}])
+    spec = (await 모듈.normalize({"raw_query": "여름용 산뜻한 수분크림"}))["query_spec"]
+    assert spec["features"] == {"product_type": "크림", "texture": "가벼운"}
+    # 사용자가 말한 조건이 아니므로 문장 조건으로도 옮기지 않는다
+    assert spec["conditions"] == []
+
+
+@pytest.mark.asyncio
+async def test_카테고리를_모르면_어느_카테고리의_키든_남긴다(LLM세우기):
+    LLM세우기([{**_제대로, "category": None, "features": {"waterproof": True}}])
+    spec = (await 모듈.normalize({"raw_query": "워터프루프"}))["query_spec"]
+    assert spec["features"] == {"waterproof": True}
