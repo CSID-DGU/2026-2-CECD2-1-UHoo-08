@@ -187,6 +187,26 @@ async def test_되물은_답을_원래_질의와_함께_읽는다(LLM세우기):
 
 
 @pytest.mark.asyncio
+async def test_출력_양식_스키마를_함께_넘긴다(LLM세우기):
+    """스키마로 답의 모양을 강제하는 모델이 이 스키마를 쓴다."""
+    from prompts.query_normalize import QUERY_SPEC_SCHEMA
+
+    받은 = {}
+
+    class 기록하는LLM(가짜LLM):
+        async def chat_json(self, system, user, **kwargs):
+            받은.update(kwargs)
+            return await super().chat_json(system, user, **kwargs)
+
+    가짜 = LLM세우기([_제대로])
+    가짜.__class__ = 기록하는LLM
+
+    await 모듈.normalize({"raw_query": "여름 쿠션"})
+
+    assert 받은["schema"] is QUERY_SPEC_SCHEMA
+
+
+@pytest.mark.asyncio
 async def test_답이_없으면_질의만_넘긴다(LLM세우기):
     """원래 질의에 군더더기가 붙으면 모델이 그것까지 조건으로 읽는다."""
     받은 = {}

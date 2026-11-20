@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+import re
+
 from rules.product_types import CATEGORY_NAMES, CATEGORY_TYPES, GROUPS, MAX_TYPES
 
 # 질의 해석에서 카테고리마다 product_type 외의 특징 키와 값
@@ -82,6 +84,19 @@ def query_feature_lines() -> str:
         f"{카테고리}: product_type({'|'.join(query_type_values(카테고리))}), {QUERY_FEATURES[카테고리]}"
         for 카테고리 in CATEGORY_TYPES
     )
+
+
+def query_feature_kinds() -> dict[str, str]:
+    """질의의 features 에 올 수 있는 키와 그 값의 모양. 모양은 "string", "array", "boolean" 이다.
+
+    위 특징 표의 글에서 읽는다. 표에 배열은 "키(배열...)", 참거짓은 "키(true|false)" 로 적혀 있다.
+    출력 양식을 스키마로 넘길 때 쓴다. 표를 고치면 스키마도 따라 바뀐다.
+    """
+    모양: dict[str, str] = {"product_type": "string"}
+    for 줄 in QUERY_FEATURES.values():
+        for 키, 값 in re.findall(r"(\w+)\(([^)]*)\)", 줄):
+            모양[키] = "array" if 값.startswith("배열") else "boolean" if 값 == "true|false" else "string"
+    return 모양
 
 
 def group_text() -> str:

@@ -27,4 +27,4 @@ def test_머리말에_적을_말에_세_설정이_다_든다():
 
     assert "temperature 보내지 않음" in 글
     assert "생각 기능 끔" in 글
-    assert "JSON 응답 프롬프트로만" in 글
+    assert "JSON 응답 스키마로 강제" in 글

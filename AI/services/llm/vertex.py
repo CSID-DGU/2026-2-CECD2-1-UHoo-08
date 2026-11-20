@@ -96,10 +96,11 @@ class VertexChat:
         response_json: bool = False,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[dict[str, Any]] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
-        temperature 는 받기만 하고 보내지 않는다.
+        temperature 와 schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
         """
         types = self._types
         설정: dict[str, Any] = {}

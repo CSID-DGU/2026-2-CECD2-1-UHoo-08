@@ -50,6 +50,9 @@ class Candidate:
 # 지금 서비스가 쓰는 모델. 다른 후보는 이 모델과 견준다
 CURRENT = "qwen-plus"
 
+# JSON 응답은 모델이 주는 방법 중 가장 강한 것을 쓴다. Qwen 과 Gemini 는 JSON 으로만 답하게 하는
+# 옵션이고, Claude 는 답의 스키마까지 강제한다. Claude 는 스키마를 넘기지 않는 역할에서는
+# 프롬프트로만 양식을 지킨다
 _후보들 = (
     Candidate("qwen-plus", "DashScope",
               temperature="그대로 보냄", thinking="기본으로 꺼져 있음", json_mode="API 옵션"),
@@ -59,9 +62,9 @@ _후보들 = (
               temperature="그대로 보냄", thinking="끔", json_mode="API 옵션",
               base_url_from="QWEN_GATEWAY_BASE_URL", api_key_from="QWEN_GATEWAY_API_KEY"),
     Candidate("claude-haiku-5-5", "Anthropic API",
-              temperature="보내지 않음 (받지 않는 모델)", thinking="끔", json_mode="프롬프트로만"),
+              temperature="보내지 않음 (받지 않는 모델)", thinking="끔", json_mode="스키마로 강제 (구조화 출력)"),
     Candidate("claude-sonnet-5-5", "Anthropic API",
-              temperature="보내지 않음 (받지 않는 모델)", thinking="끔", json_mode="프롬프트로만"),
+              temperature="보내지 않음 (받지 않는 모델)", thinking="끔", json_mode="스키마로 강제 (구조화 출력)"),
     Candidate("gemini-3.5-flash-lite", "Vertex AI",
               temperature="보내지 않음 (기본값 권장)", thinking="가장 낮은 단계 (MINIMAL)", json_mode="API 옵션"),
     Candidate("gemini-3.8-flash", "Vertex AI",

@@ -114,8 +114,12 @@ class _OpenAIChat:
         response_json: bool = False,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> tuple[str, int, int]:
-        """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다."""
+        """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
+
+        schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
+        """
         kwargs: Dict[str, Any] = {
             "model": self._model,
             "messages": [
@@ -162,6 +166,7 @@ class LLMClient:
         response_json: bool = False,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         채팅 호출.
@@ -169,6 +174,8 @@ class LLMClient:
         response_json=True면 JSON 으로만 답하게 하고(OpenAI 호환 주소는
         response_format 을 json_object 로 강제) 파싱 가능한 JSON 문자열만 반환.
         timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
+        schema(JSON 스키마)를 주면 Claude 는 답의 모양을 그 스키마로 강제한다.
+        다른 모델은 스키마를 쓰지 않고 JSON 응답 옵션만 켠다.
 
         Claude 는 response_json 과 temperature 를 받지 않아 보내지 않는다.
         Vertex AI 의 Gemini 에는 temperature 를 보내지 않는다.
@@ -185,6 +192,7 @@ class LLMClient:
                 response_json=response_json,
                 temperature=temperature,
                 timeout=timeout,
+                schema=schema,
             )
         except (Exception, asyncio.CancelledError):
             # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
@@ -209,9 +217,12 @@ class LLMClient:
         user: str,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """JSON 응답 호출 + 파싱. 파싱 실패 시 None."""
-        raw = await self.chat(system, user, response_json=True, temperature=temperature, timeout=timeout)
+        raw = await self.chat(
+            system, user, response_json=True, temperature=temperature, timeout=timeout, schema=schema,
+        )
         if not raw:
             return None
         # 코드블록 펜스 방어

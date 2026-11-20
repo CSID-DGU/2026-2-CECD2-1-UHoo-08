@@ -11,8 +11,10 @@ Claude 에도 OpenAI 호환 주소가 있지만 쓰지 않는다. 그 주소에�
 
 temperature 는 보내지 않는다. 지금 모델들은 이 값을 받지 않는다.
 
-JSON 으로만 답하라는 옵션도 보내지 않는다. Claude 는 스키마를 함께 줘야 양식을
-강제할 수 있는데 스키마는 역할마다 다르다. 양식은 프롬프트로 지키게 한다.
+JSON 으로만 답하라는 옵션이 따로 없다. 대신 부르는 쪽이 답의 스키마를 주면 그
+스키마로 답의 모양을 강제한다(구조화 출력). 스키마를 주지 않은 호출은 프롬프트로만
+양식을 지킨다. 스키마를 주면 그 설명이 입력에 붙어 입력 토큰이 늘고, 새 스키마의 첫
+호출은 스키마를 준비하느라 오래 걸린다. 준비한 것은 마지막으로 쓴 뒤 하루 동안 남는다.
 
 생각 기능은 끈다. 기본으로 켜져 있지만 역할들이 맡기는 일은 짧은 변환과 문장
 쓰기이고, 사용자가 기다리는 동안 부른다. 끄는 값은 모델마다 달라 표로 둔다.
@@ -78,10 +80,12 @@ class ClaudeChat:
         response_json: bool = False,
         temperature: float = 0.0,
         timeout: Optional[float] = None,
+        schema: Optional[dict[str, Any]] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
         response_json 과 temperature 는 받기만 하고 보내지 않는다.
+        schema 를 주면 답이 그 JSON 스키마를 따르게 한다.
         """
         kwargs: dict[str, Any] = {
             "model": self._model,
@@ -95,6 +99,13 @@ class ClaudeChat:
             kwargs["thinking"] = 생각
         if timeout is not None:
             kwargs["timeout"] = timeout
+        if schema is not None:
+            import anthropic
+
+            # 이 API 가 받지 않는 제약(숫자 범위, 글자 수 등)이 남아 있으면 SDK 가 빼고 보낸다
+            kwargs["output_config"] = {
+                "format": {"type": "json_schema", "schema": anthropic.transform_schema(schema)},
+            }
         resp = self._client.messages.create(**kwargs)
         # 답 앞에 생각 블록이 올 수 있어 종류를 보고 글만 모은다.
         # 모델이 답을 거절하면 글이 없어 빈 문자열이 된다.

@@ -35,7 +35,7 @@ from pydantic import ValidationError
 
 from contracts.query_spec import QuerySpec, RequestType
 from graph.state import GraphState
-from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM, QUERY_SPEC_SCHEMA
 from rules.product_types import canonical
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,10 @@ async def parse_query(
     llm = get_llm(LLMRole.NORMALIZE)
 
     for 시도 in range(1, _최대_시도 + 1):
-        원본 = await llm.chat_json(system=system, user=사용자_말, temperature=temperature)
+        # 스키마로 답의 모양을 강제할 수 있는 모델은 이 스키마를 쓴다. 나머지 모델은 받기만 한다
+        원본 = await llm.chat_json(
+            system=system, user=사용자_말, temperature=temperature, schema=QUERY_SPEC_SCHEMA,
+        )
         if 원본 is None:
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue

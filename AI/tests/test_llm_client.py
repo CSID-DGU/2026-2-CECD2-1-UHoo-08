@@ -97,7 +97,8 @@ class TestThinkingOffOption:
         )
 
         c = LLMClient(model="qwen-plus", base_url="http://x", api_key="k")
-        await c.chat(system="s", user="u", response_json=True, timeout=5.0)
+        # 스키마는 Claude 만 쓴다. 줘도 요청은 그대로다
+        await c.chat(system="s", user="u", response_json=True, timeout=5.0, schema={"type": "object"})
 
         assert set(self._보낸_값(mock_openai_cls)) == {
             "model", "messages", "temperature", "response_format", "timeout",
@@ -269,6 +270,8 @@ class TestClaude:
         assert "temperature" not in 보낸
         assert "response_format" not in 보낸
         assert "timeout" not in 보낸
+        # 스키마를 받지 않았으면 답의 모양을 강제하지 않는다
+        assert "output_config" not in 보낸
 
     @pytest.mark.asyncio
     @patch("anthropic.Anthropic")
@@ -323,6 +326,53 @@ class TestClaude:
         await c.chat(system="s", user="u", timeout=15.0)
 
         assert create.call_args.kwargs["timeout"] == 15.0
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_schema_forces_the_answer_shape(self, mock_anthropic_cls):
+        """프롬프트로만 양식을 지키게 하면 짧은 말에 대화하듯 답하는 일이 있다."""
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+        스키마 = {
+            "type": "object",
+            "properties": {"a": {"type": "integer"}},
+            "required": ["a"],
+            "additionalProperties": False,
+        }
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        out = await c.chat_json(system="s", user="u", schema=스키마)
+
+        assert out == {"a": 1}
+        assert create.call_args.kwargs["output_config"] == {
+            "format": {"type": "json_schema", "schema": 스키마},
+        }
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_schema_constraints_the_api_rejects_are_removed(self, mock_anthropic_cls):
+        """숫자 범위나 글자 수 제약이 남아 있으면 요청이 거절된다. SDK 가 빼고 보낸다."""
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+        스키마 = {
+            "type": "object",
+            "properties": {"a": {"type": "integer", "minimum": 1}, "b": {"type": "object", "properties": {}}},
+            "required": ["a"],
+        }
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        await c.chat(system="s", user="u", schema=스키마)
+
+        보낸 = create.call_args.kwargs["output_config"]["format"]["schema"]
+        assert "minimum" not in 보낸["properties"]["a"]
+        assert 보낸["additionalProperties"] is False
+        assert 보낸["properties"]["b"]["additionalProperties"] is False
+        # 받은 스키마는 건드리지 않는다
+        assert 스키마["properties"]["a"] == {"type": "integer", "minimum": 1}
 
     @pytest.mark.asyncio
     @patch("anthropic.Anthropic")
@@ -476,6 +526,23 @@ class TestVertexGemini:
 
         assert await c.chat(system="s", user="u") == "hello"
         assert generate.call_args.kwargs["config"].response_mime_type is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_schema_is_not_sent(self, mock_genai_cls):
+        """스키마는 Claude 만 쓴다. Gemini 는 JSON 응답 옵션으로 양식을 지키게 한다."""
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        out = await c.chat_json(system="s", user="u", schema={"type": "object"})
+
+        assert out == {"a": 1}
+        설정 = generate.call_args.kwargs["config"]
+        assert 설정.response_mime_type == "application/json"
+        assert 설정.response_schema is None and 설정.response_json_schema is None
 
     @pytest.mark.asyncio
     @patch("services.llm.client.OpenAI")
