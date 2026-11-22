@@ -18,7 +18,7 @@ google-genai 패키지는 부를 일이 생긴 뒤에 가져온다.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 # 가장 낮은 생각 단계. 모델이 받지 않는 단계를 보내면 오류가 난다.
 # 여기 없는 모델은 값을 보내지 않아 그 모델의 기본 동작을 따른다.
@@ -103,11 +103,15 @@ class VertexChat:
         temperature: float = 0.0,
         timeout: Optional[float] = None,
         schema: Optional[dict[str, Any]] = None,
+        images: Optional[Sequence[Any]] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
         temperature 와 schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
+        images 는 받지 않는다. 사진을 빼고 글만 보내면 사진을 본 답처럼 읽히므로 오류를 낸다.
         """
+        if images:
+            raise NotImplementedError("Vertex AI 호출은 사진을 함께 보내지 못한다")
         types = self._types
         설정: dict[str, Any] = {}
         if system:

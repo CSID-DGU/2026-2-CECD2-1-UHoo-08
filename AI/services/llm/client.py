@@ -15,16 +15,23 @@ Vertex AI 로 부른다(services.llm.vertex). 부르는 쪽 코드는 같다.
 동기 SDK 를 to_thread 로 감싸 async 로 내보낸다. FastAPI 안에서 그대로
 부르면 이벤트 루프가 멈춘다.
 
+사진을 읽는 역할은 사진을 글과 함께 넘긴다.
+
+    llm = get_llm(LLMRole.VLM)
+    답 = await llm.chat(system="...", user="...", images=[LLMImage(사진, "image/jpeg")])
+
 호출마다 모델, 토큰 수, 걸린 시간을 기록한다(services.llm.usage).
 """
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import time
+from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from openai import OpenAI
 
@@ -49,6 +56,19 @@ class LLMRole(str, Enum):
     COMPOSE = "compose"      # 추천 이유 문장
     VLM = "vlm"              # 사진 인식
     AD = "ad"                # 인스타 캡션 광고 판별 (1차 규칙이 못 정한 것)
+
+
+@dataclass(frozen=True)
+class LLMImage:
+    """모델에 글과 함께 보내는 사진 한 장."""
+
+    data: bytes
+    mime_type: str  # image/jpeg 같은 값
+
+
+def _data_url(사진: LLMImage) -> str:
+    """사진을 요청에 그대로 실어 보내는 주소 모양. 모델이 주소를 따로 열지 않아도 된다."""
+    return f"data:{사진.mime_type};base64,{base64.b64encode(사진.data).decode('ascii')}"
 
 
 # 환경 변수를 비워 뒀을 때 쓰는 값. 지금 쓰고 있는 모델 그대로다.
@@ -115,16 +135,24 @@ class _OpenAIChat:
         temperature: float = 0.0,
         timeout: Optional[float] = None,
         schema: Optional[Dict[str, Any]] = None,
+        images: Optional[Sequence[LLMImage]] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
         schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
+        images 를 주면 사진을 글 앞에 붙여 보낸다.
         """
+        내용: Any = user
+        if images:
+            내용 = [
+                *({"type": "image_url", "image_url": {"url": _data_url(사진)}} for 사진 in images),
+                {"type": "text", "text": user},
+            ]
         kwargs: Dict[str, Any] = {
             "model": self._model,
             "messages": [
                 {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                {"role": "user", "content": 내용},
             ],
             "temperature": temperature,
         }
@@ -167,6 +195,7 @@ class LLMClient:
         temperature: float = 0.0,
         timeout: Optional[float] = None,
         schema: Optional[Dict[str, Any]] = None,
+        images: Optional[Sequence[LLMImage]] = None,
     ) -> str:
         """
         채팅 호출.
@@ -176,6 +205,8 @@ class LLMClient:
         timeout(초)을 주면 요청 하나에 그 시간만 기다린다. 비우면 SDK 기본값.
         schema(JSON 스키마)를 주면 Claude 는 답의 모양을 그 스키마로 강제한다.
         다른 모델은 스키마를 쓰지 않고 JSON 응답 옵션만 켠다.
+        images 를 주면 사진을 글과 함께 보낸다. OpenAI 호환 주소로 부르는 모델만
+        받는다. Claude 와 Vertex AI 의 Gemini 는 NotImplementedError 를 낸다.
 
         Claude 는 response_json 과 temperature 를 받지 않아 보내지 않는다.
         Vertex AI 의 Gemini 에는 temperature 를 보내지 않는다.
@@ -193,6 +224,7 @@ class LLMClient:
                 temperature=temperature,
                 timeout=timeout,
                 schema=schema,
+                images=images,
             )
         except (Exception, asyncio.CancelledError):
             # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다
@@ -218,10 +250,12 @@ class LLMClient:
         temperature: float = 0.0,
         timeout: Optional[float] = None,
         schema: Optional[Dict[str, Any]] = None,
+        images: Optional[Sequence[LLMImage]] = None,
     ) -> Optional[Dict[str, Any]]:
         """JSON 응답 호출 + 파싱. 파싱 실패 시 None."""
         raw = await self.chat(
             system, user, response_json=True, temperature=temperature, timeout=timeout, schema=schema,
+            images=images,
         )
         if not raw:
             return None

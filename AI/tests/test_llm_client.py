@@ -690,3 +690,122 @@ class TestGeminiRoleSettings:
         assert client._설정(client.LLMRole.NORMALIZE) == (
             "gemini-3.8-flash", client.settings.QWEN_TEXT_BASE_URL, "dashscope-key",
         )
+
+
+class TestImages:
+    """사진을 글과 함께 보내는 호출을 본다."""
+
+    @staticmethod
+    def _사진():
+        from services.llm.client import LLMImage
+
+        # JPEG 파일의 앞 세 바이트. base64 로 옮기면 "/9j/" 다
+        return LLMImage(data=b"\xff\xd8\xff", mime_type="image/jpeg")
+
+    @staticmethod
+    def _보낸_글(mock_openai_cls):
+        return mock_openai_cls.return_value.chat.completions.create.call_args.kwargs["messages"]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_image_goes_before_the_text_as_data_url(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        out = await c.chat(system="s", user="u", images=[self._사진()])
+
+        assert out == "hello"
+        assert self._보낸_글(mock_openai_cls) == [
+            {"role": "system", "content": "s"},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/"}},
+                {"type": "text", "text": "u"},
+            ]},
+        ]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_several_images_keep_their_order(self, mock_openai_cls):
+        from services.llm.client import LLMClient, LLMImage
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u", images=[
+            self._사진(), LLMImage(data=b"\x89PNG", mime_type="image/png"),
+        ])
+
+        내용 = self._보낸_글(mock_openai_cls)[1]["content"]
+        assert [조각["type"] for 조각 in 내용] == ["image_url", "image_url", "text"]
+        assert 내용[0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+        assert 내용[1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_without_images_the_text_is_sent_as_before(self, mock_openai_cls):
+        """글만 보내는 역할의 요청이 바뀌면 안 된다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen-plus", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+        await c.chat(system="s", user="u", images=[])
+
+        for 호출 in mock_openai_cls.return_value.chat.completions.create.call_args_list:
+            assert 호출.kwargs["messages"] == [
+                {"role": "system", "content": "s"},
+                {"role": "user", "content": "u"},
+            ]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_chat_json_sends_images_too(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content='{"a": 1}'))]
+        )
+
+        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        out = await c.chat_json(system="s", user="u", images=[self._사진()])
+
+        assert out == {"a": 1}
+        assert self._보낸_글(mock_openai_cls)[1]["content"][0]["type"] == "image_url"
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_claude_refuses_images(self, mock_anthropic_cls):
+        """사진을 빼고 글만 보내면 사진을 본 답처럼 읽힌다. 보내지 않고 오류를 낸다."""
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        with collect_calls() as calls:
+            with pytest.raises(NotImplementedError):
+                await c.chat(system="s", user="u", images=[self._사진()])
+
+        mock_anthropic_cls.return_value.messages.create.assert_not_called()
+        assert calls[0].ok is False
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_vertex_gemini_refuses_images(self, mock_genai_cls, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "my-project")
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_LOCATION", "global")
+
+        c = client.LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        with pytest.raises(NotImplementedError):
+            await c.chat(system="s", user="u", images=[self._사진()])
+
+        mock_genai_cls.return_value.models.generate_content.assert_not_called()
