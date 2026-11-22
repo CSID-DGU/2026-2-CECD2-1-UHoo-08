@@ -59,16 +59,41 @@ PENDING → IN_PROGRESS → COMPLETED
 
 ## 아직 stub 인 경로
 
-피드백 반영을 뺀 다섯 경로가 stub 이다. 응답에 `stub: true` 가 붙는다.
+궁합 확인(`compatibility/check`)과 홈 카드(`home/run`)가 stub 이다. 응답에 `stub: true` 가 붙는다.
 
 - **동기** 호출은 빈 결과가 온다. 표시를 보지 않으면 "결과 없음"으로 읽고 넘어가게 된다.
   궁합 확인(`compatibility/check`)의 `level=OK` 도 판정 결과가 아니다. 판정하는 코드와 규칙이 아직 없다.
 - **비동기** 호출은 job 이 움직이지 않는다. BE 는 `stub` 을 보면 경고 로그를 남긴다.
+  홈 카드(`home/run`)는 그 카드의 경로에 꼭 필요한 단계가 아직 없으면 돌리지 않고 stub 으로 응답한다.
   추천 실행(`run/v2`)과 되묻기 답변(`clarify`)도 결과를 조립하는 단계가 없으면 실행을 걸지 않는다.
   job 은 `PENDING` 으로 남고, 멈춘 job 정리 배치가 15분 뒤 `FAILED`(`timeout`)로 바꾼다.
 
 내용을 채우는 쪽은 `AI/api/internal/v2/` 의 해당 파일을 고친다. 파일이 경로별로
 나뉘어 있어 여러 사람이 같이 작업해도 충돌하지 않는다.
+
+## 사진 인식
+
+`recognize-photos` 는 보낸 면만 읽는다. 제품명 면은 사진에서 읽은 브랜드와 이름을 상품 목록과
+견줘 후보를 고르고, 기한 면은 읽은 값을 규칙으로 확인해 통과한 값만 채운다.
+
+| 필드 | 뜻 |
+| --- | --- |
+| `candidates[]` `productId` `name` `brand` `imageUrl?` `confidence` | 일치도가 높은 순으로 최대 3개. `confidence` 는 0~1 이다. 일치도가 낮은 상품은 넣지 않아 빈 목록일 수 있다 |
+| `expiryDate?` `mfgDate?` | `YYYY-MM-DD`. 연월만 찍힌 사용기한은 그 달 마지막 날이다 |
+| `paoMonths?` | 개봉 후 사용 기간(개월) |
+| `raw` | 인식 원본. `readText` 가 사진에서 읽은 글자다 |
+
+- 읽지 못했거나 확인을 통과하지 못한 값은 `null` 이다. 추측해서 채우지 않는다.
+- `raw` 는 면마다 모양이 다르다. 제품명 면은 `readText` 와 읽은 브랜드, 이름(`brand` `brandEn` `brandKo` `productName` `productNameKo`)을 담는다.
+  기한 면은 `readText` 와 모델이 읽은 값(`expiryDate` `expiryText` `mfgDate` `mfgText` `paoMonths` `paoText`), 확인에서 버린 값의 이유(`dropped`)를 담는다.
+  두 면을 함께 보내면 제품명 면의 원본에 기한 면의 원본이 `expiry` 로 붙는다.
+- 후보가 없거나 기한이 비어 있어도 200 이다. 실패는 상태 코드로 알린다.
+
+| 상태 | 뜻 |
+| --- | --- |
+| 422 | 사진을 받지 못했거나 열지 못했다 |
+| 502 | 사진 모델의 답을 쓸 수 없다 |
+| 500 | 그 밖의 실패 (모델 호출 실패 등) |
 
 ## 되묻기 결과
 
