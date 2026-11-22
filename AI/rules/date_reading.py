@@ -70,6 +70,11 @@ _달_이름 = re.compile(
     re.IGNORECASE,
 )
 
+# 영문자와 숫자가 붙은 덩어리. 그 밖의 글자(공백, 문장부호, 한글)는 덩어리를 나눈다
+_영숫자_덩어리 = re.compile(r"[0-9a-z]+", re.IGNORECASE)
+# 숫자 앞에 붙여 찍는 날짜 표시. EXP20270331, MFG20260331
+_붙인_표시 = re.compile(r"^(?:exp(?:iry)?|mfg|mfd|bbe?)(\d+)$", re.IGNORECASE)
+
 _조각_검사 = Callable[[str], bool]
 
 
@@ -113,9 +118,20 @@ def _다듬은_글(글자: Any) -> str:
 
 
 def _숫자_덩어리(글자: Any) -> list[str]:
-    """읽은 글자에서 숫자 덩어리만 차례로 꺼낸다. 영문 달 이름은 숫자로 바꾼다."""
+    """읽은 글자에서 숫자 덩어리만 차례로 꺼낸다. 영문 달 이름은 숫자로 바꾼다.
+
+    영문자와 숫자가 섞인 덩어리(27C03D31 같은 제조번호)는 숫자를 꺼내지 않는다. 글자를
+    빼고 숫자만 모으면 27, 03, 31 이 날짜처럼 이어진다. 날짜 표시를 앞에 붙여 찍은
+    EXP20270331 만 표시를 떼고 숫자를 쓴다.
+    """
     글 = _달_이름.sub(lambda 맞음: f" {_달_번호[맞음.group(1)[:3].lower()]:02d} ", _다듬은_글(글자))
-    return re.findall(r"\d+", 글)
+    덩어리들: list[str] = []
+    for 덩어리 in _영숫자_덩어리.findall(글):
+        if 덩어리.isdigit():
+            덩어리들.append(덩어리)
+        elif 맞음 := _붙인_표시.match(덩어리):
+            덩어리들.append(맞음.group(1))
+    return 덩어리들
 
 
 def _나누는_방법(덩어리: str) -> list[tuple[str, ...]]:
