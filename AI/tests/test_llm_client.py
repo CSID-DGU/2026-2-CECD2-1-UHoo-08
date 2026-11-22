@@ -715,7 +715,7 @@ class TestImages:
             choices=[MagicMock(message=MagicMock(content="hello"))]
         )
 
-        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
         out = await c.chat(system="s", user="u", images=[self._사진()])
 
         assert out == "hello"
@@ -736,7 +736,7 @@ class TestImages:
             choices=[MagicMock(message=MagicMock(content="hello"))]
         )
 
-        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
         await c.chat(system="s", user="u", images=[
             self._사진(), LLMImage(data=b"\x89PNG", mime_type="image/png"),
         ])
@@ -775,7 +775,7 @@ class TestImages:
             choices=[MagicMock(message=MagicMock(content='{"a": 1}'))]
         )
 
-        c = LLMClient(model="qwen3-vl-flash", base_url="http://x", api_key="k")
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
         out = await c.chat_json(system="s", user="u", images=[self._사진()])
 
         assert out == {"a": 1}
