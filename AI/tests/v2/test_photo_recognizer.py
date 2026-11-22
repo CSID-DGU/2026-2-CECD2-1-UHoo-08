@@ -15,7 +15,7 @@ from prompts.photo_recognize import DATE_FACE_SYSTEM, NAME_FACE_SYSTEM
 from rules import date_reading
 from services import photo_loader, photo_recognizer
 from services.photo_loader import PhotoError
-from services.photo_recognizer import RecognizeError, recognize
+from services.photo_recognizer import RecognizeError, RecognizeTimeout, recognize
 
 오늘 = date(2026, 11, 22)
 _이름_사진 = "https://storage.example.com/user-product-photos/u1/name.jpg?token=secret"
@@ -172,6 +172,8 @@ async def test_다듬은_사진을_면에_맞는_프롬프트와_함께_보낸�
         [사진] = 호출[프롬프트]["images"]
         assert (사진.data, 사진.mime_type) == (b"jpeg:" + 주소.encode(), "image/jpeg")
         assert 호출[프롬프트]["timeout"] == photo_recognizer.MODEL_TIMEOUT_S
+        # SDK 가 다시 보내면 기다림이 BE 의 제한을 넘는다
+        assert 호출[프롬프트]["max_retries"] == 0
     # 표시 없이 찍힌 날짜를 가리려면 모델이 오늘을 알아야 한다
     assert "2026-11-22" in 호출[DATE_FACE_SYSTEM]["user"]
 
@@ -387,3 +389,28 @@ async def test_원본에_사진_주소가_남지_않는다(세우기):
 
     남은 = json.dumps(응답.model_dump(by_alias=True), ensure_ascii=False)
     assert "secret" not in 남은 and "storage.example.com" not in 남은
+
+
+@pytest.mark.asyncio
+async def test_정한_시간_안에_끝나지_않으면_시간_초과로_알린다(세우기, monkeypatch):
+    """사진 받기까지 포함한 전체 시간이다. BE 가 먼저 끊으면 실패 이유를 전하지 못한다."""
+    import asyncio
+
+    세우기(이름=_이름_답)
+
+    async def 느린_load(주소):
+        await asyncio.sleep(1)
+        return b"jpeg"
+
+    monkeypatch.setattr(photo_loader, "load", 느린_load)
+    monkeypatch.setattr(photo_recognizer, "RECOGNIZE_BUDGET_S", 0.01)
+
+    with pytest.raises(RecognizeTimeout):
+        await recognize(_이름_사진, None, today=오늘)
+
+
+def test_전체_시간은_BE_의_제한보다_짧다():
+    be_제한 = 60
+    assert photo_recognizer.RECOGNIZE_BUDGET_S < be_제한
+    # 모델을 한 번만 부르므로 모델 대기는 MODEL_TIMEOUT_S 를 넘지 않는다
+    assert photo_recognizer.MODEL_TIMEOUT_S * (photo_recognizer.MODEL_MAX_RETRIES + 1) < photo_recognizer.RECOGNIZE_BUDGET_S

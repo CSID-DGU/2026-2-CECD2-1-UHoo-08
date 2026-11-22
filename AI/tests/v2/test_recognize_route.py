@@ -15,7 +15,7 @@ from api.internal.v2 import router
 from contracts.internal_api import ProductCandidate, RecognizePhotosResponse
 from services import photo_recognizer
 from services.photo_loader import PhotoError
-from services.photo_recognizer import RecognizeError
+from services.photo_recognizer import RecognizeError, RecognizeTimeout
 
 app = FastAPI()
 app.include_router(router, prefix="/internal")
@@ -105,9 +105,11 @@ def test_읽은_것이_없어도_오류가_아니고_stub도_아니다(인식):
     (PhotoError("사진을 받지 못했다 (응답 404)"), 422, "사진을 받지 못했다 (응답 404)"),
     (PhotoError("사진을 열지 못했다 (UnidentifiedImageError)"), 422, "사진을 열지 못했다 (UnidentifiedImageError)"),
     (RecognizeError("사진 모델의 답을 읽지 못했다"), 502, "사진 모델의 답을 읽지 못했다"),
+    (RecognizeTimeout("50초 안에 사진을 인식하지 못했다"), 504, "50초 안에 사진을 인식하지 못했다"),
     (TimeoutError("모델이 답하지 않았다"), 500, "사진을 인식하지 못했다"),
     (RuntimeError("상품 목록을 읽지 못했다"), 500, "사진을 인식하지 못했다"),
-], ids=["사진을 받지 못함", "사진을 열지 못함", "모델의 답을 쓸 수 없음", "모델 호출 실패", "그 밖의 실패"])
+], ids=["사진을 받지 못함", "사진을 열지 못함", "모델의 답을 쓸 수 없음", "전체 시간 초과", "모델 호출 실패",
+        "그 밖의 실패"])
 def test_실패는_빈_결과가_아니라_상태_코드로_알린다(인식, 실패, 코드, 알림):
     인식(실패)
 

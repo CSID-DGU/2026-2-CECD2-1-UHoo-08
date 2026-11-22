@@ -65,6 +65,26 @@ class TestLLMClient:
         out = await c.chat_json(system="s", user="u")
         assert out is None
 
+class TestMaxRetries:
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_max_retries_is_applied_only_when_given(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        client_mock = MagicMock()
+        응답 = MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))], usage=None)
+        client_mock.chat.completions.create.return_value = 응답
+        client_mock.with_options.return_value.chat.completions.create.return_value = 응답
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+        client_mock.with_options.assert_not_called()
+
+        await c.chat(system="s", user="u", max_retries=0)
+        client_mock.with_options.assert_called_once_with(max_retries=0)
+
+
 class TestThinkingOffOption:
     """생각 기능이 기본으로 켜진 모델에만 끄는 값을 보내는지 본다."""
 

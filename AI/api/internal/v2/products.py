@@ -7,6 +7,7 @@
 
     422   사진을 받지 못했거나 열지 못했다
     502   사진 모델의 답을 쓸 수 없다
+    504   정한 시간 안에 인식을 끝내지 못했다
     500   그 밖의 실패. 모델 호출이나 상품 목록 조회가 실패했다
 
 사진 주소는 로그와 오류 응답에 남기지 않는다. 서명 주소면 query string 에 접근 토큰이
@@ -19,13 +20,14 @@ from fastapi import APIRouter, HTTPException
 from contracts.internal_api import RecognizePhotosRequest, RecognizePhotosResponse
 from services import photo_recognizer
 from services.photo_loader import PhotoError
-from services.photo_recognizer import RecognizeError
+from services.photo_recognizer import RecognizeError, RecognizeTimeout
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _사진_오류 = 422
 _모델_답_오류 = 502
+_시간_초과 = 504
 _그_밖의_오류 = 500
 
 
@@ -46,6 +48,9 @@ async def recognize_photos(req: RecognizePhotosRequest) -> RecognizePhotosRespon
     except RecognizeError as 오류:
         logger.warning("사진 인식 실패 (%s): %s", _받은_면(req), 오류)
         raise HTTPException(status_code=_모델_답_오류, detail=str(오류)) from None
+    except RecognizeTimeout as 오류:
+        logger.warning("사진 인식 실패 (%s): %s", _받은_면(req), 오류)
+        raise HTTPException(status_code=_시간_초과, detail=str(오류)) from None
     except Exception:
         # BE 는 사용자에게 인식 실패라고만 알린다. 원인은 여기서 스택과 함께 남긴다
         logger.exception("사진 인식 실패 (%s)", _받은_면(req))

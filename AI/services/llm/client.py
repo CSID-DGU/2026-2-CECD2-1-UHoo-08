@@ -136,11 +136,13 @@ class _OpenAIChat:
         timeout: Optional[float] = None,
         schema: Optional[Dict[str, Any]] = None,
         images: Optional[Sequence[LLMImage]] = None,
+        max_retries: Optional[int] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
         schema 는 받기만 하고 보내지 않는다. 양식은 JSON 응답 옵션으로 지키게 한다.
         images 를 주면 사진을 글 앞에 붙여 보낸다.
+        max_retries 를 주면 SDK 가 다시 보내는 횟수를 그 값으로 바꾼다. 비우면 SDK 기본값(두 번).
         """
         내용: Any = user
         if images:
@@ -161,7 +163,8 @@ class _OpenAIChat:
         if timeout is not None:
             kwargs["timeout"] = timeout
         kwargs.update(_생각_끄기.get(self._model, {}))
-        resp = self._client.chat.completions.create(**kwargs)
+        클라이언트 = self._client if max_retries is None else self._client.with_options(max_retries=max_retries)
+        resp = 클라이언트.chat.completions.create(**kwargs)
         return resp.choices[0].message.content or "", *token_counts(getattr(resp, "usage", None))
 
 
@@ -196,6 +199,7 @@ class LLMClient:
         timeout: Optional[float] = None,
         schema: Optional[Dict[str, Any]] = None,
         images: Optional[Sequence[LLMImage]] = None,
+        max_retries: Optional[int] = None,
     ) -> str:
         """
         채팅 호출.
@@ -207,6 +211,8 @@ class LLMClient:
         다른 모델은 스키마를 쓰지 않고 JSON 응답 옵션만 켠다.
         images 를 주면 사진을 글과 함께 보낸다. OpenAI 호환 주소로 부르는 모델만
         받는다. Claude 와 Vertex AI 의 Gemini 는 NotImplementedError 를 낸다.
+        max_retries 를 주면 SDK 가 다시 보내는 횟수를 그 값으로 바꾼다. 사진과 함께 부를
+        때만 쓰므로 OpenAI 호환 주소로 부르는 모델만 받는다.
 
         Claude 는 response_json 과 temperature 를 받지 않아 보내지 않는다.
         Vertex AI 의 Gemini 에는 temperature 를 보내지 않는다.
@@ -215,6 +221,8 @@ class LLMClient:
         빼면 느린 쪽 시간이 실제보다 좋게 나온다.
         """
         시작 = time.perf_counter()
+        # 정한 때만 넘긴다. Claude 와 Vertex AI 호출은 이 값을 받지 않는다
+        더_넘길 = {} if max_retries is None else {"max_retries": max_retries}
         try:
             내용, 입력, 출력 = await asyncio.to_thread(
                 self._호출.call,
@@ -225,6 +233,7 @@ class LLMClient:
                 timeout=timeout,
                 schema=schema,
                 images=images,
+                **더_넘길,
             )
         except (Exception, asyncio.CancelledError):
             # 취소는 Exception 이 아니라 따로 잡는다. 빼면 이미 쓴 시간이 기록에서 빠진다

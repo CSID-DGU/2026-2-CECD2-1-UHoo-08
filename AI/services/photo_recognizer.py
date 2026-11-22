@@ -10,6 +10,9 @@
 인식 원본(raw)에는 모델이 읽은 값과, 확인에서 버린 값의 이유를 남긴다. BE 가 등록할 때 함께
 저장해, 사용자가 고친 최종값과 견줘 인식 정확도를 잰다.
 
+사진 받기부터 모델의 답까지 RECOGNIZE_BUDGET_S 안에 끝나지 않으면 RecognizeTimeout 을 낸다.
+BE 가 먼저 끊으면 실패 이유를 전하지 못한다.
+
 모델이 답을 JSON 으로 쓰지 않았으면 RecognizeError 를 낸다. 읽은 값이 없다는 답과는 다르다.
 그쪽은 모델이 사진을 보고 비운 것이다. 사진을 받지 못했거나(PhotoError) 모델 호출이
 실패하면 예외를 그대로 올린다. 빈 결과로 덮으면 장애가 "읽을 글자가 없는 사진"으로 보인다.
@@ -39,6 +42,12 @@ logger = logging.getLogger(__name__)
 # 사진 한 장에 모델의 답을 기다리는 최대 시간(초). SDK 기본값(10분)에 맡기지 않는다.
 # BE 는 인식 호출을 60초에 끊는다
 MODEL_TIMEOUT_S = 20.0
+# 사진 모델을 부를 때 SDK 가 다시 보내는 횟수. 기본값(두 번)이면 기다림이 세 배가 되어
+# BE 의 60초를 넘는다. 화면이 기다리는 호출이라 실패를 빨리 알리고 다시 찍게 한다
+MODEL_MAX_RETRIES = 0
+# 사진 받기부터 모델의 답까지 한 요청 전체에 쓰는 최대 시간(초). BE 의 60초보다 짧게 두어
+# 오류 응답이 BE 에 닿게 한다
+RECOGNIZE_BUDGET_S = 50.0
 
 # 인식 원본에 남기는 글 하나의 최대 길이. 모델이 작은 글씨까지 길게 옮겨 적는 일이 있다
 RAW_TEXT_MAX = 300
@@ -72,6 +81,10 @@ _기한_원본_자리 = "expiry"
 
 class RecognizeError(Exception):
     """사진 모델의 답을 쓸 수 없다."""
+
+
+class RecognizeTimeout(Exception):
+    """정한 시간 안에 인식을 끝내지 못했다."""
 
 
 def _답_읽기(글: Any) -> dict | None:
@@ -119,6 +132,7 @@ async def _모델에_묻기(system: str, user: str, 사진: bytes, llm: Any) -> 
         user=user,
         images=[LLMImage(data=사진, mime_type=_사진_형식)],
         timeout=MODEL_TIMEOUT_S,
+        max_retries=MODEL_MAX_RETRIES,
     )
     답 = _답_읽기(글)
     if 답 is None:
@@ -198,7 +212,20 @@ async def recognize(
     today 를 주지 않으면 한국 시간의 오늘이다.
     """
     오늘 = today or datetime.now(KST).date()
+    제한 = asyncio.timeout(RECOGNIZE_BUDGET_S)
+    try:
+        async with 제한:
+            return await _인식(name_image, date_image, llm, 오늘)
+    except TimeoutError:
+        # 안에서 난 다른 시간 초과(모델 호출 등)는 그대로 올린다
+        if 제한.expired():
+            raise RecognizeTimeout(f"{RECOGNIZE_BUDGET_S:.0f}초 안에 사진을 인식하지 못했다") from None
+        raise
 
+
+async def _인식(
+    name_image: str | None, date_image: str | None, llm: Any, 오늘: date,
+) -> RecognizePhotosResponse:
     async def 이름_면() -> tuple[list[name_matching.Candidate], dict]:
         return await recognize_name(await photo_loader.load(name_image), llm=llm)
 
