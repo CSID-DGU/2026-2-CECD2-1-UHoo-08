@@ -7,5 +7,8 @@ fastapi>=0.110.0
 httpx
 # 그래프 조립. 임베딩·LLM 없이 그래프만 돌려볼 수 있어야 한다.
 langgraph>=0.1.0
+# 사진 준비(바로 세우기, 줄이기, HEIC 열기)와 그 테스트에 필요하다. 설치가 빠르다.
+Pillow>=10.1.0
+pillow-heif>=0.18.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
