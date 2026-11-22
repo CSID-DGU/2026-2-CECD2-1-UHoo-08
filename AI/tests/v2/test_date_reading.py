@@ -296,3 +296,22 @@ def test_개월_수가_범위를_벗어나면_버린다(값):
 @pytest.mark.parametrize("값", [True, 12.5, "일 년", [12], {"months": 12}])
 def test_개월_수가_아니면_버린다(값):
     assert _개월(값, "12M").dropped == {"pao_months": date_reading.개월_아님}
+
+
+@pytest.mark.parametrize("값", ["2027-03-04", "2027-04-03"])
+@pytest.mark.parametrize("글자", ["EXP 03/04/2027", "EXP 03042027", "EXP 03.04.27"])
+def test_일과_월을_바꿔_읽어도_맞으면_사용기한을_버린다(값, 글자):
+    assert _기한(값, 글자).dropped == {"expiry_date": date_reading.일월_모호}
+
+
+def test_일과_월을_바꿔_읽어도_맞으면_제조일을_버린다():
+    assert _제조("2026-03-04", "MFG 03/04/2026").dropped == {"mfg_date": date_reading.일월_모호}
+
+
+@pytest.mark.parametrize("값, 글자", [
+    ("2027-03-04", "EXP 2027.03.04"),   # 연이 앞이면 연월일이다
+    ("2027-03-31", "EXP 31/03/2027"),   # 31 은 월이 될 수 없다
+    ("2027-03-03", "EXP 03/03/2027"),   # 바꿔 읽어도 같은 날짜다
+])
+def test_순서가_하나로_정해지면_받는다(값, 글자):
+    assert _기한(값, 글자).expiry_date == 값
