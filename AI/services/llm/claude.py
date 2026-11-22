@@ -24,7 +24,7 @@ anthropic 패키지는 부를 일이 생긴 뒤에 가져온다. Claude 를 쓰�
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 # 주소를 직접 적어 둔다. 비워 두면 SDK 가 ANTHROPIC_BASE_URL 환경 변수를 읽는데,
 # 개발 도구가 그 값을 다른 곳으로 잡아 두는 일이 있다.
@@ -81,12 +81,16 @@ class ClaudeChat:
         temperature: float = 0.0,
         timeout: Optional[float] = None,
         schema: Optional[dict[str, Any]] = None,
+        images: Optional[Sequence[Any]] = None,
     ) -> tuple[str, int, int]:
         """한 번 부르고 답, 입력 토큰 수, 출력 토큰 수를 돌려준다.
 
         response_json 과 temperature 는 받기만 하고 보내지 않는다.
         schema 를 주면 답이 그 JSON 스키마를 따르게 한다.
+        images 는 받지 않는다. 사진을 빼고 글만 보내면 사진을 본 답처럼 읽히므로 오류를 낸다.
         """
+        if images:
+            raise NotImplementedError("Claude 호출은 사진을 함께 보내지 못한다")
         kwargs: dict[str, Any] = {
             "model": self._model,
             "max_tokens": _최대_출력_토큰,

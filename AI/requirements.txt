@@ -23,6 +23,12 @@ langchain-core>=0.2.0
 langgraph>=0.1.0
 openai>=1.0.0
 
+# Image
+# 사진 인식 전에 사진을 바로 세우고 줄인다. HEIC 는 pillow-heif 가 연다
+# 12.3.0 까지는 조작한 XBM 을 열 때 CPU 를 오래 붙잡는 취약점이 있다
+Pillow>=13.0.0
+pillow-heif>=0.18.0
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
