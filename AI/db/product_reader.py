@@ -115,6 +115,35 @@ def get_products_meta(product_ids: List[str]) -> Dict[str, ProductMeta]:
     return {row["product_id"]: _row_to_meta(row) for row in (res.data or [])}
 
 
+# Supabase(PostgREST)는 한 번에 최대 1,000행만 돌려준다. 그보다 많으면 나눠 읽는다.
+_PAGE_SIZE = 1000
+
+
+def list_products_meta() -> List[ProductMeta]:
+    """
+    상품 전체의 메타. product_id 순서로 돌려준다.
+
+    사진에서 읽은 이름을 상품 목록 전체와 견줄 때 쓴다. 이름 부분 일치 검색으로는
+    표기가 조금 다른 이름을 찾지 못한다.
+
+    다 읽을 때까지 product_id 순서로 나눠 읽는다. 마지막으로 읽은 id 다음부터 읽으므로,
+    읽는 사이에 앞쪽 행이 지워져도 뒤의 행을 건너뛰지 않는다. 서버 상한이 _PAGE_SIZE 보다
+    낮으면 페이지가 덜 차서 돌아오므로, 빈 페이지가 나올 때까지 읽는다.
+    """
+    sb = get_supabase()
+    rows: List[dict] = []
+    last_id = None
+    while True:
+        query = sb.table("products").select(_COLUMNS)
+        if last_id is not None:
+            query = query.gt("product_id", last_id)
+        page = query.order("product_id").limit(_PAGE_SIZE).execute().data or []
+        if not page:
+            return [_row_to_meta(row) for row in rows]
+        rows.extend(page)
+        last_id = page[-1]["product_id"]
+
+
 def get_product_features(product_ids: List[str]) -> Dict[str, Dict]:
     """
     product_id → feature_json(파싱된 dict).
