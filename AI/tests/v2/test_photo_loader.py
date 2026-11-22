@@ -110,6 +110,13 @@ def test_HEIC_사진도_JPEG로_바꾼다():
     assert (결과.format, 결과.size) == ("JPEG", (64, 48))
 
 
+@pytest.mark.parametrize("형식", ["GIF", "BMP", "XBM"])
+def test_휴대폰_사진_형식이_아니면_열지_않는다(형식):
+    with pytest.raises(PhotoError, match="열지 못했다"):
+        prepare(_사진((16, 16), 색=0 if 형식 == "XBM" else "green", 형식=형식,
+                      모양="1" if 형식 == "XBM" else "RGB"))
+
+
 @pytest.mark.parametrize("data", [b"", b"not an image", b"<html>404</html>", _사진()[:200]])
 def test_열_수_없는_사진은_오류다(data):
     with pytest.raises(PhotoError, match="열지 못했다"):

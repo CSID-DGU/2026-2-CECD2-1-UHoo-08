@@ -31,6 +31,10 @@ from typing import Any
 최대_변 = 2048
 # JPEG 로 저장할 때의 품질
 저장_품질 = 90
+# 여는 사진 형식. 휴대폰과 화면 캡처가 만드는 형식만 연다. 받는 바이트는 밖에서 오므로,
+# Pillow 가 여는 다른 형식(XBM 등)의 취약점을 거치지 않게 한다. 여러 장이 든 JPEG(MPO)도
+# JPEG 로 열린다
+여는_형식 = ("JPEG", "PNG", "WEBP", "HEIF")
 
 
 class PhotoError(Exception):
@@ -95,9 +99,12 @@ def prepare(data: bytes) -> bytes:
     from PIL import Image, ImageOps, UnidentifiedImageError
 
     _HEIC_열기()
+    Image.init()
+    # pillow-heif 가 없으면 HEIF 를 열 수 없다. 없는 형식 이름을 넘기면 Pillow 가 KeyError 를 낸다
+    형식들 = [형식 for 형식 in 여는_형식 if 형식 in Image.OPEN]
     담을_곳 = io.BytesIO()
     try:
-        with Image.open(io.BytesIO(data)) as 원본:
+        with Image.open(io.BytesIO(data), formats=형식들) as 원본:
             사진 = _RGB로(ImageOps.exif_transpose(원본))
             사진.thumbnail((최대_변, 최대_변), Image.Resampling.LANCZOS)
             사진.save(담을_곳, format="JPEG", quality=저장_품질)
