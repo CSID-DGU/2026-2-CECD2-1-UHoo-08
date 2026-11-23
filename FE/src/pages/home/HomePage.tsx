@@ -62,8 +62,14 @@ export function HomePage() {
           <div className="pb-44">
             <header className="flex items-center justify-between px-5 pb-5 pt-6">
               <div className="flex items-center gap-2">
-                <img src={hwadamLogo} alt="" className="size-8 shrink-0 object-contain" />
-                <p className="text-h2 text-black">Hwadam</p>
+                <img
+                  src={hwadamLogo}
+                  alt=""
+                  className="size-[26px] shrink-0 object-contain"
+                />
+                <p className="font-lora text-[30px] leading-none font-semibold text-black">
+                  Hwadam
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <WishlistButton />

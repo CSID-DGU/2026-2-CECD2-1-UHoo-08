@@ -82,7 +82,7 @@ export function LoginPage() {
         <section className="relative z-10 flex min-h-dvh flex-col">
           <div className="flex items-end mx-auto pb-10 pt-24 justify-between gap-6">
             <img src={HwadamLogo} alt="Hwadam Logo" className="w-25" />
-            <h1 className="text-[48px] font-bold text-gray-500">Hwadam</h1>
+            <h1 className="font-lora text-[48px] font-semibold text-gray-500">Hwadam</h1>
           </div>
 
           <div className="px-6">
