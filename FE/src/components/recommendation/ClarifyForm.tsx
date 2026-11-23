@@ -64,7 +64,7 @@ export function ClarifyForm({
         if (!empty && !submitting) onSubmit(answers);
       }}
     >
-      <p className="text-caption font-semibold text-primary-600">조금만 더 알려주세요</p>
+      <h2 className="text-body2 font-semibold text-slate-800">조금만 더 알려주세요</h2>
       <p className="mt-1 text-caption leading-5 text-gray-500">{message}</p>
       {fields.map((field) => (
         <div key={field.key} className="mt-4">
@@ -122,7 +122,7 @@ export function ClarifyForm({
       <button
         type="submit"
         disabled={empty || submitting}
-        className="mt-4 h-12 w-full rounded-xl bg-primary-500 text-body2 font-semibold text-white disabled:opacity-40"
+        className="mt-4 h-12 w-full rounded-xl bg-primary-600 text-body2 font-semibold text-white disabled:opacity-40"
       >
         {submitting ? "보내는 중" : "답하고 계속 찾기"}
       </button>

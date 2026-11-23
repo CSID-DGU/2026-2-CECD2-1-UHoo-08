@@ -81,12 +81,71 @@ export async function getAllUserProducts(
   return { ...first.data, items: [first.data.items, ...rest.map((r) => r.data.items)].flat() };
 }
 
-/** openedAt 을 빼면 서버가 오늘로 기록한다. */
+/** 제품명 사진 인식 결과. recognitionId 는 30분 동안 유효하다. */
+export interface PhotoRecognition {
+  recognitionId: string;
+  /** 사진에서 읽은 글자. 못 읽었으면 빈 문자열 */
+  readText: string;
+  /** 일치도 높은 순, 최대 3개 */
+  candidates: {
+    productId: string;
+    name: string;
+    brand: string;
+    volume: string | null;
+    imageUrl: string | null;
+    /** 0~100 */
+    matchScore: number;
+  }[];
+}
+
+/** 읽지 못한 항목은 value=null, status=NOT_READ. 서버는 추측값을 채우지 않는다. */
+export interface ReadValue<T> {
+  value: T | null;
+  status: "READ" | "NOT_READ";
+}
+
+export interface ExpiryRecognition {
+  /** YYYY-MM-DD */
+  expiryDate: ReadValue<string>;
+  /** 개봉 후 사용 기간(개월) */
+  paoMonths: ReadValue<number>;
+  /** YYYY-MM-DD */
+  manufacturedAt: ReadValue<string>;
+}
+
+/** 1장째: 제품 앞면 사진으로 상품 후보를 찾는다. jpg/png/heic/webp, 10MB 까지. */
+export const recognizeProductName = async (image: File) => {
+  const form = new FormData();
+  form.append("image", image);
+  const response = await api.postForm<ApiResponse<PhotoRecognition>>("/user-products/recognitions", form);
+  if (!response?.data?.recognitionId) invalid("recognitions");
+  if (!Array.isArray(response.data.candidates)) response.data.candidates = [];
+  return response;
+};
+
+/** 2장째: 뒷면·바닥 사진으로 유통기한, 개봉 후 사용 기간, 제조일을 읽는다. */
+export const recognizeExpiry = async (recognitionId: string, image: File) => {
+  const form = new FormData();
+  form.append("image", image);
+  return api.postForm<ApiResponse<ExpiryRecognition>>(
+    `/user-products/recognitions/${encodeURIComponent(recognitionId)}/expiry`,
+    form,
+  );
+};
+
+/**
+ * openedAt 을 빼면 서버가 오늘로 기록한다.
+ * 사진으로 골랐으면 source 를 PHOTO 로, recognitionId 를 함께 보낸다(서버가 필수로 본다).
+ */
 export const createUserProduct = async (body: {
   productId: string;
   openedAt?: string;
   remainingPct: number;
-  source: "MANUAL";
+  source: "MANUAL" | "PHOTO";
+  recognitionId?: string;
+  expiryDate?: string;
+  paoMonths?: number;
+  manufacturedAt?: string;
 }) => {
   const response = await api.post<ApiResponse<UserProductCreated>>("/user-products", body);
   if (!response?.data?.userProductId) invalid("user-products create");

@@ -6,6 +6,7 @@ import {
   Plus,
   Shuffle,
   Sparkles,
+  Undo2,
   UsersRound,
 } from "lucide-react";
 import {
@@ -23,6 +24,7 @@ import {
   getRefinementOptions,
   requestQuery,
   requestRefinement,
+  revertPreferenceChange,
   submitFeedback,
   type ClarifyField,
   type QueryResult,
@@ -261,6 +263,32 @@ function SearchResultContent() {
   const [feedbackError, setFeedbackError] = useState("");
   const [feedbackSent, setFeedbackSent] = useState<Record<string, true>>({});
   const [toast, setToast] = useState("");
+  // 피드백으로 가중치가 바뀌었으면 알림에서 바로 되돌릴 수 있게 둔다.
+  const [toastChangeId, setToastChangeId] = useState<string | null>(null);
+  // 되돌린 가중치 변경. 같은 변경을 다시 되돌리지 않게 버튼을 숨긴다.
+  const [revertedChanges, setRevertedChanges] = useState<Record<string, true>>({});
+  const [reverting, setReverting] = useState<string | null>(null);
+
+  /** 가중치 변경 한 건을 되돌린다. 이미 되돌린 변경(409)도 되돌린 것으로 본다. */
+  async function revertChange(changeId: string) {
+    setReverting(changeId);
+    try {
+      await revertPreferenceChange(changeId);
+      setRevertedChanges((previous) => ({ ...previous, [changeId]: true }));
+      setToastChangeId(null);
+      setToast("되돌렸어요. 다음 추천부터 반영돼요");
+    } catch (error) {
+      if (apiErrorCode(error) === "CHANGE_NOT_REVERTIBLE") {
+        setRevertedChanges((previous) => ({ ...previous, [changeId]: true }));
+        setToastChangeId(null);
+        setToast("이미 되돌린 변경이에요");
+      } else {
+        setToast("되돌리지 못했어요. 다시 시도해주세요.");
+      }
+    } finally {
+      setReverting(null);
+    }
+  }
 
   // 사진·NFC로 찾기
   const lens = useProductLens(picking ? "recommend" : "detail");
@@ -379,9 +407,13 @@ function SearchResultContent() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 3000);
+    // 되돌리기 버튼이 있으면 누를 시간을 더 준다.
+    const timer = setTimeout(() => {
+      setToast("");
+      setToastChangeId(null);
+    }, toastChangeId ? 6000 : 3000);
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [toast, toastChangeId]);
 
   // ── job 흐름 ──────────────────────────────────────────────────────────
   function showResult(next: QueryResult) {
@@ -715,6 +747,7 @@ function SearchResultContent() {
         [feedbackTarget.item.productId]: true,
       }));
       setFeedbackTarget(null);
+      setToastChangeId(data?.changeId ?? null);
       setToast(data?.message || "의견을 다음 추천에 반영할게요");
     } catch {
       setFeedbackError("피드백을 보내지 못했어요. 다시 시도해주세요.");
@@ -788,7 +821,7 @@ function SearchResultContent() {
               <div
                 role="tablist"
                 aria-label="검색 결과 기준"
-                className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-[#F2F6FC] p-1"
+                className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-surface-tint p-1"
               >
                 {RESULT_BASES.map((item, index) => (
                   <button
@@ -815,7 +848,7 @@ function SearchResultContent() {
                           ?.focus();
                       }
                     }}
-                    className={`min-h-10 rounded-lg px-1 text-xs font-semibold transition-colors ${basis === item.id ? "bg-[#9DBDE9] text-[#203D66]" : "text-slate-500 hover:bg-white/60"}`}
+                    className={`min-h-10 rounded-lg px-1 text-xs font-semibold transition-colors ${basis === item.id ? "bg-primary-200 text-primary-900" : "text-slate-500 hover:bg-white/60"}`}
                   >
                     {item.label}
                   </button>
@@ -852,7 +885,7 @@ function SearchResultContent() {
                   {[baseQuery, ...conditions].map((condition, index) => (
                     <span
                       key={`${index}-${condition}`}
-                      className="max-w-full break-words rounded-md bg-[#F2F6FC] px-2.5 py-1.5 text-[11px] leading-4 text-slate-600"
+                      className="max-w-full break-words rounded-md bg-surface-tint px-2.5 py-1.5 text-[11px] leading-4 text-slate-600"
                     >
                       {condition}
                     </span>
@@ -895,7 +928,7 @@ function SearchResultContent() {
                   <button
                     type="button"
                     onClick={() => void startQuery(baseQuery, "SELF")}
-                    className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#F2F6FC] p-3.5 text-left"
+                    className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-surface-tint p-3.5 text-left"
                   >
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-primary-600">
                       <Sparkles aria-hidden="true" className="h-5 w-5" />
@@ -995,11 +1028,30 @@ function SearchResultContent() {
                     {result.summary.notice}
                   </p>
                 )}
-                {ready && result?.appliedPreference?.text && (
-                  <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                    {result.appliedPreference.text}
-                  </p>
-                )}
+                {ready && result?.appliedPreference?.text && (() => {
+                  const changeId = result.appliedPreference.changeId;
+                  const reverted = changeId != null && revertedChanges[changeId];
+                  return (
+                    <div className="mt-2 flex items-start justify-between gap-3 text-[11px] leading-5 text-slate-500">
+                      <p>
+                        {reverted
+                          ? "이 조건은 되돌렸어요. 다음 추천부터 빠져요."
+                          : result.appliedPreference.text}
+                      </p>
+                      {changeId && !reverted && !mockResult && (
+                        <button
+                          type="button"
+                          onClick={() => void revertChange(changeId)}
+                          disabled={reverting === changeId}
+                          className="flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Undo2 aria-hidden="true" className="h-3.5 w-3.5" />
+                          {reverting === changeId ? "되돌리는 중" : "되돌리기"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {ready && items.length > 0 && (
                   <>
                     <div className="mt-5 flex items-center justify-between gap-2">
@@ -1007,11 +1059,11 @@ function SearchResultContent() {
                         <h2 className="mb-1 text-base font-semibold text-slate-800">
                           요청에 맞는 제품
                         </h2>
-                        <p className="text-xs leading-5 text-slate-500">
-                          {result?.summary?.categoryLabel
-                            ? `${result.summary.categoryLabel} · `
-                            : ""}
-                          {items.length}개 결과
+                        <p className="flex gap-2 text-xs leading-5 text-slate-500">
+                          {result?.summary?.categoryLabel && (
+                            <span>{result.summary.categoryLabel}</span>
+                          )}
+                          <span>{items.length}개 결과</span>
                         </p>
                       </div>
                       {result?.summary?.basisLabel && (
@@ -1143,7 +1195,7 @@ function SearchResultContent() {
             <button
               type="button"
               onClick={() => void openHistory()}
-              className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-[14px] border border-slate-200 bg-white px-3 text-xs text-slate-600 shadow-[0_4px_16px_rgba(32,61,102,0.12)]"
+              className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-[14px] border border-slate-200 bg-white px-3 text-xs text-slate-600 shadow-tint-md"
             >
               <History aria-hidden="true" className="h-4 w-4" /> 수정 이력
             </button>
@@ -1151,7 +1203,7 @@ function SearchResultContent() {
           <button
             type="button"
             onClick={() => void openAddSheet()}
-            className="pointer-events-auto ml-auto flex min-h-12 items-center gap-1.5 rounded-[14px] bg-[#9DBDE9] px-4 text-[13px] font-semibold text-[#203D66] shadow-[0_5px_18px_rgba(32,61,102,0.16)]"
+            className="pointer-events-auto ml-auto flex min-h-12 items-center gap-1.5 rounded-[14px] bg-primary-200 px-4 text-[13px] font-semibold text-primary-900 shadow-tint-lg"
           >
             <Plus aria-hidden="true" className="h-[18px] w-[18px]" /> 조건 추가
           </button>
@@ -1159,12 +1211,23 @@ function SearchResultContent() {
       )}
 
       {toast && (
-        <p
+        <div
           role="status"
-          className="fixed bottom-[150px] left-1/2 z-40 w-[calc(100%-36px)] max-w-[394px] -translate-x-1/2 rounded-xl bg-slate-800/90 px-4 py-3 text-center text-xs text-white"
+          className="fixed bottom-[150px] left-1/2 z-40 flex w-[calc(100%-36px)] max-w-[394px] -translate-x-1/2 items-center justify-between gap-3 rounded-xl bg-slate-800/90 px-4 py-3 text-xs text-white"
         >
-          {toast}
-        </p>
+          <span className={toastChangeId ? "" : "w-full text-center"}>{toast}</span>
+          {toastChangeId && !revertedChanges[toastChangeId] && (
+            <button
+              type="button"
+              onClick={() => void revertChange(toastChangeId)}
+              disabled={reverting === toastChangeId}
+              className="flex min-h-8 shrink-0 items-center gap-1 font-semibold text-primary-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Undo2 aria-hidden="true" className="h-3.5 w-3.5" />
+              되돌리기
+            </button>
+          )}
+        </div>
       )}
 
       <BottomNav compactSearch />
@@ -1185,7 +1248,7 @@ function SearchResultContent() {
           className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 px-8"
         >
           <div className="w-full max-w-[300px] rounded-2xl bg-white p-6 text-center">
-            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-[3px] border-primary-100 border-t-primary-500" />
+            <div className="mx-auto h-9 w-9 motion-safe:animate-spin rounded-full border-[3px] border-primary-100 border-t-primary-500" />
             <p className="mt-4 text-body2 font-semibold text-slate-800">
               사진 속 제품을 찾고 있어요
             </p>

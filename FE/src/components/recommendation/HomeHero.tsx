@@ -4,10 +4,6 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  BadgeCheck,
-  Sparkles,
-  Sun,
-  TrendingDown,
   X,
 } from "lucide-react";
 import { BottomSheet } from "../common/BottomSheet";
@@ -22,35 +18,29 @@ import { HeroBackdrop } from "./HeroBackdrop";
 const slides = [
   {
     id: "evaluate",
-    label: "피부 적합도",
     title: "눈여겨본 그 제품,\n내 피부엔 몇 점일까?",
-    description: "피부 타입과 고민, 비슷한 사람들의 후기로 0~100점을 매기고 더 나은 대안도 찾아요.",
+    description:
+      "피부 타입과 고민, 비슷한 사람들의 후기로 0~100점을 매기고 더 나은 대안도 찾아요.",
     cta: "평가할 제품 고르기",
-    icon: BadgeCheck,
   },
   {
     id: "search",
-    label: "AI 맞춤 검색",
     title: "원하는 걸 말하면,\nAI가 골라드려요",
     description: "가격, 제형, 피부 고민까지 한 문장으로 알려주세요.",
     cta: "말로 찾아보기",
-    icon: Sparkles,
   },
   {
     id: "environment",
-    label: "생활 환경 케어",
     title: "요즘 햇빛과 미세먼지,\n루틴에도 반영해요",
     description: "내 지역 날씨와 화장대 센서로 지금 필요한 제품을 알려드려요.",
     cta: "내 환경 보기",
-    icon: Sun,
   },
   {
     id: "price",
-    label: "최저가 추적",
     title: "사고 싶은 그 제품,\n가장 쌀 때 알려드려요",
-    description: "여러 쇼핑몰 가격을 비교하고, 목표가에 닿으면 알림을 보내드려요.",
+    description:
+      "여러 쇼핑몰 가격을 비교하고, 목표가에 닿으면 알림을 보내드려요.",
     cta: "가격 추적 시작하기",
-    icon: TrendingDown,
   },
 ];
 const track = [slides[slides.length - 1], ...slides, slides[0]];
@@ -114,6 +104,7 @@ export function HomeHero({
     }, 5500);
     return () => window.clearTimeout(timer);
   }, [position, interacting, reducedMotion, hidden, sheet]);
+  const currentIndex = (position - 1 + slides.length) % slides.length;
   const move = (direction: number) => {
     if (moving.current) return;
     moving.current = true;
@@ -130,7 +121,7 @@ export function HomeHero({
   return (
     <>
       <section
-        aria-label="화담 대표 기능"
+        aria-label="화담 기능 소개"
         aria-roledescription="캐러셀"
         onMouseEnter={() => setInteracting(true)}
         onMouseLeave={() => setInteracting(false)}
@@ -183,38 +174,31 @@ export function HomeHero({
           }}
         >
           {track.map((slide, index) => {
-            const Icon = slide.icon;
             const visible = position === index;
             return (
               <div
                 key={`${slide.id}-${index}`}
                 role="group"
                 aria-roledescription="슬라이드"
-                aria-label={`${slide.id}: ${slide.label}`}
+                aria-label={slide.title.replace("\n", " ")}
                 aria-hidden={!visible}
                 inert={!visible}
                 className="relative min-h-[300px] w-full shrink-0 overflow-hidden px-9 py-6"
               >
                 <div className="relative z-10 max-w-[270px]">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-semibold text-[#2C507D]">
-                      <Icon aria-hidden="true" className="h-3 w-3" strokeWidth={2} />
-                      {slide.label}
-                    </span>
-                  </div>
-                  <h2 className="mt-4 whitespace-pre-line text-[23px] font-bold leading-[1.4] tracking-tight text-[#203D66]">
+                  <h2 className="mt-2 whitespace-pre-line text-[23px] font-bold leading-[1.4] tracking-tight text-primary-900">
                     {slide.title}
                   </h2>
-                  <p className="mt-3 min-h-10 max-w-[238px] text-[12px] leading-5 text-[#304B70]">
+                  <p className="mt-3 min-h-10 max-w-[238px] text-[12px] leading-5 text-primary-850">
                     {slide.description}
                   </p>
                   <button
                     type="button"
                     onClick={() => open(slide.id)}
-                    className="mt-4 flex min-h-10 items-center gap-2 rounded-full border border-white bg-white px-4 py-2.5 text-[11px] font-semibold text-[#203D66] shadow-[0_3px_10px_rgba(32,61,102,0.08)]"
+                    className="mt-4 flex min-h-10 items-center gap-2 rounded-full border border-white bg-white px-4 py-2.5 text-[11px] font-semibold text-primary-900 shadow-tint-xs"
                   >
                     {slide.cta}
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
@@ -222,21 +206,18 @@ export function HomeHero({
           })}
         </div>
         <div aria-hidden="true" className="absolute bottom-4 left-9 z-20 flex gap-1.5">
-          {slides.map((slide, index) => {
-            const current = ((position - 1 + slides.length) % slides.length) === index;
-            return (
-              <span
-                key={slide.id}
-                className={`h-1.5 rounded-full transition-all ${current ? "w-5 bg-[#203D66]" : "w-1.5 bg-[#203D66]/30"}`}
-              />
-            );
-          })}
+          {slides.map((slide, index) => (
+            <span
+              key={slide.id}
+              className={`h-1.5 rounded-full transition-colors ${currentIndex === index ? "w-5 bg-primary-900" : "w-1.5 bg-primary-900/30"}`}
+            />
+          ))}
         </div>
         <button
           type="button"
           aria-label="이전 기능"
           onClick={() => move(-1)}
-          className="pointer-events-none absolute left-1 top-1/2 z-20 grid h-9 w-8 -translate-y-1/2 place-items-center rounded-full border border-white bg-white text-[#203D66] opacity-0 shadow-md transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+          className="pointer-events-none absolute left-1 top-1/2 z-20 grid h-9 w-8 -translate-y-1/2 place-items-center rounded-full border border-white bg-white text-primary-900 opacity-0 shadow-md transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -244,16 +225,13 @@ export function HomeHero({
           type="button"
           aria-label="다음 기능"
           onClick={() => move(1)}
-          className="pointer-events-none absolute right-1 top-1/2 z-20 grid h-9 w-8 -translate-y-1/2 place-items-center rounded-full border border-white bg-white text-[#203D66] opacity-0 shadow-md transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+          className="pointer-events-none absolute right-1 top-1/2 z-20 grid h-9 w-8 -translate-y-1/2 place-items-center rounded-full border border-white bg-white text-primary-900 opacity-0 shadow-md transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
       </section>
       {sheet && (
-        <BottomSheet
-          label="추천 조건 입력"
-          onClose={() => setSheet(null)}
-        >
+        <BottomSheet label="추천 조건 입력" onClose={() => setSheet(null)}>
           <form
             className="px-5 pb-6 pt-2"
             onSubmit={(event) => {
@@ -264,9 +242,7 @@ export function HomeHero({
             }}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                어떤 제품을 찾으세요?
-              </h2>
+              <h2 className="text-lg font-semibold">어떤 제품을 찾으세요?</h2>
               <button
                 type="button"
                 aria-label="닫기"
@@ -290,12 +266,12 @@ export function HomeHero({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="예) 여름에 쓸 가벼운 매트 쿠션"
-              className="mt-2 h-12 w-full rounded-xl border border-[#9DBDE9] px-3 text-sm outline-none focus:ring-2 focus:ring-[#9DBDE9]/40"
+              className="mt-2 h-12 w-full rounded-xl border border-primary-200 px-3 text-sm outline-none focus:ring-2 focus:ring-primary-200/40"
             />
             <button
               type="submit"
               disabled={!query.trim()}
-              className="mt-4 min-h-12 w-full rounded-xl bg-[#9DBDE9] text-sm font-semibold text-[#203D66] disabled:opacity-40"
+              className="mt-4 min-h-12 w-full rounded-xl bg-primary-200 text-sm font-semibold text-primary-900 disabled:opacity-40"
             >
               이 조건으로 검색하기
             </button>

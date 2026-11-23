@@ -39,14 +39,14 @@ export function BundleResult({
   return (
     <section className="mt-5" aria-label="예산 세트">
       <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#F2F6FC] text-[#2C507D]">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface-tint text-primary-800">
           <Wallet aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
         </span>
         <h2 className="text-base font-semibold text-slate-800">예산 안에서 고른 세트</h2>
       </div>
 
       {/* 조합 고르기 */}
-      <div role="tablist" aria-label="세트 조합" className="mt-3 grid gap-1 rounded-xl bg-[#F2F6FC] p-1" style={{ gridTemplateColumns: `repeat(${bundles.length}, minmax(0, 1fr))` }}>
+      <div role="tablist" aria-label="세트 조합" className="mt-3 grid gap-1 rounded-xl bg-surface-tint p-1" style={{ gridTemplateColumns: `repeat(${bundles.length}, minmax(0, 1fr))` }}>
         {bundles.map((b) => (
           <button
             key={b.index}
@@ -56,8 +56,8 @@ export function BundleResult({
             onClick={() => setActive(b.index)}
             className={`min-h-12 rounded-lg px-1 text-center ${b.index === active ? "bg-white shadow-sm" : ""}`}
           >
-            <span className={`block text-xs font-semibold ${b.index === active ? "text-[#203D66]" : "text-slate-500"}`}>{b.label}</span>
-            <span className="block text-[10px] tabular-nums text-slate-400">{won(b.total)}</span>
+            <span className={`block text-xs font-semibold ${b.index === active ? "text-primary-900" : "text-slate-500"}`}>{b.label}</span>
+            <span className="block text-[11px] tabular-nums text-slate-400">{won(b.total)}</span>
           </button>
         ))}
       </div>
@@ -87,13 +87,13 @@ export function BundleResult({
       <ol className="mt-3 grid gap-2">
         {bundle.slots.map((slot) => (
           <li key={slot.slotKey} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3">
-            <ProductThumbnail className="h-12 w-12 shrink-0 rounded-xl bg-[#F2F6FC]" shape="bottle" />
+            <ProductThumbnail className="h-12 w-12 shrink-0 rounded-xl bg-surface-tint" shape="bottle" />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold text-primary-600">{slot.label ?? slot.slotKey}</p>
               <p className="truncate text-caption text-slate-800">{slot.name}</p>
-              <p className="mt-0.5 text-[11px] tabular-nums text-slate-500">
-                {won(slot.price)}
-                {slot.score != null && ` · ${slot.score}점`}
+              <p className="mt-0.5 flex gap-2 text-[11px] tabular-nums text-slate-500">
+                <span>{won(slot.price)}</span>
+                {slot.score != null && <span>{slot.score}점</span>}
               </p>
             </div>
             <button
@@ -178,8 +178,9 @@ function SwapSheet({
           </button>
         </div>
         {options?.budget != null && (
-          <p className="mt-1 text-caption text-slate-500">
-            예산 {won(options.budget)} · 지금 합계 {won(options.currentTotal)}
+          <p className="mt-1 flex flex-wrap gap-x-3 text-caption text-slate-500">
+            <span>예산 {won(options.budget)}</span>
+            <span>지금 합계 {won(options.currentTotal)}</span>
           </p>
         )}
         {!options && !error && (
@@ -208,9 +209,9 @@ function SwapSheet({
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-caption font-medium text-slate-800">{option.name}</p>
-                      <p className="mt-0.5 text-[11px] tabular-nums text-slate-500">
-                        {won(option.price)}
-                        {option.score != null && ` · ${option.score}점`}
+                      <p className="mt-0.5 flex gap-2 text-[11px] tabular-nums text-slate-500">
+                        <span>{won(option.price)}</span>
+                        {option.score != null && <span>{option.score}점</span>}
                       </p>
                       <p className={`mt-0.5 text-[11px] tabular-nums ${option.selectable ? "text-slate-500" : "text-red-700"}`}>
                         {option.selectable

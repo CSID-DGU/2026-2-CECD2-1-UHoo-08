@@ -95,51 +95,51 @@ export function EnvironmentPage() {
         </button>}
       </div>
 
-      {summaryState === "no-region" && <section className="mt-4 rounded-2xl border border-[#9DBDE9] bg-[#F2F6FC] p-4">
-        <p className="text-sm font-semibold text-[#203D66]">지역을 설정해 주세요</p>
+      {summaryState === "no-region" && <section className="mt-4 rounded-2xl border border-primary-200 bg-surface-tint p-4">
+        <p className="text-sm font-semibold text-primary-900">지역을 설정해 주세요</p>
         <p className="mt-1 text-xs leading-5 text-slate-600">지역을 알려주시면 최근 4주 자외선·미세먼지·습도와, 그 환경에 필요한 제품을 정리해 드려요.</p>
-        <button type="button" onClick={() => setRegionOpen(true)} className="mt-3 min-h-10 rounded-lg bg-[#9DBDE9] px-4 text-xs font-semibold text-[#203D66]">지역 고르기</button>
+        <button type="button" onClick={() => setRegionOpen(true)} className="mt-3 min-h-10 rounded-lg bg-primary-200 px-4 text-xs font-semibold text-primary-900">지역 고르기</button>
       </section>}
 
       <div className="mt-4 grid grid-cols-4 gap-1" role="tablist" aria-label="환경 항목">
         {metrics.map((item, index) => <button key={item.label} id={`environment-tab-${index}`} aria-controls="environment-metric" role="tab" aria-selected={tab === index} tabIndex={tab === index ? 0 : -1}
           onKeyDown={event => { const next = event.key === "ArrowRight" ? (index + 1) % 4 : event.key === "ArrowLeft" ? (index + 3) % 4 : event.key === "Home" ? 0 : event.key === "End" ? 3 : null; if (next != null) { event.preventDefault(); setTab(next); document.getElementById(`environment-tab-${next}`)?.focus(); } }}
-          onClick={() => setTab(index)} className={`rounded-lg py-2.5 text-xs ${tab === index ? "bg-[#9DBDE9] font-semibold text-[#203D66]" : "bg-gray-100 text-gray-400"}`}>{item.label}</button>)}
+          onClick={() => setTab(index)} className={`rounded-lg py-2.5 text-xs ${tab === index ? "bg-primary-200 font-semibold text-primary-900" : "bg-gray-100 text-gray-400"}`}>{item.label}</button>)}
       </div>
-      <section id="environment-metric" role="tabpanel" aria-labelledby={`environment-tab-${tab}`} className="mt-3 rounded-2xl border border-[#E5EDF8] p-4">
+      <section id="environment-metric" role="tabpanel" aria-labelledby={`environment-tab-${tab}`} className="mt-3 rounded-2xl border border-line-tint p-4">
         {/* 지금 값은 AI CARE 관측 지역 기준이라, 위의 설정 지역과 다를 수 있어 따로 밝힌다. */}
         <p className="text-xs text-gray-300">지금 {metric.title}{weather?.region ? ` · ${weather.region} 관측` : ""}</p>
         <p className="mt-2 text-2xl font-bold text-gray-500">{failed ? "확인 불가" : !data ? "불러오는 중" : metric.value == null ? "미측정" : `${metric.value}${metric.unit}`}</p>
         {summaryState === "ready" ? (
           trend ? <TrendChart trend={trend} />
-            : dailyFailed[metric.key] ? <p className="mt-4 rounded-xl bg-[#F0F5FD] px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오지 못했어요.</p>
-              : <p role="status" className="mt-4 rounded-xl bg-[#F0F5FD] px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오고 있어요</p>
+            : dailyFailed[metric.key] ? <p className="mt-4 rounded-xl bg-primary-50 px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오지 못했어요.</p>
+              : <p role="status" className="mt-4 rounded-xl bg-primary-50 px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오고 있어요</p>
         ) : summaryState === "no-region" ? (
-          <p className="mt-4 rounded-xl bg-[#F0F5FD] px-3 py-6 text-center text-xs leading-5 text-gray-300">지역을 설정하면 최근 4주 추이를 볼 수 있어요.</p>
+          <p className="mt-4 rounded-xl bg-primary-50 px-3 py-6 text-center text-xs leading-5 text-gray-300">지역을 설정하면 최근 4주 추이를 볼 수 있어요.</p>
         ) : summaryState === "error" ? (
-          <p className="mt-4 rounded-xl bg-[#F0F5FD] px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오지 못했어요.</p>
+          <p className="mt-4 rounded-xl bg-primary-50 px-3 py-6 text-center text-xs text-gray-300">최근 4주 추이를 불러오지 못했어요.</p>
         ) : null}
-        {weather?.source && <p className="mt-2 text-[10px] text-gray-300">현재 값 출처: {weather.source}</p>}
+        {weather?.source && <p className="mt-2 text-[11px] text-gray-300">현재 값 출처: {weather.source}</p>}
         {failed && <button type="button" onClick={() => { setFailed(false); setAttempt(value => value + 1); }} className="mt-2 py-2 text-xs text-primary-600">다시 불러오기</button>}
       </section>
 
       {summaryState === "ready" && summary && <SummarySection summary={summary} />}
 
-      {data?.brief.headline && <section className="mt-4 rounded-xl bg-[#FFF4E6] p-4">
-        <h2 className="text-xs font-semibold text-[#956022]">{data.brief.headline}</h2>
-        {data.brief.lines.map((line, index) => <p key={index} className="mt-1 text-xs leading-5 text-[#956022]">{line}</p>)}
+      {data?.brief.headline && <section className="mt-4 rounded-xl bg-warn-50 p-4">
+        <h2 className="text-xs font-semibold text-warn-700">{data.brief.headline}</h2>
+        {data.brief.lines.map((line, index) => <p key={index} className="mt-1 text-xs leading-5 text-warn-700">{line}</p>)}
       </section>}
       {Boolean(data?.indoor.length) && <section className="mt-5">
         <h2 className="text-sm font-semibold text-gray-500">내 생활 공간</h2>
         <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-100 px-3">
           {data?.indoor.map(node => <div key={node.node_id} className="flex items-center justify-between gap-3 py-3">
             <div><p className="text-xs font-medium">{node.label}</p><p className="mt-1 text-[11px] text-gray-300">{node.online ? `온도 ${node.temperature ?? "—"}℃ · 습도 ${node.humidity ?? "—"}%` : "센서 연결을 확인해 주세요"}</p></div>
-            <span className={`rounded-md px-2 py-1 text-[10px] ${node.online ? "bg-[#E6F4ED] text-[#318457]" : "bg-gray-100 text-gray-300"}`}>{node.online ? "측정 중" : "연결 안 됨"}</span>
+            <span className={`rounded-md px-2 py-1 text-[11px] ${node.online ? "bg-ok-50 text-ok-700" : "bg-gray-100 text-gray-300"}`}>{node.online ? "측정 중" : "연결 안 됨"}</span>
           </div>)}
         </div>
       </section>}
       <div className="fixed bottom-[88px] left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-5">
-        <button type="button" onClick={() => navigate("/recommendation/care")} className="w-full rounded-xl bg-[#9DBDE9] px-4 py-3.5 text-sm font-semibold text-[#203D66] shadow-sm">환경에 맞는 제품 보기</button>
+        <button type="button" onClick={() => navigate("/recommendation/care")} className="w-full rounded-xl bg-primary-200 px-4 py-3.5 text-sm font-semibold text-primary-900 shadow-sm">환경에 맞는 제품 보기</button>
       </div>
     </div>
     <BottomNav />
@@ -169,16 +169,16 @@ function TrendChart({ trend }: { trend: EnvironmentDaily }) {
     {trend.headline && <p className="text-sm font-semibold text-slate-800">{trend.headline}</p>}
     {trend.subText && <p className="mt-0.5 text-[11px] text-slate-500">{trend.subText}</p>}
     <div className="relative mt-3 flex h-28 items-end gap-[2px]" role="img" aria-label={`최근 ${trend.days.length}일 ${trend.label} 추이`}>
-      {thresholdPct != null && <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-[#E08A3C]" style={{ bottom: `${thresholdPct}%` }} />}
+      {thresholdPct != null && <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-warn-500" style={{ bottom: `${thresholdPct}%` }} />}
       {trend.days.map(day => <div key={day.date} className="flex h-full flex-1 items-end" title={`${day.date} ${day.value ?? "기록 없음"}`}>
         {day.value == null
           ? <div className="h-1 w-full rounded-sm bg-slate-100" />
-          : <div className={`w-full rounded-sm ${day.exceeded ? "bg-[#5B8FD9]" : "bg-[#C5D8F0]"}`} style={{ height: `${Math.max(3, ((day.value - min) / span) * 100)}%` }} />}
+          : <div className={`w-full rounded-sm ${day.exceeded ? "bg-primary-500" : "bg-primary-150"}`} style={{ height: `${Math.max(3, ((day.value - min) / span) * 100)}%` }} />}
       </div>)}
     </div>
-    <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+    <div className="mt-1 flex justify-between text-[11px] text-slate-400">
       <span>{first?.slice(5).replace("-", ".")}</span>
-      {trend.threshold != null && <span className="text-[#C06F2A]">점선: 기준 {trend.threshold}</span>}
+      {trend.threshold != null && <span className="text-warn-600">점선: 기준 {trend.threshold}</span>}
       <span>{last?.slice(5).replace("-", ".")}</span>
     </div>
   </div>;
@@ -196,13 +196,13 @@ function SummarySection({ summary }: { summary: EnvironmentSummary }) {
     <p className="mt-0.5 text-[11px] text-gray-300">{summary.periodStart.slice(5).replace("-", ".")} ~ {summary.periodEnd.slice(5).replace("-", ".")} · 기록 {summary.dayCount}일</p>
     <div className="mt-2 grid grid-cols-3 gap-2">
       {stats.map(item => <div key={item.label} className="rounded-xl bg-primary-50 px-1 py-2.5 text-center">
-        <p className="text-[10px] text-gray-400">{item.label}</p>
+        <p className="text-[11px] text-gray-400">{item.label}</p>
         <p className="mt-0.5 text-base font-bold text-gray-500">{item.value}</p>
       </div>)}
     </div>
-    {summary.seasonChange && <div className="mt-3 rounded-xl bg-[#FFF4E6] p-3">
-      <p className="text-xs font-semibold text-[#956022]">{summary.seasonChange.title}</p>
-      <p className="mt-1 text-[11px] leading-5 text-[#956022]">{summary.seasonChange.message}</p>
+    {summary.seasonChange && <div className="mt-3 rounded-xl bg-warn-50 p-3">
+      <p className="text-xs font-semibold text-warn-700">{summary.seasonChange.title}</p>
+      <p className="mt-1 text-[11px] leading-5 text-warn-700">{summary.seasonChange.message}</p>
     </div>}
     <div className="mt-3 rounded-xl border border-gray-100 p-3">
       <p className="text-xs font-semibold text-gray-500">이 환경에 필요한 것</p>
@@ -210,8 +210,8 @@ function SummarySection({ summary }: { summary: EnvironmentSummary }) {
         ? <p className="mt-2 text-[11px] leading-5 text-gray-300">아직 분석 전이에요. 하루 한 번 정리돼요.</p>
         : <ul className="mt-2 grid gap-2">
           {summary.conditions.map(condition => <li key={condition.key} className="flex items-start gap-2">
-            <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${condition.covered ? "bg-[#E6F4ED] text-[#318457]" : "bg-[#FFF4E6] text-[#C06F2A]"}`}>
-              {condition.covered ? <Check aria-hidden="true" className="h-3 w-3" /> : <span className="text-[10px] font-bold">!</span>}
+            <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${condition.covered ? "bg-ok-50 text-ok-700" : "bg-warn-50 text-warn-600"}`}>
+              {condition.covered ? <Check aria-hidden="true" className="h-3 w-3" /> : <span className="text-[11px] font-bold">!</span>}
             </span>
             <span className="min-w-0 text-[11px] leading-5 text-gray-500">
               <span className="font-semibold">{condition.label}</span>

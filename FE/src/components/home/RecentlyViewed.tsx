@@ -58,7 +58,7 @@ export function RecentlyViewed() {
               onClick={() => navigate(`/product/${item.id}`)}
               className="w-[calc((100%-16px)/3)] min-w-[96px] shrink-0 text-left"
             >
-              <div className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-[#E5EDF8] bg-[#F0F5FD]">
+              <div className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-line-tint bg-primary-50">
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
@@ -67,7 +67,7 @@ export function RecentlyViewed() {
                   />
                 ) : (
                   <Package
-                    className="h-9 w-9 text-[#9DBDE9]"
+                    className="h-9 w-9 text-primary-200"
                     strokeWidth={1.4}
                   />
                 )}
@@ -75,7 +75,7 @@ export function RecentlyViewed() {
               <p className="mt-2 line-clamp-2 text-xs font-medium text-gray-500">
                 {item.name}
               </p>
-              <p className="mt-0.5 truncate text-[10px] text-gray-300">
+              <p className="mt-0.5 truncate text-[11px] text-gray-300">
                 {item.brand}
               </p>
               {item.originalPrice != null && (
@@ -87,7 +87,7 @@ export function RecentlyViewed() {
           ))}
         </div>
       ) : (
-        <div className="mt-2 rounded-xl bg-[#F0F5FD] p-4 text-center text-xs text-gray-300">
+        <div className="mt-2 rounded-xl bg-primary-50 p-4 text-center text-xs text-gray-300">
           <p role="status">
             {state === "loading"
               ? "최근 본 상품을 불러오고 있어요"

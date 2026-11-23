@@ -64,7 +64,7 @@ export function RegionSheet({
                 type="button"
                 aria-pressed={code === region}
                 onClick={() => setCode(region)}
-                className={`min-h-10 rounded-lg text-caption ${code === region ? "bg-[#9DBDE9] font-semibold text-[#203D66]" : "bg-slate-100 text-slate-600"}`}
+                className={`min-h-10 rounded-lg text-caption ${code === region ? "bg-primary-200 font-semibold text-primary-900" : "bg-slate-100 text-slate-600"}`}
               >
                 {region === "전남광주" ? "광주·전남" : region}
               </button>

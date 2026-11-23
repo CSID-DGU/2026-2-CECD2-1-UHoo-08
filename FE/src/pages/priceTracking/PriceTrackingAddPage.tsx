@@ -170,7 +170,7 @@ export function PriceTrackingAddPage() {
                 >
                   <div className="mx-auto h-11 w-11 rounded-xl bg-primary-50" />
                   <p className="mt-2 truncate text-caption text-primary-500">{item.product.name}</p>
-                  <p className="truncate text-[10px] text-gray-300">{item.product.brand}</p>
+                  <p className="truncate text-[11px] text-gray-300">{item.product.brand}</p>
                   {item.product.currentPrice != null && (
                     <p className="text-caption text-primary-500">
                       {item.product.currentPrice.toLocaleString()}원
@@ -190,12 +190,12 @@ export function PriceTrackingAddPage() {
           <input
             ref={searchRef}
             className="h-12 flex-1 rounded-xl bg-gray-100 px-4 text-body2 outline-none placeholder:text-gray-300 focus:border focus:border-primary-500 focus:bg-white"
-            placeholder="브랜드명, 제품명 검색..."
+            placeholder="브랜드명, 제품명 검색…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button
-            className="h-12 rounded-xl bg-primary-500 px-4 text-body2 text-white disabled:opacity-50"
+            className="h-12 rounded-xl bg-primary-600 px-4 text-body2 text-white disabled:opacity-50"
             disabled={searching || !searchQuery.trim()}
             type="submit"
           >
@@ -240,8 +240,9 @@ export function PriceTrackingAddPage() {
               <div className="h-14 w-14 shrink-0 rounded-xl bg-primary-50" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body2 text-gray-500">{selected.name}</p>
-                <p className="text-caption text-gray-300">
-                  {selected.brand}{selected.price > 0 ? ` · 현재가 ${selected.price.toLocaleString()}원` : ""}
+                <p className="flex gap-2 text-caption text-gray-300">
+                  <span>{selected.brand}</span>
+                  {selected.price > 0 && <span>현재가 {selected.price.toLocaleString()}원</span>}
                 </p>
               </div>
               <button
@@ -257,13 +258,13 @@ export function PriceTrackingAddPage() {
             <h2 className="mt-5 text-body2 text-gray-500">목표가 설정</h2>
             {loadingDetail ? (
               <div className="mt-3 flex h-[60px] items-center justify-center rounded-xl border border-gray-200">
-                <p className="text-caption text-gray-300">최저가 조회 중...</p>
+                <p className="text-caption text-gray-300">최저가 조회 중…</p>
               </div>
             ) : (
               <>
                 {selected?.lowestPrice != null && (
                   <p className="mt-2 text-caption text-primary-500">
-                    역대 최저가 {selected.lowestPrice.toLocaleString()}원 —
+                    역대 최저가 {selected.lowestPrice.toLocaleString()}원.
                     <span className="text-gray-400"> 그보다 낮게 설정해야 해요</span>
                   </p>
                 )}
@@ -317,7 +318,7 @@ export function PriceTrackingAddPage() {
               </p>
             )}
             <PrimaryButton className="mt-3" onClick={handleSubmit} disabled={submitting || loadingDetail}>
-              {submitting ? "등록 중..." : loadingDetail ? "가격 조회 중..." : "추적 시작하기"}
+              {submitting ? "등록 중…" : loadingDetail ? "가격 조회 중…" : "추적 시작하기"}
             </PrimaryButton>
           </>
         )}

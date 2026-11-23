@@ -51,8 +51,8 @@ export default defineConfig({
       // 프리캐시에 포함시켜야 오프라인에서도 홈 화면 추가가 동작한다.
       includeAssets: [
         "favicon.ico",
-        "favicon-16x16.png",
-        "favicon-32x32.png",
+        "icons/favicon-16x16.png",
+        "icons/favicon-32x32.png",
         "apple-touch-icon.png",
         "kiosk.webmanifest",
       ],
@@ -69,10 +69,10 @@ export default defineConfig({
         theme_color: "#E8E4FF",
         lang: "ko",
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/pwa-512x512.png", sizes: "512x512", type: "image/png" },
           {
-            src: "/pwa-maskable-512x512.png",
+            src: "/icons/pwa-maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

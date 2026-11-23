@@ -31,7 +31,7 @@ export function RelatedProductRow({
   return (
     <section className="mt-8" aria-label={title}>
       <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#F2F6FC] text-[#2C507D]">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface-tint text-primary-800">
           <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.9} />
         </span>
         <h2 className="text-base font-semibold text-slate-800">{title}</h2>
@@ -46,10 +46,10 @@ export function RelatedProductRow({
               className="block w-full rounded-2xl border border-slate-100 bg-white p-2.5 text-left"
             >
               <ProductThumbnail
-                className="aspect-square w-full rounded-xl bg-[#F2F6FC]"
+                className="aspect-square w-full rounded-xl bg-surface-tint"
                 shape={product.name.includes("쿠션") ? "cushion" : "bottle"}
               />
-              <p className="mt-2 truncate text-[10px] text-slate-500">{product.brand}</p>
+              <p className="mt-2 truncate text-[11px] text-slate-500">{product.brand}</p>
               <p className="line-clamp-2 min-h-8 text-[11px] font-medium leading-4 text-slate-800">{product.name}</p>
               <div className="mt-1.5 flex items-center justify-between gap-1">
                 <span className="text-[11px] font-semibold tabular-nums text-slate-800">
@@ -57,7 +57,7 @@ export function RelatedProductRow({
                 </span>
               </div>
               {product.tag && (
-                <span className="mt-1.5 inline-block rounded-md bg-primary-50 px-1.5 py-0.5 text-[10px] text-primary-600">
+                <span className="mt-1.5 inline-block rounded-md bg-primary-50 px-1.5 py-0.5 text-[11px] text-primary-600">
                   {product.tag}
                 </span>
               )}

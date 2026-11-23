@@ -33,17 +33,17 @@ export function SearchEmptyPage() {
         <div className="mt-10 rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-body2 text-gray-500">이렇게 시도해보세요</p>
           <div className="my-3 h-px bg-gray-100" />
-          <ul className="grid gap-2 text-caption text-gray-400">
-            <li>● 검색어를 더 짧게 입력해보세요</li>
-            <li>● 브랜드명만 입력해보세요 (예: 아이오페)</li>
-            <li>● 사진으로 직접 등록해보세요</li>
+          <ul className="grid list-disc gap-2 pl-4 text-caption text-gray-400 marker:text-gray-200">
+            <li>검색어를 더 짧게 입력해보세요</li>
+            <li>브랜드명만 입력해보세요 (예: 아이오페)</li>
+            <li>사진으로 직접 등록해보세요</li>
           </ul>
           <button
             className="mt-2 text-caption text-primary-500"
             onClick={() => navigate("/onboarding/photo")}
             type="button"
           >
-            사진으로 등록하기 →
+            사진으로 등록하기
           </button>
         </div>
 

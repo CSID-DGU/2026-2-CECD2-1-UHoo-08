@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Nfc } from "lucide-react";
 import { recognizeProduct } from "../../api/productApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -105,7 +105,7 @@ export function NfcScanPage() {
 
             {isDemo && (
               <div className="mt-4 w-full rounded-xl bg-primary-50 px-4 py-2">
-                <p className="text-caption text-primary-500">데모 모드 — 실제 NFC 태그를 읽지 않아요</p>
+                <p className="text-caption text-primary-500">데모 모드라 실제 NFC 태그는 읽지 않아요</p>
               </div>
             )}
 
@@ -115,21 +115,16 @@ export function NfcScanPage() {
                   <div className="relative flex h-40 w-40 items-center justify-center">
                     <div
                       className={`absolute inset-0 rounded-full border-4 border-primary-300 ${
-                        state === "scanning" ? "animate-ping opacity-30" : "opacity-0"
+                        state === "scanning" ? "opacity-30 motion-safe:animate-ping" : "opacity-0"
                       }`}
                     />
                     <div
                       className="flex h-28 w-28 items-center justify-center rounded-full"
                       style={{
-                        background: "linear-gradient(135deg, #DBE6F8, #9DBFEE)",
+                        background: "linear-gradient(135deg, var(--color-primary-100), var(--color-primary-300))",
                       }}
                     >
-                      <svg className="h-12 w-12 text-primary-600" fill="none" viewBox="0 0 24 24">
-                        <path
-                          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3a7 7 0 110 14A7 7 0 0112 5zm0 2a5 5 0 100 10A5 5 0 0012 7zm0 2a3 3 0 110 6 3 3 0 010-6z"
-                          fill="currentColor"
-                        />
-                      </svg>
+                      <Nfc aria-hidden="true" className="h-12 w-12 text-primary-600" strokeWidth={1.8} />
                     </div>
                   </div>
                   <h2 className="mt-8 text-h3 text-gray-500">
@@ -147,14 +142,14 @@ export function NfcScanPage() {
                 <>
                   <div
                     className="flex h-28 w-28 items-center justify-center rounded-full"
-                    style={{ background: "#FEF2F2" }}
+                    style={{ background: "var(--color-red-50)" }}
                   >
                     <AlertTriangle className="h-12 w-12 text-red-400" strokeWidth={1.5} />
                   </div>
                   <h2 className="mt-8 text-h3 text-gray-500">스캔 실패</h2>
                   <p className="mt-3 text-body2 text-gray-300">{errorMsg}</p>
                   <button
-                    className="mt-8 h-12 rounded-xl bg-primary-500 px-8 text-body2 text-white"
+                    className="mt-8 h-12 rounded-xl bg-primary-600 px-8 text-body2 text-white"
                     onClick={() => {
                       setState("idle");
                       setErrorMsg("");

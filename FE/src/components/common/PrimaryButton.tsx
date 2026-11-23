@@ -8,7 +8,7 @@ type PrimaryButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function PrimaryButton({ children, className = "", type = "button", ...props }: PrimaryButtonProps) {
   return (
     <button
-      className={`h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white ${className}`}
+      className={`h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white ${className}`}
       type={type}
       {...props}
     >

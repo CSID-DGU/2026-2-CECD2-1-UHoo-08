@@ -17,7 +17,7 @@ const PREVIEW_LIMIT = 5;
 export function SearchTopBar({
   value,
   autoFocus = false,
-  placeholder = "제품명이나 궁금한 점을 입력하세요",
+  placeholder = "제품명이나 고민을 입력하세요",
   onBack,
   onSubmit,
   onSelectProduct,
@@ -104,7 +104,7 @@ export function SearchTopBar({
       </button>
       <form
         role="search"
-        className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white pl-4 pr-1.5 shadow-[0_2px_10px_rgba(32,61,102,0.06)] focus-within:border-primary-300"
+        className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white pl-4 pr-1.5 shadow-tint-sm focus-within:border-primary-500"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -160,7 +160,7 @@ export function SearchTopBar({
         <ul
           id="search-preview"
           aria-label="제품 미리보기"
-          className="absolute left-11 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-2xl border border-slate-100 bg-white py-1 shadow-[0_8px_24px_rgba(32,61,102,0.14)]"
+          className="absolute left-11 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-2xl border border-slate-100 bg-white py-1 shadow-tint-xl"
         >
           {items.map((item) => (
             <li key={item.id}>
@@ -171,16 +171,16 @@ export function SearchTopBar({
                   setFocused(false);
                   onSelectProduct?.(item);
                 }}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-[#F2F6FC]"
+                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-tint"
               >
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
                     alt=""
-                    className="h-10 w-10 shrink-0 rounded-lg bg-[#F2F6FC] object-contain p-0.5"
+                    className="h-10 w-10 shrink-0 rounded-lg bg-surface-tint object-contain p-0.5"
                   />
                 ) : (
-                  <span className="h-10 w-10 shrink-0 rounded-lg bg-[#F2F6FC]" />
+                  <span className="h-10 w-10 shrink-0 rounded-lg bg-surface-tint" />
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[11px] text-slate-500">{item.brand}</span>
