@@ -27,7 +27,7 @@ export function KakaoCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <p className="text-body2 text-gray-400">로그인 중...</p>
+      <p role="status" className="text-body2 text-gray-400">로그인 중…</p>
     </div>
   );
 }

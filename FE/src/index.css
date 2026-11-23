@@ -20,6 +20,9 @@
   /* 연한 파랑 구분선 */
   --color-line-tint: #e5edf8;
 
+  /* 카카오 로그인 버튼 (카카오 브랜드 색) */
+  --color-kakao: #fee500;
+
   /* 상태색: 주의(주황), 괜찮음(초록) */
   --color-warn-50: #fff4e6;
   --color-warn-500: #e08a3c;

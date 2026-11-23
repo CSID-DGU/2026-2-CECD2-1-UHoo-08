@@ -7,6 +7,7 @@ import {
   type CareRecoFull,
 } from "../../api/careRecoApi";
 import { getMyProfile } from "../../api/userApi";
+import hwadamLogo from "../../assets/Hwadam.svg";
 import { Bell, Thermometer, TrendingUp } from "lucide-react";
 import { BottomNav } from "../../components/common/BottomNav";
 import { WishlistButton } from "../../components/common/WishlistButton";
@@ -60,7 +61,10 @@ export function HomePage() {
         <div className="flex-1 overflow-y-auto scrollbar-none">
           <div className="pb-44">
             <header className="flex items-center justify-between px-5 pb-5 pt-6">
-              <p className="text-h2 text-black">Hwadam</p>
+              <div className="flex items-center gap-2">
+                <img src={hwadamLogo} alt="" className="size-8 shrink-0 object-contain" />
+                <p className="text-h2 text-black">Hwadam</p>
+              </div>
               <div className="flex items-center gap-2">
                 <WishlistButton />
                 <button

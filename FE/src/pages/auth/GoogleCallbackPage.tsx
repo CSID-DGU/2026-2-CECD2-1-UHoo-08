@@ -53,7 +53,7 @@ export function GoogleCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <p role="status" className="text-body2 text-gray-400">로그인 중...</p>
+      <p role="status" className="text-body2 text-gray-400">로그인 중…</p>
     </div>
   );
 }
