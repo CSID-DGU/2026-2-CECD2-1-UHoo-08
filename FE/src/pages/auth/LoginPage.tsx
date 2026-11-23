@@ -19,6 +19,7 @@ const KAKAO_AUTH_URL =
   `&response_type=code`;
 
 const COPY = {
+  tagline: "피부가 닮은 사람들의 선택으로\n나에게 맞는 화장품을 찾아요",
   kakao: "카카오로 계속하기",
   google: "Google로 계속하기",
   terms: "로그인 시 이용약관 및 개인정보처리방침에 동의합니다",
@@ -80,9 +81,14 @@ export function LoginPage() {
         />
 
         <section className="relative z-10 flex min-h-dvh flex-col">
-          <div className="flex items-end mx-auto pb-10 pt-24 justify-between gap-6">
-            <img src={HwadamLogo} alt="Hwadam Logo" className="w-25" />
-            <h1 className="font-lora text-[48px] font-semibold text-gray-500">Hwadam</h1>
+          <div className="mx-auto pb-10 pt-24">
+            <div className="flex items-end justify-between gap-6">
+              <img src={HwadamLogo} alt="Hwadam Logo" className="w-25" />
+              <h1 className="font-lora text-[48px] font-semibold text-gray-500">Hwadam</h1>
+            </div>
+            <p className="mt-5 whitespace-pre-line text-center text-body2 leading-6 text-gray-400">
+              {COPY.tagline}
+            </p>
           </div>
 
           <div className="px-6">
