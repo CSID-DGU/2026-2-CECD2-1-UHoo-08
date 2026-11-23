@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { completeOnboarding, saveOnboardingProducts } from "../../api/userApi";
 import AppLayout from "../../layouts/AppLayout";
 import { getRegisteredProducts } from "../../lib/onboardingProducts";
+import { Check } from "lucide-react";
 
 const KEY = "onboarding_products";
 
@@ -35,20 +36,7 @@ export function OnboardingCompletePage() {
           <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-primary-50">
             <div className="flex h-[116px] w-[116px] items-center justify-center rounded-full bg-primary-100">
               <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-500 text-white">
-                <svg
-                  aria-hidden="true"
-                  className="h-11 w-11"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="m5 12 4 4L19 6"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                  />
-                </svg>
+                <Check aria-hidden="true" className="h-11 w-11" strokeWidth={2.5} />
               </div>
             </div>
           </div>

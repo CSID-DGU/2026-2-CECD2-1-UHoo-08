@@ -24,39 +24,6 @@ const FOLDERS = [
   { key: "other", label: "기타", Icon: Folder },
 ];
 
-function GlassHeart() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="hFill" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7AAEE4" />
-          <stop offset="100%" stopColor="#3565B5" />
-        </linearGradient>
-        <linearGradient id="hShine" x1="6" y1="5" x2="13" y2="11" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z"
-        fill="url(#hFill)"
-      />
-      <path
-        d="M8 5.5C6.5 6 5 7.5 4.5 9.5"
-        stroke="url(#hShine)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        opacity="0.75"
-      />
-      <path
-        d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z"
-        fill="none"
-        stroke="rgba(255,255,255,0.4)"
-        strokeWidth="1"
-      />
-    </svg>
-  );
-}
 
 export function ProductDetailPage() {
   const navigate = useNavigate();
@@ -156,7 +123,7 @@ export function ProductDetailPage() {
               type="button"
               aria-label="찜하기"
             >
-              {wishlisted ? <GlassHeart /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
+              {wishlisted ? <Heart className="h-6 w-6 fill-red-500 text-red-500" strokeWidth={1.8} /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
             </button>
           }
         />
@@ -288,7 +255,7 @@ export function ProductDetailPage() {
             type="button"
             aria-label="찜하기"
           >
-            {wishlisted ? <GlassHeart /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
+            {wishlisted ? <Heart className="h-6 w-6 fill-red-500 text-red-500" strokeWidth={1.8} /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
           </button>
           <button
             className="h-12 flex-1 rounded-xl bg-primary-500 text-body1 font-semibold text-white"

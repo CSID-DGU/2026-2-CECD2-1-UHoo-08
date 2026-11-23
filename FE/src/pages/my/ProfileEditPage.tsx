@@ -7,6 +7,7 @@ import {
 } from "../../api/userApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
+import { Camera } from "lucide-react";
 
 export function ProfileEditPage() {
   const navigate = useNavigate();
@@ -88,25 +89,7 @@ export function ProfileEditPage() {
                   )}
                 </div>
                 <span className="absolute bottom-1 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary-500">
-                  <svg
-                    aria-hidden="true"
-                    className="h-5 w-5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.5-2h3L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    />
-                    <path
-                      d="M9 12.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                  </svg>
+                  <Camera aria-hidden="true" className="h-5 w-5 text-white" strokeWidth={2} />
                 </span>
               </div>
               <span className="mt-3 block text-caption text-gray-300">

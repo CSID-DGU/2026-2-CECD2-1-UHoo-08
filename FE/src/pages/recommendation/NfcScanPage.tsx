@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Nfc } from "lucide-react";
 import { recognizeProduct } from "../../api/productApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -124,12 +124,7 @@ export function NfcScanPage() {
                         background: "linear-gradient(135deg, #DBE6F8, #9DBFEE)",
                       }}
                     >
-                      <svg className="h-12 w-12 text-primary-600" fill="none" viewBox="0 0 24 24">
-                        <path
-                          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3a7 7 0 110 14A7 7 0 0112 5zm0 2a5 5 0 100 10A5 5 0 0012 7zm0 2a3 3 0 110 6 3 3 0 010-6z"
-                          fill="currentColor"
-                        />
-                      </svg>
+                      <Nfc aria-hidden="true" className="h-12 w-12 text-primary-600" strokeWidth={1.8} />
                     </div>
                   </div>
                   <h2 className="mt-8 text-h3 text-gray-500">
