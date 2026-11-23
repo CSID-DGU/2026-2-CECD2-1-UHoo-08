@@ -4,10 +4,37 @@
   /* Primary Color — Soft Blue */
   --color-primary-50: #f0f5fd;
   --color-primary-100: #dbe6f8;
+  --color-primary-200: #9dbde9;
   --color-primary-300: #9dbfee;
   --color-primary-500: #5b8fd9;
   --color-primary-600: #4778c8;
   --color-primary-700: #3565b5;
+  --color-primary-800: #2c507d;
+  --color-primary-900: #203d66;
+
+  --color-primary-150: #c5d8f0;
+  --color-primary-850: #304b70;
+
+  /* 연한 파랑 바탕 (칩·탭·썸네일 칸) */
+  --color-surface-tint: #f2f6fc;
+  /* 연한 파랑 구분선 */
+  --color-line-tint: #e5edf8;
+
+  /* 상태색: 주의(주황), 괜찮음(초록) */
+  --color-warn-50: #fff4e6;
+  --color-warn-500: #e08a3c;
+  --color-warn-600: #c06f2a;
+  --color-warn-700: #956022;
+  --color-ok-50: #e6f4ed;
+  --color-ok-700: #318457;
+
+  /* 파랑이 섞인 그림자 */
+  --shadow-tint-xs: 0 3px 10px rgb(32 61 102 / 0.08);
+  --shadow-tint-sm: 0 2px 10px rgb(32 61 102 / 0.06);
+  --shadow-nav: 0 -2px 12px rgb(24 25 29 / 0.04);
+  --shadow-tint-md: 0 4px 16px rgb(32 61 102 / 0.12);
+  --shadow-tint-lg: 0 5px 18px rgb(32 61 102 / 0.16);
+  --shadow-tint-xl: 0 8px 24px rgb(32 61 102 / 0.14);
 
   /* Gray Scale */
   --color-gray-100: #eceff2;
@@ -50,6 +77,25 @@ button {
 button:active {
   opacity: 0.85;
   transform: scale(0.97);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* 키보드로 이동할 때만 보이는 포커스 링. 바로 나타난다. */
+:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+  button:active {
+    transform: none;
+  }
 }
 
 /* ── Scrollbar hide ───────────────────────────────────────────── */
@@ -686,7 +732,9 @@ button:active {
 }
 .phase-search .matching-main-card {
   border-color: #9dbde9;
-  box-shadow: 0 12px 30px #9dbde94d, inset 0 0 0 1px #9dbde980;
+  box-shadow:
+    0 12px 30px #9dbde94d,
+    inset 0 0 0 1px #9dbde980;
 }
 .phase-search .matching-scan {
   border-bottom: 2px solid #5b8fd9;

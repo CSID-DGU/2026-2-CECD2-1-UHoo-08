@@ -64,7 +64,7 @@ export function ClarifyForm({
         if (!empty && !submitting) onSubmit(answers);
       }}
     >
-      <p className="text-caption font-semibold text-primary-600">조금만 더 알려주세요</p>
+      <h2 className="text-body2 font-semibold text-slate-800">조금만 더 알려주세요</h2>
       <p className="mt-1 text-caption leading-5 text-gray-500">{message}</p>
       {fields.map((field) => (
         <div key={field.key} className="mt-4">

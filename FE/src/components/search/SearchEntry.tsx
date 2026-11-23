@@ -59,9 +59,9 @@ export function SearchEntry({
             <button
               type="button"
               onClick={onPhoto}
-              className="flex items-center gap-2.5 rounded-2xl bg-[#F2F6FC] p-3.5 text-left"
+              className="flex items-center gap-2.5 rounded-2xl bg-surface-tint p-3.5 text-left"
             >
-              <Camera aria-hidden="true" className="h-5 w-5 shrink-0 text-[#2C507D]" />
+              <Camera aria-hidden="true" className="h-5 w-5 shrink-0 text-primary-800" />
               <span className="min-w-0">
                 <span className="block text-caption font-semibold text-slate-800">사진으로 찾기</span>
                 <span className="block truncate text-[11px] text-slate-500">찍거나 앨범에서</span>
@@ -73,9 +73,9 @@ export function SearchEntry({
               type="button"
               onClick={onNfc}
               disabled={!nfcSupported}
-              className="flex items-center gap-2.5 rounded-2xl bg-[#F2F6FC] p-3.5 text-left disabled:opacity-45"
+              className="flex items-center gap-2.5 rounded-2xl bg-surface-tint p-3.5 text-left disabled:opacity-45"
             >
-              <Nfc aria-hidden="true" className="h-5 w-5 shrink-0 text-[#2C507D]" />
+              <Nfc aria-hidden="true" className="h-5 w-5 shrink-0 text-primary-800" />
               <span className="min-w-0">
                 <span className="block text-caption font-semibold text-slate-800">NFC 태그 찍기</span>
                 <span className="block truncate text-[11px] text-slate-500">
@@ -140,7 +140,7 @@ export function SearchEntry({
               onClick={() => onSearch(query)}
               className="flex flex-col items-center gap-2 rounded-2xl py-2"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-[#F2F6FC] text-[#2C507D]">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-surface-tint text-primary-800">
                 <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={1.7} />
               </span>
               <span className="text-caption text-slate-700">{label}</span>
@@ -168,8 +168,8 @@ export function SearchEntry({
                 <Icon aria-hidden="true" className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] text-slate-500">{label}</span>
-                <span className="mt-0.5 block text-caption leading-5 text-slate-700">{query}</span>
+                <span className="block text-caption leading-5 text-slate-700">{query}</span>
+                <span className="mt-0.5 block text-[11px] text-slate-500">{label}</span>
               </span>
               <ArrowUpRight aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
             </button>

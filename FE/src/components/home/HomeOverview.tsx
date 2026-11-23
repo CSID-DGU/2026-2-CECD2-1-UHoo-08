@@ -124,7 +124,7 @@ export function HomeOverview() {
   return (
     <div className="mt-5 space-y-3">
       <section
-        className="rounded-2xl border border-[#9DBDE9] bg-white p-3"
+        className="rounded-2xl border border-primary-200 bg-white p-3"
         aria-labelledby="home-environment"
       >
         <button
@@ -140,13 +140,13 @@ export function HomeOverview() {
             >
               요즘 지내는 환경
             </h2>
-            <p className="mt-0.5 text-[11px] text-gray-300">
-              {outdoor?.region || "생활 환경"}
-              {timestamp ? ` · ${timestamp} 관측` : " · 최근 측정값"}
+            <p className="mt-0.5 flex gap-2 text-[11px] text-gray-300">
+              <span>{outdoor?.region || "생활 환경"}</span>
+              <span>{timestamp ? `${timestamp} 관측` : "최근 측정값"}</span>
             </p>
           </div>
-          <span className="rounded-md bg-primary-50 px-2 py-1 text-[10px] text-primary-600">
-            현재 환경 ›
+          <span className="flex items-center gap-0.5 rounded-md bg-primary-50 px-2 py-1 text-[11px] text-primary-600">
+            현재 환경 <ChevronRight aria-hidden="true" className="h-3 w-3" />
           </span>
         </button>
         {environmentState === "loading" ? (
@@ -169,24 +169,24 @@ export function HomeOverview() {
           </div>
         ) : (
           <>
-            <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="mt-2 grid grid-cols-3 divide-x divide-line-tint">
               {stats.map(({ label, value, unit, Icon }) => (
                 <div
                   key={label}
-                  className="rounded-xl bg-primary-50 px-1 py-2 text-center"
+                  className="px-1 py-2 text-center"
                 >
                   <Icon
-                    className="mx-auto mb-1 h-4 w-4 text-[#9DBDE9]"
+                    className="mx-auto mb-1 h-4 w-4 text-primary-200"
                     aria-hidden="true"
                   />
-                  <p className="text-[10px] text-gray-400">{label}</p>
+                  <p className="text-[11px] text-gray-400">{label}</p>
                   <p className="mt-0.5 text-base font-bold text-gray-500">
                     {value == null ? (
                       "미측정"
                     ) : (
                       <>
                         {value}
-                        <span className="ml-0.5 text-[10px] font-normal">
+                        <span className="ml-0.5 text-[11px] font-normal">
                           {unit}
                         </span>
                       </>
@@ -195,21 +195,21 @@ export function HomeOverview() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 border-t border-dashed border-[#E5EDF8] pt-3">
+            <div className="mt-3 border-t border-dashed border-line-tint pt-3">
               <p className="text-[11px] font-semibold text-gray-500">
                 환경에 맞춰 루틴 살펴보기
               </p>
               <EnvRecoSummary value={envReco} onSetRegion={() => navigate("/environment")} />
               <div className="mt-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] text-gray-300">
+                <span className="text-[11px] text-gray-300">
                   측정 환경을 참고해 제품을 확인해요
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 py-1 text-[11px] text-primary-600"
+                  className="flex shrink-0 items-center gap-0.5 py-1 text-[11px] text-primary-600"
                   onClick={() => navigate("/recommendation/care")}
                 >
-                  제품 보기 ›
+                  제품 보기 <ChevronRight aria-hidden="true" className="h-3 w-3" />
                 </button>
               </div>
             </div>{" "}
@@ -288,18 +288,18 @@ export function HomeOverview() {
                   onClick={() => navigate(`/product/${item.productId}`)}
                   className="block w-full text-left"
                 >
-                  <div className="relative grid aspect-square place-items-center overflow-hidden rounded-xl bg-[#F2F6FC]">
+                  <div className="relative grid aspect-square place-items-center overflow-hidden rounded-xl bg-surface-tint">
                     <span className="absolute left-2 top-1.5 text-[11px] font-semibold text-slate-500">{item.rank}</span>
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-2" />
                     ) : (
-                      <ProductThumbnail className="h-full w-full bg-[#F2F6FC]" />
+                      <ProductThumbnail className="h-full w-full bg-surface-tint" />
                     )}
                   </div>
-                  <p className="mt-1.5 truncate text-[10px] text-gray-400">{item.brand}</p>
+                  <p className="mt-1.5 truncate text-[11px] text-gray-400">{item.brand}</p>
                   <p className="line-clamp-2 text-[11px] font-medium leading-4 text-gray-500">{item.name}</p>
                   {item.interestChangePct != null && item.interestChangePct > 0 && (
-                    <p className="mt-0.5 text-[10px] text-primary-600">관심 {item.interestChangePct}% ↑</p>
+                    <p className="mt-0.5 text-[11px] text-primary-600">관심 {item.interestChangePct}% ↑</p>
                   )}
                 </button>
               </li>
@@ -328,28 +328,28 @@ function EnvRecoSummary({
   if (value === null) return null;
   if (value === "no-region")
     return (
-      <button type="button" onClick={onSetRegion} className="mt-1.5 text-[10px] text-primary-600">
-        지역을 설정하면 필요한 제품을 골라드려요 ›
+      <button type="button" onClick={onSetRegion} className="mt-1.5 flex items-center gap-0.5 text-[11px] text-primary-600">
+        지역을 설정하면 필요한 제품을 골라드려요 <ChevronRight aria-hidden="true" className="h-3 w-3" />
       </button>
     );
   if (value.state === "NOT_READY") return null;
   if (value.state === "FULLY_COVERED")
-    return <p className="mt-1.5 text-[10px] text-[#318457]">지금 쓰는 제품으로 충분해요</p>;
+    return <p className="mt-1.5 text-[11px] text-ok-700">지금 쓰는 제품으로 충분해요</p>;
   const items = value.result?.items.slice(0, 3) ?? [];
   return (
     <div className="mt-1.5">
       {value.missingConditions.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {value.missingConditions.map((condition) => (
-            <span key={condition.key} className="rounded-md bg-[#FFF4E6] px-1.5 py-0.5 text-[10px] text-[#C06F2A]">
+            <span key={condition.key} className="rounded-md bg-warn-50 px-1.5 py-0.5 text-[11px] text-warn-600">
               {condition.label} 필요
             </span>
           ))}
         </div>
       )}
       {items.length > 0 && (
-        <p className="mt-1 truncate text-[10px] text-gray-400">
-          추천: {items.map((item) => item.name).join(" · ")}
+        <p className="mt-1 truncate text-[11px] text-gray-400">
+          추천: {items.map((item) => item.name).join(", ")}
         </p>
       )}
     </div>
@@ -363,28 +363,28 @@ function RoutineSummary({ routine }: { routine: RoutineCheck }) {
     routine.pairs.find((pair) => pair.level === "SEPARATE");
   return (
     <div className="mt-2">
-      <div className="grid grid-cols-3 gap-1.5 text-center">
+      <div className="grid grid-cols-3 divide-x divide-gray-100 text-center">
         {[
-          { label: "괜찮아요", value: routine.counts.ok, tone: "text-[#318457]" },
-          { label: "시간 나눠요", value: routine.counts.separate, tone: "text-[#C06F2A]" },
+          { label: "괜찮아요", value: routine.counts.ok, tone: "text-ok-700" },
+          { label: "시간 나눠요", value: routine.counts.separate, tone: "text-warn-600" },
           { label: "같이 쓰지 마요", value: routine.counts.avoid, tone: "text-red-700" },
         ].map((item) => (
-          <div key={item.label} className="rounded-lg bg-gray-50 py-1.5">
+          <div key={item.label} className="py-1.5">
             <p className={`text-sm font-bold ${item.tone}`}>{item.value}</p>
-            <p className="text-[10px] text-gray-400">{item.label}</p>
+            <p className="text-[11px] text-gray-400">{item.label}</p>
           </div>
         ))}
       </div>
       {worst && (
         <p className="mt-2 text-[11px] leading-5 text-gray-500">
-          <span className="font-semibold">
+          <span className="block font-semibold">
             {worst.a.name} + {worst.b.name}
           </span>
-          {worst.title ? ` · ${worst.title}` : ""}
+          {worst.title && <span className="block">{worst.title}</span>}
         </p>
       )}
       {routine.uncomparedCount > 0 && (
-        <p className="mt-1 text-[10px] text-gray-300">
+        <p className="mt-1 text-[11px] text-gray-300">
           성분 정보가 없어 {routine.uncomparedCount}개는 비교하지 못했어요
         </p>
       )}
