@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { Check } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { requestRecommendation } from "../../api/recommendationApi";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -143,8 +144,9 @@ export function ExtraInfoPage() {
                 <span className="block text-h3">{item.title}</span>
                 <span className="mt-1 block text-caption">{item.desc}</span>
                 {selected && (
-                  <span className="mt-2 inline-block rounded-full bg-primary-300 px-2 py-1 text-[10px] text-white">
-                    선택됨 ✓
+                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary-700 px-2 py-1 text-[11px] text-white">
+                    <Check aria-hidden="true" className="h-3 w-3" strokeWidth={2.5} />
+                    선택됨
                   </span>
                 )}
               </button>
@@ -152,8 +154,8 @@ export function ExtraInfoPage() {
           })}
         </div>
 
-        <div className="mt-16 border-l-4 border-primary-500 bg-primary-50 px-4 py-3">
-          <p className="text-body2 text-primary-500">✦ AI Tip</p>
+        <div className="mt-16 rounded-xl bg-primary-50 px-4 py-3">
+          <p className="text-body2 font-semibold text-primary-600">AI Tip</p>
           <p className="mt-1 text-caption leading-5 text-gray-500">
             허용 폭이 넓을수록 더 다양한 대체 상품을 발견할 수 있어요.
           </p>
@@ -165,7 +167,7 @@ export function ExtraInfoPage() {
           onClick={handleSubmit}
           type="button"
         >
-          {loading ? "요청 중..." : "추천 받기 ✦"}
+          {loading ? "요청 중…" : "추천 받기"}
         </button>
 
         {!productId && (

@@ -105,7 +105,7 @@ export function NfcScanPage() {
 
             {isDemo && (
               <div className="mt-4 w-full rounded-xl bg-primary-50 px-4 py-2">
-                <p className="text-caption text-primary-500">데모 모드 — 실제 NFC 태그를 읽지 않아요</p>
+                <p className="text-caption text-primary-500">데모 모드라 실제 NFC 태그는 읽지 않아요</p>
               </div>
             )}
 
@@ -115,13 +115,13 @@ export function NfcScanPage() {
                   <div className="relative flex h-40 w-40 items-center justify-center">
                     <div
                       className={`absolute inset-0 rounded-full border-4 border-primary-300 ${
-                        state === "scanning" ? "animate-ping opacity-30" : "opacity-0"
+                        state === "scanning" ? "opacity-30 motion-safe:animate-ping" : "opacity-0"
                       }`}
                     />
                     <div
                       className="flex h-28 w-28 items-center justify-center rounded-full"
                       style={{
-                        background: "linear-gradient(135deg, #DBE6F8, #9DBFEE)",
+                        background: "linear-gradient(135deg, var(--color-primary-100), var(--color-primary-300))",
                       }}
                     >
                       <Nfc aria-hidden="true" className="h-12 w-12 text-primary-600" strokeWidth={1.8} />
@@ -142,7 +142,7 @@ export function NfcScanPage() {
                 <>
                   <div
                     className="flex h-28 w-28 items-center justify-center rounded-full"
-                    style={{ background: "#FEF2F2" }}
+                    style={{ background: "var(--color-red-50)" }}
                   >
                     <AlertTriangle className="h-12 w-12 text-red-400" strokeWidth={1.5} />
                   </div>
