@@ -51,6 +51,8 @@
   --shadow-tint-md: 0 4px 16px rgb(32 61 102 / 0.12);
   --shadow-tint-lg: 0 5px 18px rgb(32 61 102 / 0.16);
   --shadow-tint-xl: 0 8px 24px rgb(32 61 102 / 0.14);
+  /* 파랑 버튼 아래 번지는 그림자 */
+  --shadow-primary: 0 6px 16px rgb(91 143 217 / 0.35);
 
   /* Gray Scale */
   --color-gray-100: #eceff2;

@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { searchProducts } from "../../api/productApi";
 import type { ProductSearchItem } from "../../api/productApi";
@@ -111,7 +112,11 @@ export function ProductSearchSetupPage() {
                     disabled={addedIds.has(item.id)}
                     type="button"
                   >
-                    {addedIds.has(item.id) ? "추가됨 ✓" : "추가"}
+                    {addedIds.has(item.id) ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        <Check aria-hidden="true" className="h-3.5 w-3.5" /> 추가됨
+                      </span>
+                    ) : "추가"}
                   </button>
                 </div>
               ))}

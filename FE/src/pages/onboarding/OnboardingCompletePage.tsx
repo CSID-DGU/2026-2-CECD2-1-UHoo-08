@@ -48,7 +48,7 @@ export function OnboardingCompletePage() {
         </div>
 
         <div className="mt-4 rounded-xl bg-primary-50 p-4">
-          <p className="text-body2 text-primary-500">✦ 이제 뭘 하면 될까요?</p>
+          <h2 className="text-body2 font-semibold text-primary-600">이제 뭘 하면 될까요?</h2>
           <p className="mt-1 text-caption text-gray-500">
             홈에서 제품을 검색하거나 AI 추천을 받아보세요
           </p>

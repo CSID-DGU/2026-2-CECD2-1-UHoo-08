@@ -103,7 +103,7 @@ export function IntroPage() {
           {SLIDES.map((item, index) => (
             <span
               key={item.image}
-              className={`h-1.5 rounded-full transition-all ${index === step ? "w-6 bg-[#5B8FD9]" : "w-1.5 bg-slate-200"}`}
+              className={`h-1.5 rounded-full transition-colors ${index === step ? "w-6 bg-primary-500" : "w-1.5 bg-slate-200"}`}
             />
           ))}
         </div>
@@ -128,7 +128,7 @@ export function IntroPage() {
             <button
               type="button"
               onClick={finish}
-              className="flex h-12 items-center gap-1.5 rounded-full bg-[#5B8FD9] px-6 text-body2 font-semibold text-white shadow-[0_6px_16px_rgba(91,143,217,0.35)]"
+              className="flex h-12 items-center gap-1.5 rounded-full bg-primary-500 px-6 text-body2 font-semibold text-white shadow-primary"
             >
               {again ? "확인" : "시작"}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function IntroPage() {
                 type="button"
                 onClick={() => go(step + 1)}
                 aria-label="다음"
-                className="grid h-12 w-12 place-items-center rounded-full bg-[#5B8FD9] text-white shadow-[0_6px_16px_rgba(91,143,217,0.35)]"
+                className="grid h-12 w-12 place-items-center rounded-full bg-primary-500 text-white shadow-primary"
               >
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </button>

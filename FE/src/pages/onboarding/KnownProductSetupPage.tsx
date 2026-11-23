@@ -117,8 +117,8 @@ export function KnownProductSetupPage() {
             </p>
             <div className="mt-3 h-2 rounded-full bg-primary-100">
               <div
-                className="h-full rounded-full bg-primary-500 transition-all duration-300"
-                style={{ width: `${progressPct}%` }}
+                className="h-full w-full origin-left rounded-full bg-primary-500 transition-transform duration-300 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${progressPct / 100})` }}
               />
             </div>
           </div>
@@ -132,7 +132,7 @@ export function KnownProductSetupPage() {
           onClick={() => navigate("/onboarding/complete")}
           type="button"
         >
-          다음으로 →
+          다음으로
         </button>
       </section>
     </AppLayout>

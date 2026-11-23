@@ -75,7 +75,7 @@ export function WishlistPage() {
         <PageHeader title="찜한 제품" onBack={() => navigate(-1)} />
 
         {loading ? (
-          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : (
           <>
             {totalCount > 0 && (
@@ -123,7 +123,7 @@ export function WishlistPage() {
 
             <button
               className="mt-4 flex h-[72px] w-full items-center justify-center gap-2 rounded-2xl text-body2 text-primary-500"
-              style={{ border: "1.5px dashed #4A90D9", background: "#F0F7FF" }}
+              style={{ border: "1.5px dashed var(--color-primary-500)", background: "var(--color-primary-50)" }}
               onClick={() => setShowAddSheet(true)}
               type="button"
             >
@@ -194,7 +194,7 @@ function FolderCard({
   return (
     <button
       className="relative flex flex-col items-center gap-3 rounded-2xl py-6 text-primary-700"
-      style={{ background: "linear-gradient(135deg, #9DBFEE, #C5DDF5)" }}
+      style={{ background: "linear-gradient(135deg, var(--color-primary-300), var(--color-primary-150))" }}
       onClick={onClick}
       type="button"
     >

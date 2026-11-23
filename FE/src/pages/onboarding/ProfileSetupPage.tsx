@@ -123,7 +123,7 @@ export function ProfileSetupPage() {
                   <button
                     className={`h-[50px] rounded-lg text-body1 ${
                       gender === value
-                        ? "bg-primary-300 text-white"
+                        ? "bg-primary-500 text-white"
                         : "bg-gray-100 text-gray-500"
                     }`}
                     key={value}

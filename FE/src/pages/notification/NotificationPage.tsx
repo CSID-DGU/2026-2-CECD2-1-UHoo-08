@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { ArrowDown, Sparkles, Percent } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   getNotifications,
@@ -96,7 +97,7 @@ export function NotificationPage() {
         />
 
         {loading ? (
-          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : notifications.length === 0 ? (
           <p className="mt-10 text-center text-body2 text-gray-300">알림이 없습니다.</p>
         ) : (
@@ -186,7 +187,13 @@ function NotificationCard({
             active ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-300"
           }`}
         >
-          {active ? "↓" : label === "AI 추천" ? "✦" : "%"}
+          {active ? (
+            <ArrowDown aria-hidden="true" className="h-5 w-5" />
+          ) : label === "AI 추천" ? (
+            <Sparkles aria-hidden="true" className="h-5 w-5" />
+          ) : (
+            <Percent aria-hidden="true" className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className={`text-caption ${active ? "text-primary-500" : "text-gray-300"}`}>

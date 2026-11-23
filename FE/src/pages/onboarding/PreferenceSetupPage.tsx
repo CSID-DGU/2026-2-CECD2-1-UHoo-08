@@ -103,7 +103,7 @@ export function PreferenceSetupPage() {
                 <button
                   className={`h-10 rounded-xl px-5 text-body2 ${
                     skinType === type
-                      ? "bg-primary-300 text-white"
+                      ? "bg-primary-500 text-white"
                       : "bg-gray-100 text-gray-500"
                   }`}
                   key={type}
@@ -126,7 +126,7 @@ export function PreferenceSetupPage() {
                   <button
                     className={`h-10 rounded-xl px-5 text-body2 ${
                       selected
-                        ? "bg-primary-300 text-white"
+                        ? "bg-primary-500 text-white"
                         : "bg-gray-100 text-gray-500"
                     }`}
                     key={concern}

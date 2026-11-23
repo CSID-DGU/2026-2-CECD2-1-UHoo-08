@@ -158,14 +158,14 @@ export function PhotoRegisterPage() {
           {phase === "recognizing" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <div className="rounded-xl bg-white px-6 py-4 text-center">
-                <p className="text-body2 text-gray-500">인식 중...</p>
+                <p className="text-body2 text-gray-500">인식 중…</p>
                 <p className="mt-1 text-caption text-gray-300">잠시만 기다려주세요</p>
               </div>
             </div>
           )}
         </div>
 
-        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={canvasRef} aria-hidden="true" className="hidden" />
         <input
           ref={fileInputRef}
           type="file"
@@ -182,7 +182,7 @@ export function PhotoRegisterPage() {
             </div>
             <div className="flex-1">
               <span className="rounded-md bg-primary-100 px-3 py-1 text-caption text-primary-500">
-                인식 중...
+                인식 중…
               </span>
               <div className="mt-2 h-2 rounded-full bg-gray-100">
                 <div className="h-full w-2/3 animate-pulse rounded-full bg-gray-200" />
@@ -265,7 +265,7 @@ export function PhotoRegisterPage() {
               disabled
               type="button"
             >
-              인식 중...
+              인식 중…
             </button>
           )}
           {(phase === "result" || phase === "error") && (
