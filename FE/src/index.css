@@ -133,8 +133,15 @@ button:disabled {
   }
 }
 
+/* 끝난 뒤 transform 을 남기지 않는다(backwards). 남으면 안의 position: fixed 가
+   화면 대신 이 틀을 기준으로 붙어, 하단 버튼이 밀리고 숨긴 시트만큼 스크롤이 더 생긴다. */
 .page-enter {
-  animation: fadeInUp 0.3s ease forwards;
+  animation: fadeInUp 0.3s ease backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }
 
 /* ── Match Loader ─────────────────────────────────────────────── */
