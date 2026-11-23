@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Compass, Droplets, Heart, PackagePlus, Settings } from "lucide-react";
+import { Bell, Compass, Droplets, Heart, PackagePlus, Settings, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   type UserMeResponse,
@@ -86,7 +86,7 @@ export function MyPage() {
     ...(skin?.skinConcerns?.map((c) => CONCERN_LABEL[c] ?? c) ?? []),
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 
   const initial = (user?.name ?? "?")[0];
   const stats = user?.stats;
@@ -107,7 +107,7 @@ export function MyPage() {
               <div className="flex items-center gap-2">
                 <WishlistButton
                   style={{
-                    background: "#DBE6F8",
+                    background: "var(--color-primary-100)",
                   }}
                 />
                 <button
@@ -144,7 +144,7 @@ export function MyPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="min-w-0 break-words text-h4">{user?.name ?? "이름 없음"}</h2>
                       {skin?.skinType && (
-                        <span className="shrink-0 rounded-full border border-white/70 px-2 py-0.5 text-[10px] whitespace-nowrap">
+                        <span className="shrink-0 rounded-full border border-white/70 px-2 py-0.5 text-[11px] whitespace-nowrap">
                           업데이트됨
                         </span>
                       )}
@@ -246,7 +246,7 @@ export function MyPage() {
                       <p className="mt-2 w-[64px] truncate text-caption text-gray-500">
                         {product.name}
                       </p>
-                      <p className="w-[64px] truncate text-[10px] text-gray-300">
+                      <p className="w-[64px] truncate text-[11px] text-gray-300">
                         {product.brand}
                       </p>
                     </button>
@@ -278,8 +278,8 @@ export function MyPage() {
                       {item.desc}
                     </p>
                   </div>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/60 text-body2 text-primary-500">
-                    ›
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/60 text-primary-500">
+                    <ChevronRight aria-hidden="true" className="h-4 w-4" />
                   </span>
                 </button>
               ))}

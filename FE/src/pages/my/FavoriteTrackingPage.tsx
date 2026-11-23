@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { ChartLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   type AchievedItem,
@@ -73,7 +74,7 @@ export function FavoriteTrackingPage() {
         {/* 통계 카드 */}
         <section
           className="mt-5 rounded-2xl p-6 text-white"
-          style={{ background: "linear-gradient(135deg, #4778C8, #7AAEE4)" }}
+          style={{ background: "linear-gradient(135deg, var(--color-primary-600), var(--color-primary-400))" }}
         >
           <div className="grid grid-cols-2 divide-x divide-gray-400/40">
             <div>
@@ -92,7 +93,7 @@ export function FavoriteTrackingPage() {
         </section>
 
         {loading ? (
-          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : total === 0 ? (
           <EmptyState onAdd={() => navigate("/price-tracking/add")} />
         ) : (
@@ -135,7 +136,7 @@ export function FavoriteTrackingPage() {
             {/* 제품 추가 */}
             <button
               className="mt-5 h-[58px] w-full rounded-xl text-body1 text-primary-500"
-              style={{ border: "1.5px dashed #4A90D9", background: "#F0F7FF" }}
+              style={{ border: "1.5px dashed var(--color-primary-500)", background: "var(--color-primary-50)" }}
               onClick={() => navigate("/price-tracking/add")}
               type="button"
             >
@@ -172,8 +173,8 @@ export function FavoriteTrackingPage() {
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="mt-16 flex flex-col items-center gap-4 text-center">
-      <div className="grid h-20 w-20 place-items-center rounded-full bg-primary-50 text-4xl">
-        📊
+      <div className="grid h-20 w-20 place-items-center rounded-full bg-primary-50 text-primary-500">
+        <ChartLine aria-hidden="true" className="h-9 w-9" strokeWidth={1.8} />
       </div>
       <div>
         <p className="text-body1 text-gray-500">아직 추적 중인 제품이 없어요</p>

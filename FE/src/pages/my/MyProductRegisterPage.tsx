@@ -143,7 +143,7 @@ export function MyProductRegisterPage() {
               </p>
             )}
             {done.storageFailed && (
-              <p className="mt-2 text-caption text-[#8A5A12]">
+              <p className="mt-2 text-caption text-warn-700">
                 보관 위치는 저장하지 못했어요. 목록에서 다시 지정해 주세요.
               </p>
             )}
@@ -154,9 +154,9 @@ export function MyProductRegisterPage() {
               {done.conflicts.map((conflict) => (
                 <div
                   key={conflict.userProductId}
-                  className={`rounded-xl p-3 ${conflict.level === "AVOID" ? "bg-red-50" : "bg-[#FDF3E7]"}`}
+                  className={`rounded-xl p-3 ${conflict.level === "AVOID" ? "bg-red-50" : "bg-warn-50"}`}
                 >
-                  <p className={`text-body2 ${conflict.level === "AVOID" ? "text-red-700" : "text-[#8A5A12]"}`}>
+                  <p className={`text-body2 ${conflict.level === "AVOID" ? "text-red-700" : "text-warn-700"}`}>
                     {conflict.name}와 {conflict.level === "AVOID" ? "같이 쓰지 마세요" : "시간을 나눠 쓰세요"}
                   </p>
                   {conflict.advice && <p className="mt-0.5 text-caption text-gray-400">{conflict.advice}</p>}
@@ -247,9 +247,9 @@ export function MyProductRegisterPage() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body2 text-gray-500">{p.name}</p>
-                  <p className="truncate text-caption text-gray-300">
-                    {p.brand}
-                    {p.originalPrice != null && ` · ${p.originalPrice.toLocaleString()}원`}
+                  <p className="flex gap-2 truncate text-caption text-gray-300">
+                    <span className="truncate">{p.brand}</span>
+                    {p.originalPrice != null && <span className="shrink-0">{p.originalPrice.toLocaleString()}원</span>}
                   </p>
                 </div>
               </button>
@@ -328,7 +328,7 @@ export function MyProductRegisterPage() {
           </div>
         )}
 
-        {failed && <p className="mt-3 text-caption text-[#E05A5A]">{failed}</p>}
+        {failed && <p className="mt-3 text-caption text-red-700">{failed}</p>}
 
         <button
           className="mt-5 h-[52px] w-full rounded-2xl bg-primary-500 text-body1 text-white disabled:bg-gray-200 disabled:text-gray-300"

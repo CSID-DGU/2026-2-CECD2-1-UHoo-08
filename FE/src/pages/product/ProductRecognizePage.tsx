@@ -1,4 +1,5 @@
 ﻿import { useLocation, useNavigate } from "react-router-dom";
+import { Package } from "lucide-react";
 import { type RecognizeResult } from "../../api/productApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -48,7 +49,7 @@ export function ProductRecognizePage() {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-[48px]">💄</span>
+                <Package aria-hidden="true" className="h-12 w-12 text-primary-300" strokeWidth={1.5} />
               )}
             </div>
             <div className="p-5">
@@ -69,7 +70,7 @@ export function ProductRecognizePage() {
             onClick={handleConfirm}
             type="button"
           >
-            {toDetail ? "맞아요, 제품 보기 →" : "맞아요, 추천받기 →"}
+            {toDetail ? "맞아요, 제품 보기" : "맞아요, 추천받기"}
           </button>
           <button
             className="h-12 w-full rounded-xl border border-gray-200 text-body2 text-gray-500"

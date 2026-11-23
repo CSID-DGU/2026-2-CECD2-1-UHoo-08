@@ -14,6 +14,7 @@
   --color-primary-100: #dbe6f8;
   --color-primary-200: #9dbde9;
   --color-primary-300: #9dbfee;
+  --color-primary-400: #7aaee4;
   --color-primary-500: #5b8fd9;
   --color-primary-600: #4778c8;
   --color-primary-700: #3565b5;
@@ -31,8 +32,12 @@
   /* 카카오 로그인 버튼 (카카오 브랜드 색) */
   --color-kakao: #fee500;
 
+  /* 별점 */
+  --color-star: #ffb000;
+
   /* 상태색: 주의(주황), 괜찮음(초록) */
   --color-warn-50: #fff4e6;
+  --color-warn-400: #e8a75a;
   --color-warn-500: #e08a3c;
   --color-warn-600: #c06f2a;
   --color-warn-700: #956022;

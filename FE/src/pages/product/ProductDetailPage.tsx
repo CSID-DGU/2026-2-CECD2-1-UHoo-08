@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Heart, Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder } from "lucide-react";
+import { Heart, Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder, Star } from "lucide-react";
 import { type ProductDetail, type StoreInfo, getProductDetail, recordProductView } from "../../api/productApi";
 import { addWishlist, deleteWishlist } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -15,12 +15,12 @@ function fmt(n: number | null | undefined) {
 }
 
 const FOLDERS = [
-  { key: "lip", label: "Lip", Icon: Smile },
-  { key: "base", label: "Base", Icon: Layers },
-  { key: "sun", label: "Sun", Icon: Sun },
-  { key: "skincare", label: "Skincare", Icon: Droplets },
-  { key: "eye", label: "Eye", Icon: Eye },
-  { key: "cheek", label: "Cheek", Icon: Sparkles },
+  { key: "lip", label: "립", Icon: Smile },
+  { key: "base", label: "베이스", Icon: Layers },
+  { key: "sun", label: "선케어", Icon: Sun },
+  { key: "skincare", label: "스킨케어", Icon: Droplets },
+  { key: "eye", label: "아이", Icon: Eye },
+  { key: "cheek", label: "치크", Icon: Sparkles },
   { key: "other", label: "기타", Icon: Folder },
 ];
 
@@ -137,11 +137,11 @@ export function ProductDetailPage() {
           )}
         </div>
 
-        <p className="mt-3 text-caption text-gray-300">
-          {product?.brand ?? "—"}
-          {product?.category ? ` · ${product.category}` : ""}
+        <p className="mt-3 flex gap-2 text-caption text-gray-300">
+          {product?.brand && <span>{product.brand}</span>}
+          {product?.category && <span>{product.category}</span>}
         </p>
-        <h1 className="mt-1 text-h2 text-gray-500">{product?.name ?? "로딩 중..."}</h1>
+        <h1 className="mt-1 text-h2 text-gray-500">{product?.name ?? "로딩 중…"}</h1>
 
         {/* 가격 */}
         {product?.originalPrice != null && (
@@ -203,7 +203,7 @@ export function ProductDetailPage() {
               <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4">
                 <div>
                   <span className="text-h1 text-gray-500">{product.averageScore} 점</span>
-                  <span className="ml-3 text-[#FFB000]">★★★★★</span>
+                  <Star aria-hidden="true" className="ml-2 inline h-5 w-5 -translate-y-0.5 fill-star text-star" />
                   <p className="text-caption text-gray-300">/ 5.0점</p>
                 </div>
               </div>
@@ -234,7 +234,7 @@ export function ProductDetailPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-body2 text-gray-500">{store.storeName}</span>
                     {store.isLowest && (
-                      <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[10px] text-white">최저</span>
+                      <span className="rounded-full bg-primary-700 px-2 py-0.5 text-[11px] text-white">최저</span>
                     )}
                   </div>
                   <span className={`text-body2 ${store.isLowest ? "font-semibold text-primary-500" : "text-gray-500"}`}>
@@ -273,9 +273,9 @@ export function ProductDetailPage() {
 
       {/* dim */}
       <div
-        className="fixed inset-0 z-40 transition-all duration-300"
+        className="fixed inset-0 z-40 transition-opacity duration-300 motion-reduce:transition-none"
         style={{
-          background: "rgba(0,0,0,0.3)",
+          background: "color-mix(in srgb, var(--color-gray-500) 30%, transparent)",
           opacity: showCategorySheet ? 1 : 0,
           pointerEvents: showCategorySheet ? "auto" : "none",
         }}
@@ -304,9 +304,9 @@ export function ProductDetailPage() {
           {FOLDERS.map(({ key, label, Icon }) => (
             <button
               key={key}
-              className="flex flex-col items-center gap-2 rounded-2xl py-4 transition-all"
+              className="flex flex-col items-center gap-2 rounded-2xl py-4"
               style={{
-                background: "linear-gradient(135deg, #9DBFEE, #C5DDF5)",
+                background: "linear-gradient(135deg, var(--color-primary-300), var(--color-primary-150))",
               }}
               onClick={() => handleAddToCategory(key)}
               disabled={adding}
@@ -314,7 +314,7 @@ export function ProductDetailPage() {
             >
               <span
                 className="flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: "rgba(255,255,255,0.5)" }}
+                style={{ background: "color-mix(in srgb, var(--color-white) 50%, transparent)" }}
               >
                 <Icon className="h-5 w-5 text-primary-600" strokeWidth={1.8} />
               </span>
