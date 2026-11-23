@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     DASHSCOPE_API_KEY: str
     QWEN_VL_BASE_URL: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-    QWEN_VL_MODEL: str = "qwen3-vl-flash"
+    QWEN_VL_MODEL: str = "qwen3-vl-plus"
     QWEN_TEXT_BASE_URL: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     QWEN_TEXT_MODEL: str = "qwen-plus"
 
@@ -38,6 +38,26 @@ class Settings(BaseSettings):
     LLM_AD_MODEL: str = ""
     LLM_AD_BASE_URL: str = ""
     LLM_AD_API_KEY: str = ""
+
+    # Claude (Anthropic). 역할의 모델 이름이 claude- 로 시작하면 OpenAI 호환 주소가
+    # 아니라 Anthropic SDK 로 부르고, 역할에 키를 따로 주지 않았으면 이 키를 쓴다.
+    # Claude 를 쓰는 역할이 없으면 비워 둬도 된다.
+    ANTHROPIC_API_KEY: str = ""
+
+    # Gemini 를 Vertex AI 로 부를 때 쓰는 구글 클라우드 프로젝트와 위치.
+    # 역할의 모델 이름이 gemini- 로 시작하고 주소를 따로 주지 않았으면 Vertex AI 로
+    # 부른다. 키 대신 로그인 정보를 쓴다(로컬은 gcloud auth application-default login).
+    # 프로젝트를 비워 두면 Vertex AI 로 부르지 않는다.
+    #
+    # GOOGLE_GENAI_USE_VERTEXAI 는 여기서 읽지 않는다. 그 값이 실제 환경 변수로
+    # 들어가면 키로 부르던 다른 Gemini 호출(상품 정보 추출 등)까지 Vertex AI 로 바뀐다.
+    GOOGLE_CLOUD_PROJECT: str = ""
+    GOOGLE_CLOUD_LOCATION: str = "global"
+
+    # 동국 AI Gateway (OpenAI 호환). 모델 비교 실험에서 Qwen 후보를 학교 크레딧으로
+    # 부를 때만 쓴다(eval/model_candidates.py). 서비스는 읽지 않는다.
+    QWEN_GATEWAY_BASE_URL: str = ""
+    QWEN_GATEWAY_API_KEY: str = ""
 
     # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
     # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.

@@ -103,7 +103,7 @@ export function PreferenceSetupPage() {
                 <button
                   className={`h-10 rounded-xl px-5 text-body2 ${
                     skinType === type
-                      ? "bg-primary-300 text-white"
+                      ? "bg-primary-600 text-white"
                       : "bg-gray-100 text-gray-500"
                   }`}
                   key={type}
@@ -126,7 +126,7 @@ export function PreferenceSetupPage() {
                   <button
                     className={`h-10 rounded-xl px-5 text-body2 ${
                       selected
-                        ? "bg-primary-300 text-white"
+                        ? "bg-primary-600 text-white"
                         : "bg-gray-100 text-gray-500"
                     }`}
                     key={concern}
@@ -153,7 +153,7 @@ export function PreferenceSetupPage() {
         </div>
 
         <button
-          className="mt-auto h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-auto h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           disabled={loading}
           onClick={handleNext}
           type="button"

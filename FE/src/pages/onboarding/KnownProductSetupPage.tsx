@@ -42,7 +42,7 @@ export function KnownProductSetupPage() {
               onClick={() => navigate("/onboarding/photo")}
               type="button"
             >
-              <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary-500 text-white">
+              <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary-600 text-white">
                 <span className="h-5 w-3 rounded-full bg-white" />
               </span>
               <span className="block text-body2 text-primary-500">사진으로 등록</span>
@@ -117,8 +117,8 @@ export function KnownProductSetupPage() {
             </p>
             <div className="mt-3 h-2 rounded-full bg-primary-100">
               <div
-                className="h-full rounded-full bg-primary-500 transition-all duration-300"
-                style={{ width: `${progressPct}%` }}
+                className="h-full w-full origin-left rounded-full bg-primary-500 transition-transform duration-300 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${progressPct / 100})` }}
               />
             </div>
           </div>
@@ -128,11 +128,11 @@ export function KnownProductSetupPage() {
           나중에 My 페이지에서 추가할 수 있어요!
         </p>
         <button
-          className="mt-5 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+          className="mt-5 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white"
           onClick={() => navigate("/onboarding/complete")}
           type="button"
         >
-          다음으로 →
+          다음으로
         </button>
       </section>
     </AppLayout>

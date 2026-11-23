@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getTrackings, updateAlertSettings } from "../../api/priceTrackingApi";
 import { clearTokens } from "../../lib/auth";
@@ -16,7 +17,7 @@ function Toggle({ on, onToggle, disabled, label }: { on: boolean; onToggle: () =
       disabled={disabled}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+        className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white transition-transform motion-reduce:transition-none ${
           on ? "translate-x-5" : "translate-x-0.5"
         }`}
       />
@@ -44,7 +45,7 @@ function SettingRow({
       <div>
         <p className="text-body2 text-gray-500">
           {label}
-          {badge && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">{badge}</span>}
+          {badge && <span className="ml-1.5 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-400">{badge}</span>}
         </p>
         {desc && <p className="mt-0.5 text-caption text-gray-300">{desc}</p>}
       </div>
@@ -173,7 +174,7 @@ export function SettingsPage() {
                 type="button"
               >
                 <span className="text-body2 text-gray-500">{item.label}</span>
-                <span className="text-gray-300">›</span>
+                <ChevronRight aria-hidden="true" className="h-4 w-4 text-gray-300" />
               </button>
             ))}
           </div>

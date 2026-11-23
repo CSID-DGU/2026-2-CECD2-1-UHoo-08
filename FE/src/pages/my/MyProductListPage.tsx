@@ -177,7 +177,7 @@ export function MyProductListPage() {
         )}
 
         {actionError && (
-          <p role="alert" className="mt-3 text-caption text-[#E05A5A]">
+          <p role="alert" className="mt-3 text-caption text-red-700">
             {actionError}
           </p>
         )}
@@ -220,7 +220,7 @@ export function MyProductListPage() {
                             item.replaceStatus === "EXPIRED"
                               ? "text-red-700"
                               : item.replaceStatus === "SOON"
-                                ? "text-[#8A5A12]"
+                                ? "text-warn-700"
                                 : "text-gray-400"
                           }
                         >
@@ -233,8 +233,8 @@ export function MyProductListPage() {
                             item.replaceStatus === "EXPIRED"
                               ? "bg-red-400"
                               : item.replaceStatus === "SOON"
-                                ? "bg-[#E8A75A]"
-                                : "bg-[#9DBDE9]"
+                                ? "bg-warn-400"
+                                : "bg-primary-200"
                           }`}
                           style={{ width: `${Math.min(100, Math.max(0, item.replaceProgress))}%` }}
                         />
@@ -269,8 +269,7 @@ export function MyProductListPage() {
                           취소
                         </button>
                         <button
-                          className="h-[40px] flex-1 rounded-xl text-body2 text-white"
-                          style={{ background: "#E05A5A" }}
+                          className="h-[40px] flex-1 rounded-xl bg-red-600 text-body2 text-white"
                           onClick={() => void remove(item.userProductId)}
                           type="button"
                         >
@@ -418,7 +417,7 @@ function EditForm({
         </>
       )}
 
-      {error && <p className="mt-2 text-caption text-[#E05A5A]">{error}</p>}
+      {error && <p className="mt-2 text-caption text-red-700">{error}</p>}
 
       <div className="mt-3 flex gap-2">
         <button
@@ -429,7 +428,7 @@ function EditForm({
           취소
         </button>
         <button
-          className="h-[44px] flex-1 rounded-xl bg-primary-500 text-body2 text-white disabled:bg-gray-200"
+          className="h-[44px] flex-1 rounded-xl bg-primary-600 text-body2 text-white disabled:bg-gray-200"
           disabled={saving}
           onClick={() => void save()}
           type="button"
@@ -453,7 +452,7 @@ function Empty({ text }: { text: string }) {
   return (
     <div
       className="mt-4 flex h-[120px] items-center justify-center rounded-2xl"
-      style={{ background: "#F0F5FD", border: "1px dashed #C5DDF5" }}
+      style={{ background: "var(--color-primary-50)", border: "1px dashed var(--color-primary-150)" }}
     >
       <p className="text-caption text-gray-300">{text}</p>
     </div>

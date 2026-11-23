@@ -13,9 +13,11 @@
 바꾼다(graph/nodes/normalize.py).
 """
 
+from contracts.query_spec import QuerySpec
 from prompts.product_types_text import (
     group_text,
     query_category_lines,
+    query_feature_kinds,
     query_feature_lines,
 )
 from rules.product_types import CATEGORY_TYPES
@@ -110,3 +112,65 @@ QUERY_NORMALIZE_SYSTEM = (
     .replace("__묶음_설명__", group_text())
 )
 
+
+# ── 출력 양식 스키마 ────────────────────────────────────────────────────────
+#
+# 답의 모양을 JSON 스키마로 강제할 수 있는 모델에는 이 스키마를 함께 넘긴다.
+# 위 [반환할 JSON] 과 같은 모양이고 QuerySpec 에서 만든다.
+
+# 스키마에서 모양을 정하는 말. 제목, 설명, 기본값과 숫자나 글자 수 제약은 남기지 않는다.
+# 그런 제약은 스키마로 강제되지 않고, 설명은 프롬프트에 이미 있어 입력 토큰만 늘린다.
+# 빠진 제약은 답을 QuerySpec 으로 읽을 때 그대로 검사한다
+_모양을_정하는_말 = frozenset({
+    "type", "properties", "required", "additionalProperties", "items", "enum", "anyOf", "$ref", "$defs",
+})
+
+
+def _모양만_남기기(조각):
+    """스키마에서 모양을 정하는 말만 남긴다. 객체는 모든 키를 꼭 적게 한다.
+
+    빼도 되는 키가 많으면 스키마를 받아 주지 않는다. 프롬프트도 모든 키를 적게 하므로
+    값이 없는 칸은 null 이나 빈 배열로 적게 된다.
+    """
+    if isinstance(조각, list):
+        return [_모양만_남기기(하나) for 하나 in 조각]
+    if not isinstance(조각, dict):
+        return 조각
+    남긴 = {}
+    for 말, 값 in 조각.items():
+        if 말 in ("properties", "$defs"):
+            # 여기의 키는 스키마의 말이 아니라 칸 이름이다
+            남긴[말] = {이름: _모양만_남기기(안) for 이름, 안 in 값.items()}
+        elif 말 in _모양을_정하는_말:
+            남긴[말] = _모양만_남기기(값)
+    if 남긴.get("type") == "object":
+        남긴["required"] = list(남긴.get("properties", {}))
+        남긴["additionalProperties"] = False
+    return 남긴
+
+
+def _특징_모양() -> dict:
+    """features 의 모양. 특징 표에 있는 키만 적을 수 있고, 질문에 없는 키는 빼도 된다.
+
+    QuerySpec 은 features 를 키가 정해지지 않은 딕셔너리로 받는다. 그대로 스키마로
+    넘기면 빈 객체만 답할 수 있게 되므로, 올 수 있는 키를 여기서 모두 적는다.
+    """
+    모양들 = {
+        "string": {"type": "string"},
+        "array": {"type": "array", "items": {"type": "string"}},
+        "boolean": {"type": "boolean"},
+    }
+    return {
+        "type": "object",
+        "properties": {키: 모양들[모양] for 키, 모양 in query_feature_kinds().items()},
+        "additionalProperties": False,
+    }
+
+
+def _출력_스키마() -> dict:
+    스키마 = _모양만_남기기(QuerySpec.model_json_schema())
+    스키마["properties"]["features"] = _특징_모양()
+    return 스키마
+
+
+QUERY_SPEC_SCHEMA = _출력_스키마()

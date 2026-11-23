@@ -100,23 +100,28 @@ async def _b0(입력: dict) -> Outcome:
 #
 # 서비스가 쓰는 방식이다. 되물을지는 rules/clarify.py 의 규칙으로 정한다.
 
-async def _구조_규칙으로_해석(
-    입력: dict, temperature: float = 0.0, 덧붙일_말: str = "",
-) -> tuple[Optional[dict], str, bool]:
-    """서비스와 같은 프롬프트로 한 번 해석한다. (spec, 시나리오, 되물을지)
+async def _한_번_읽기(입력: dict, temperature: float = 0.0, 덧붙일_말: str = ""):
+    """서비스와 같은 프롬프트로 한 번 해석한다. 답을 읽지 못하면 None.
 
-    해석하지 못하면 spec 은 None 이고 검색으로 둔 채 되묻는다.
     덧붙일_말은 사용자 말 뒤에 붙여 함께 보낸다.
     """
-    from contracts.query_spec import RequestType
     from graph.nodes.normalize import _사용자_말, parse_query
+
+    raw = (입력.get("raw_query") or "").strip()
+    return await parse_query(
+        _사용자_말(입력, raw) + 덧붙일_말, raw, temperature=temperature,
+    )
+
+
+def _읽은_것으로_정하기(입력: dict, 읽은) -> tuple[Optional[dict], str, bool]:
+    """읽은 스펙으로 (spec, 시나리오, 되물을지) 를 정한다.
+
+    읽지 못했으면 spec 은 None 이고 검색으로 둔 채 되묻는다.
+    """
+    from contracts.query_spec import RequestType
     from graph.registry import ROUTE
     from rules.clarify import needs_clarification
 
-    raw = (입력.get("raw_query") or "").strip()
-    읽은 = await parse_query(
-        _사용자_말(입력, raw) + 덧붙일_말, raw, temperature=temperature,
-    )
     if 입력.get("parent_job_id"):
         spec = 읽은.model_dump(mode="json") if 읽은 else {"request_type": "REFINE"}
         return spec, ROUTE[RequestType.REFINE], False
@@ -129,10 +134,24 @@ async def _구조_규칙으로_해석(
     return spec, ROUTE[종류], needs_clarification(읽은)
 
 
+async def _구조_규칙으로_해석(
+    입력: dict, temperature: float = 0.0, 덧붙일_말: str = "",
+) -> tuple[Optional[dict], str, bool]:
+    """서비스와 같은 프롬프트로 한 번 해석한다. (spec, 시나리오, 되물을지)
+
+    해석하지 못하면 spec 은 None 이고 검색으로 둔 채 되묻는다.
+    """
+    return _읽은_것으로_정하기(입력, await _한_번_읽기(입력, temperature, 덧붙일_말))
+
+
 async def _a2(입력: dict) -> Outcome:
-    """확신 점수 없이, 양식이 얼마나 비었는지를 보고 코드가 되물을지 정한다."""
-    spec, 시나리오, 되물음 = await _구조_규칙으로_해석(입력)
-    return Outcome(spec=spec or {}, scenario=시나리오, clarify_rule=되물음)
+    """확신 점수 없이, 양식이 얼마나 비었는지를 보고 코드가 되물을지 정한다.
+
+    답을 읽었는지도 함께 남긴다. 모델을 바꿔 가며 견줄 때 양식을 못 지킨 비율을 낸다.
+    """
+    읽은 = await _한_번_읽기(입력)
+    spec, 시나리오, 되물음 = _읽은_것으로_정하기(입력, 읽은)
+    return Outcome(spec=spec or {}, scenario=시나리오, clarify_rule=되물음, parsed=읽은 is not None)
 
 
 # ── A3. LLM + 구조 규칙 + 반복 질문 ─────────────────────────────────────────

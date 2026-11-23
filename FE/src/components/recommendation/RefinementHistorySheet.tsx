@@ -71,7 +71,7 @@ export function RefinementHistorySheet({
                   type="button"
                   onClick={() => onSelect(entry.jobId)}
                   disabled={active}
-                  className={`mt-2 rounded-md px-2 py-1 text-[11px] ${active ? "bg-primary-500 text-white" : "border border-gray-200 bg-white text-gray-400"}`}
+                  className={`mt-2 rounded-md px-2 py-1 text-[11px] ${active ? "bg-primary-600 text-white" : "border border-gray-200 bg-white text-gray-400"}`}
                 >
                   {active ? "지금 보고 있어요" : "이 시점으로"}
                 </button>

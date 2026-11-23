@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { ArrowDown, Sparkles, Percent } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   getNotifications,
@@ -96,7 +97,7 @@ export function NotificationPage() {
         />
 
         {loading ? (
-          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-10 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : notifications.length === 0 ? (
           <p className="mt-10 text-center text-body2 text-gray-300">알림이 없습니다.</p>
         ) : (
@@ -183,10 +184,16 @@ function NotificationCard({
       <div className="flex gap-4">
         <div
           className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
-            active ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-300"
+            active ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-300"
           }`}
         >
-          {active ? "↓" : label === "AI 추천" ? "✦" : "%"}
+          {active ? (
+            <ArrowDown aria-hidden="true" className="h-5 w-5" />
+          ) : label === "AI 추천" ? (
+            <Sparkles aria-hidden="true" className="h-5 w-5" />
+          ) : (
+            <Percent aria-hidden="true" className="h-5 w-5" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className={`text-caption ${active ? "text-primary-500" : "text-gray-300"}`}>
@@ -196,7 +203,7 @@ function NotificationCard({
           <p className="mt-1 truncate text-caption text-gray-400">{item.body}</p>
           {active && item.actionUrl && (
             <button
-              className="mt-2 rounded-md bg-primary-500 px-4 py-1 text-caption text-white"
+              className="mt-2 rounded-md bg-primary-600 px-4 py-1 text-caption text-white"
               type="button"
               onClick={(e) => {
                 e.stopPropagation();

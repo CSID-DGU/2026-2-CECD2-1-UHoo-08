@@ -30,24 +30,23 @@ export function CompatibilityNotice({ productId }: { productId: string }) {
   return (
     <section
       aria-labelledby="compatibility-title"
-      className={`mt-6 rounded-2xl p-4 ${avoid ? "bg-red-50" : "bg-[#FFF4E6]"}`}
+      className={`mt-6 rounded-2xl p-4 ${avoid ? "bg-red-50" : "bg-warn-50"}`}
     >
       <div className="flex items-center gap-2">
         {avoid ? (
           <AlertTriangle aria-hidden="true" className="h-4 w-4 text-red-700" />
         ) : (
-          <Clock aria-hidden="true" className="h-4 w-4 text-[#C06F2A]" />
+          <Clock aria-hidden="true" className="h-4 w-4 text-warn-600" />
         )}
-        <h2 id="compatibility-title" className={`text-sm font-semibold ${avoid ? "text-red-700" : "text-[#956022]"}`}>
+        <h2 id="compatibility-title" className={`text-sm font-semibold ${avoid ? "text-red-700" : "text-warn-700"}`}>
           {value.bannerText ?? (avoid ? "쓰는 제품과 같이 쓰지 마세요" : "쓰는 제품과 시간을 나눠 쓰세요")}
         </h2>
       </div>
       <ul className="mt-3 grid gap-2">
         {value.pairs.map((pair) => (
           <li key={`${pair.userProductId}-${pair.ingredientA}-${pair.ingredientB}`} className="rounded-xl bg-white/70 p-3">
-            <p className="text-xs font-semibold text-gray-500">
-              {pair.userProductName} · {pair.title}
-            </p>
+            <p className="text-xs font-semibold text-gray-500">{pair.title}</p>
+            <p className="mt-0.5 text-[11px] text-gray-400">{pair.userProductName}</p>
             <p className="mt-1 text-[11px] leading-5 text-gray-400">
               {pair.ingredientA} + {pair.ingredientB}. {pair.reason}
             </p>
@@ -56,7 +55,7 @@ export function CompatibilityNotice({ productId }: { productId: string }) {
         ))}
       </ul>
       {value.basis.length > 0 && (
-        <p className="mt-2 text-[10px] leading-4 text-gray-400">{value.basis.join(" · ")}</p>
+        <p className="mt-2 text-[11px] leading-4 text-gray-400">{value.basis.join(", ")}</p>
       )}
     </section>
   );

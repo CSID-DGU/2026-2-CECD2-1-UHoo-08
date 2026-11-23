@@ -71,7 +71,7 @@ export function HeroBackdrop() {
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,#9DBDE9_0%,#C5D8F0_100%)]" />
+      <div className="absolute inset-0 bg-linear-135 from-primary-200 to-primary-150" />
       {show3d && (
         <BackdropBoundary>
           <Suspense fallback={null}>
@@ -93,7 +93,7 @@ export function HeroBackdrop() {
         </BackdropBoundary>
       )}
       {/* 왼쪽 글자가 장면 위에서도 읽히게 옅은 막을 깐다. */}
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(240,245,253,0.92)_0%,rgba(240,245,253,0.7)_45%,rgba(240,245,253,0)_80%)]" />
+      <div className="absolute inset-0 bg-linear-to-r from-primary-50/92 from-0% via-primary-50/70 via-45% to-primary-50/0 to-80%" />
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function ProductListItem({
         {match && <Badge>{match}</Badge>}
         {best && <Badge className="px-5 text-center">BEST</Badge>}
         {actionLabel && (
-          <span className="rounded-xl bg-primary-500 px-4 py-2 text-caption text-white">
+          <span className="rounded-xl bg-primary-600 px-4 py-2 text-caption text-white">
             {actionLabel}
           </span>
         )}

@@ -110,6 +110,63 @@ async def test_구조_규칙_조건은_단서가_없거나_필수_값이_비면_
 
 
 @pytest.mark.asyncio
+async def test_구조_규칙_조건은_답을_읽었는지를_남긴다(가짜_llm):
+    """모델을 바꿔 견줄 때 양식을 못 지킨 비율을 내는 재료다."""
+    from eval.router_conditions import CONDITIONS
+
+    가짜_llm([_답(category="base")])
+    assert (await CONDITIONS["a2"].run({"raw_query": "쿠션 추천"})).parsed is True
+
+    가짜_llm([None])
+    assert (await CONDITIONS["a2"].run({"raw_query": "쿠션 추천"})).parsed is False
+
+    # 직전 결과가 있으면 못 읽어도 조건 수정으로 보낸다. 그래도 못 읽었다는 것은 남는다
+    가짜_llm([None])
+    나온 = await CONDITIONS["a2"].run({"raw_query": "더 싼 걸로", "parent_job_id": "prev"})
+    assert 나온.scenario == "S7_REFINE" and 나온.parsed is False
+
+
+def test_모델을_고르면_도는_동안만_Normalize_의_모델이_바뀐다(monkeypatch):
+    import argparse
+
+    from eval import run_router_eval
+    from services.llm import client
+
+    monkeypatch.setattr(client.settings, "LLM_NORMALIZE_MODEL", "")
+    본 = []
+
+    async def 조건(입력):
+        본.append(client.settings.LLM_NORMALIZE_MODEL)
+        return Outcome(spec={}, scenario="S2_SEARCH")
+
+    인자 = argparse.Namespace(model="claude-haiku-5-5", runs=2, concurrency=1)
+    runs = run_router_eval._조건_돌리기(인자, [_문제("a")], 조건)
+
+    assert 본 == ["claude-haiku-5-5", "claude-haiku-5-5"]
+    assert client.settings.LLM_NORMALIZE_MODEL == ""
+    assert [len(run) for run in runs] == [1, 1]
+    client.get_llm.cache_clear()
+
+
+def test_모델을_고르지_않으면_설정을_건드리지_않는다(monkeypatch):
+    import argparse
+
+    from eval import run_router_eval
+    from services.llm import client
+
+    monkeypatch.setattr(client.settings, "LLM_NORMALIZE_MODEL", "미리-정한-모델")
+    본 = []
+
+    async def 조건(입력):
+        본.append(client.settings.LLM_NORMALIZE_MODEL)
+        return Outcome(spec={}, scenario="S2_SEARCH")
+
+    run_router_eval._조건_돌리기(argparse.Namespace(model=None, runs=1, concurrency=1), [_문제("a")], 조건)
+
+    assert 본 == ["미리-정한-모델"]
+
+
+@pytest.mark.asyncio
 async def test_구조_규칙_조건은_답을_읽지_못하면_되묻는다(가짜_llm):
     from eval.router_conditions import CONDITIONS
 

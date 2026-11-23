@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   type RecommendationResultResponse,
@@ -49,7 +50,7 @@ export function RecommendationResultPage() {
         <div className="flex h-screen flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto scrollbar-none">
         <section className="flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-500" />
+          <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-2 border-primary-200 border-t-primary-500" />
         </section>
           </div>
         </div>
@@ -81,14 +82,14 @@ export function RecommendationResultPage() {
           </div>
           <span className="absolute right-12 top-5 h-[92px] w-[92px] rounded-full bg-gray-400" />
           <span className="absolute right-7 top-16 h-[66px] w-[66px] rounded-full bg-primary-700" />
-          <span className="absolute right-[78px] top-[70px] text-h1 text-white">✦</span>
+          <Sparkles aria-hidden="true" className="absolute right-[74px] top-[74px] h-7 w-7 text-white" />
         </section>
 
 
         {/* AI 추천 이유 */}
         {result?.aiReason && (
           <section className="mt-4 rounded-xl border border-primary-100 bg-primary-50 p-4">
-            <p className="text-body2 text-primary-500">✦ AI가 분석한 추천 이유</p>
+            <h2 className="text-body2 font-semibold text-primary-600">AI가 분석한 추천 이유</h2>
             <p className="mt-2 text-caption leading-6 text-gray-500">{result.aiReason}</p>
           </section>
         )}
@@ -162,7 +163,10 @@ export function RecommendationResultPage() {
                   <div className="flex-1">
                     <p className="text-body2 text-gray-500">{p.name}</p>
                     <p className="text-caption text-primary-500">
-                      성분 유사도 {p.ingredientSimilarity != null ? `${p.ingredientSimilarity}%` : "—"} · {p.brand}
+                      <span className="flex gap-2">
+                        {p.ingredientSimilarity != null && <span>성분 유사도 {p.ingredientSimilarity}%</span>}
+                        <span>{p.brand}</span>
+                      </span>
                     </p>
                     <p className="mt-1 text-body1 text-gray-500">{fmt(p.price)}</p>
                   </div>
@@ -174,7 +178,7 @@ export function RecommendationResultPage() {
 
 
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white"
           onClick={() => navigate("/home")}
           type="button"
         >

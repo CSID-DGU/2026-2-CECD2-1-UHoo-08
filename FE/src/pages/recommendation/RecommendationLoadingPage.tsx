@@ -72,7 +72,7 @@ export function RecommendationLoadingPage() {
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span role="status" aria-live="polite" className="text-gray-300">{current?.label ?? label}</span><span className="font-semibold tabular-nums text-primary-600">{progress == null ? "—%" : `${Math.round(progress)}%`}</span></div>
           <div role="progressbar" aria-label="추천 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress ?? undefined} className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full rounded-full bg-primary-500 transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${progress ?? 0}%` }} />
+            <div className="h-full w-full origin-left rounded-full bg-primary-500 transition-transform duration-500 motion-reduce:transition-none" style={{ transform: `scaleX(${(progress ?? 0) / 100})` }} />
           </div>
         </div>
         {notice && <p role="status" className="mt-3 text-center text-caption text-gray-400">{notice}</p>}

@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Search } from "lucide-react";
+import { Camera, ChevronLeft, ScanText, Search } from "lucide-react";
 import { OpenedDateInput } from "../../components/my/OpenedDateInput";
 import { toOpenedAt } from "../../components/my/openedDate";
 import { searchProducts, type ProductSearchItem } from "../../api/productApi";
 import {
   createUserProduct,
+  recognizeExpiry,
+  recognizeProductName,
   toServerDate,
+  type ExpiryRecognition,
+  type PhotoRecognition,
   type UserProductCreated,
 } from "../../api/userProductApi";
 import {
@@ -58,6 +62,67 @@ export function MyProductRegisterPage() {
   const [done, setDone] = useState<(UserProductCreated & { storageFailed: boolean }) | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 
+  // 사진 두 장으로 등록: 1장째(앞면)로 제품 후보를 찾고, 2장째(뒷면·바닥)로 기한을 읽는다.
+  const frontInput = useRef<HTMLInputElement>(null);
+  const backInput = useRef<HTMLInputElement>(null);
+  const [recognition, setRecognition] = useState<PhotoRecognition | null>(null);
+  const [recognizing, setRecognizing] = useState<"front" | "back" | null>(null);
+  const [expiry, setExpiry] = useState<ExpiryRecognition | null>(null);
+  // 사진 후보에서 고른 제품이면 PHOTO 로 등록한다. 검색에서 다시 고르면 MANUAL 로 돌아간다.
+  const [pickedFromPhoto, setPickedFromPhoto] = useState(false);
+
+  /** 인식 ID 는 30분만 유효하다. 만료되면 앞면부터 다시 찍게 한다. */
+  function recognitionExpired() {
+    setRecognition(null);
+    setExpiry(null);
+    setPickedFromPhoto(false);
+    setPicked(null);
+    setFailed("사진 인식이 만료됐어요. 앞면 사진부터 다시 찍어주세요.");
+  }
+
+  const readFront = async (file: File) => {
+    setRecognizing("front");
+    setFailed(null);
+    setResults(null);
+    setPicked(null);
+    setPickedFromPhoto(false);
+    setExpiry(null);
+    try {
+      const { data } = await recognizeProductName(file);
+      setRecognition(data);
+    } catch (error) {
+      setRecognition(null);
+      setFailed(
+        apiErrorCode(error) === "VALIDATION_ERROR"
+          ? "사진을 읽지 못했어요. jpg, png, heic, webp 사진(10MB 이하)으로 다시 찍어주세요."
+          : "사진에서 제품을 찾지 못했어요. 다시 찍거나 이름으로 검색해 주세요.",
+      );
+    } finally {
+      setRecognizing(null);
+    }
+  };
+
+  const readBack = async (file: File) => {
+    if (!recognition) return;
+    setRecognizing("back");
+    setFailed(null);
+    try {
+      const { data } = await recognizeExpiry(recognition.recognitionId, file);
+      setExpiry(data);
+    } catch (error) {
+      if (apiErrorCode(error) === "RECOGNITION_NOT_FOUND") recognitionExpired();
+      else setFailed("기한을 읽지 못했어요. 글자가 잘 보이게 다시 찍어주세요.");
+    } finally {
+      setRecognizing(null);
+    }
+  };
+
+  function pickFromSearch(product: ProductSearchItem) {
+    setPicked(product);
+    setPickedFromPhoto(false);
+    setExpiry(null);
+  }
+
   useEffect(() => {
     getMyProfile()
       .then((res) => {
@@ -92,11 +157,21 @@ export function MyProductRegisterPage() {
     setSaving(true);
     setFailed(null);
     try {
+      const photo = pickedFromPhoto && recognition;
       const { data } = await createUserProduct({
         productId: picked.id,
         openedAt: !skipOpened && openedAt ? toServerDate(openedAt) : undefined,
         remainingPct: remaining,
-        source: "MANUAL",
+        source: photo ? "PHOTO" : "MANUAL",
+        // 사진으로 고른 제품만 인식 ID 와, 뒷면에서 읽은 값(읽은 것만)을 보낸다.
+        ...(photo
+          ? {
+              recognitionId: recognition.recognitionId,
+              expiryDate: expiry?.expiryDate.value ?? undefined,
+              paoMonths: expiry?.paoMonths.value ?? undefined,
+              manufacturedAt: expiry?.manufacturedAt.value ?? undefined,
+            }
+          : {}),
       });
       // 보관 위치는 같은 행에 AI CARE 로 넣는다. 실패해도 등록은 된 상태다.
       let storageFailed = false;
@@ -107,8 +182,13 @@ export function MyProductRegisterPage() {
       }
       setDone({ ...data, storageFailed });
     } catch (error) {
+      const code = apiErrorCode(error);
+      if (code === "RECOGNITION_NOT_FOUND") {
+        recognitionExpired();
+        return;
+      }
       setFailed(
-        apiErrorCode(error) === "ALREADY_REGISTERED"
+        code === "ALREADY_REGISTERED"
           ? "이미 쓰는 중으로 등록된 제품이에요"
           : "등록하지 못했어요. 다시 시도해주세요.",
       );
@@ -125,6 +205,9 @@ export function MyProductRegisterPage() {
     setOpened({ year: "", month: "", day: "" });
     setSkipOpened(false);
     setRemaining(100);
+    setRecognition(null);
+    setExpiry(null);
+    setPickedFromPhoto(false);
     // 기본 보관 위치는 유지한다. 비우면 두 번째 제품부터 화장대가 풀린 채로 등록된다.
     setStorage(storages.find((x) => x.default)?.node_id ?? "");
   }
@@ -143,7 +226,7 @@ export function MyProductRegisterPage() {
               </p>
             )}
             {done.storageFailed && (
-              <p className="mt-2 text-caption text-[#8A5A12]">
+              <p className="mt-2 text-caption text-warn-700">
                 보관 위치는 저장하지 못했어요. 목록에서 다시 지정해 주세요.
               </p>
             )}
@@ -154,9 +237,9 @@ export function MyProductRegisterPage() {
               {done.conflicts.map((conflict) => (
                 <div
                   key={conflict.userProductId}
-                  className={`rounded-xl p-3 ${conflict.level === "AVOID" ? "bg-red-50" : "bg-[#FDF3E7]"}`}
+                  className={`rounded-xl p-3 ${conflict.level === "AVOID" ? "bg-red-50" : "bg-warn-50"}`}
                 >
-                  <p className={`text-body2 ${conflict.level === "AVOID" ? "text-red-700" : "text-[#8A5A12]"}`}>
+                  <p className={`text-body2 ${conflict.level === "AVOID" ? "text-red-700" : "text-warn-700"}`}>
                     {conflict.name}와 {conflict.level === "AVOID" ? "같이 쓰지 마세요" : "시간을 나눠 쓰세요"}
                   </p>
                   {conflict.advice && <p className="mt-0.5 text-caption text-gray-400">{conflict.advice}</p>}
@@ -174,7 +257,7 @@ export function MyProductRegisterPage() {
               목록 보기
             </button>
             <button
-              className="h-[52px] flex-1 rounded-2xl bg-primary-500 text-body1 text-white"
+              className="h-[52px] flex-1 rounded-2xl bg-primary-600 text-body1 text-white"
               onClick={reset}
               type="button"
             >
@@ -204,7 +287,7 @@ export function MyProductRegisterPage() {
             />
           </div>
           <button
-            className="h-[48px] shrink-0 rounded-2xl bg-primary-500 px-4 text-body2 text-white disabled:bg-gray-200"
+            className="h-[48px] shrink-0 rounded-2xl bg-primary-600 px-4 text-body2 text-white disabled:bg-gray-200"
             disabled={searching || !keyword.trim()}
             onClick={() => void search()}
             type="button"
@@ -212,6 +295,43 @@ export function MyProductRegisterPage() {
             {searching ? "검색 중" : "검색"}
           </button>
         </div>
+
+        {/* 사진 두 장 중 1장째: 앞면. 고르기 전까지만 보인다 */}
+        {!picked && (
+          <button
+            className="mt-2 flex h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary-300 bg-primary-50 text-body2 text-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={recognizing != null}
+            onClick={() => frontInput.current?.click()}
+            type="button"
+          >
+            <Camera aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+            {recognizing === "front" ? "사진에서 제품을 찾는 중…" : "앞면 사진으로 찾기"}
+          </button>
+        )}
+        <input
+          ref={frontInput}
+          type="file"
+          accept="image/jpeg,image/png,image/heic,image/webp"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void readFront(file);
+          }}
+        />
+        <input
+          ref={backInput}
+          type="file"
+          accept="image/jpeg,image/png,image/heic,image/webp"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void readBack(file);
+          }}
+        />
 
         {picked ? (
           <div className="mt-3 flex items-center gap-3 rounded-2xl border border-primary-300 bg-primary-50 p-3">
@@ -224,11 +344,45 @@ export function MyProductRegisterPage() {
             </div>
             <button
               className="shrink-0 text-caption text-primary-500"
-              onClick={() => setPicked(null)}
+              onClick={() => {
+                setPicked(null);
+                setPickedFromPhoto(false);
+                setExpiry(null);
+              }}
               type="button"
             >
               변경
             </button>
+          </div>
+        ) : recognition && !results ? (
+          <div className="mt-3">
+            <p className="text-caption text-gray-400">
+              {recognition.candidates.length > 0
+                ? "사진에서 찾은 제품이에요. 맞는 걸 골라주세요"
+                : "사진에서 제품을 찾지 못했어요. 다시 찍거나 이름으로 검색해 주세요"}
+            </p>
+            <div className="mt-2 flex flex-col gap-2">
+              {recognition.candidates.map((c) => (
+                <button
+                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 text-left"
+                  key={c.productId}
+                  onClick={() => {
+                    setPicked({ id: c.productId, name: c.name, brand: c.brand, category: "", imageUrl: c.imageUrl });
+                    setPickedFromPhoto(true);
+                  }}
+                  type="button"
+                >
+                  {c.imageUrl && (
+                    <img src={c.imageUrl} alt="" className="h-11 w-11 shrink-0 rounded-lg bg-gray-50 object-contain p-0.5" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body2 text-gray-500">{c.name}</p>
+                    <p className="truncate text-caption text-gray-300">{c.brand}</p>
+                  </div>
+                  <span className="shrink-0 text-caption tabular-nums text-primary-600">일치 {c.matchScore}%</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : results ? (
           <div className="mt-3 flex flex-col gap-2">
@@ -239,7 +393,7 @@ export function MyProductRegisterPage() {
               <button
                 className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 text-left"
                 key={p.id}
-                onClick={() => setPicked(p)}
+                onClick={() => pickFromSearch(p)}
                 type="button"
               >
                 {p.imageUrl && (
@@ -247,9 +401,9 @@ export function MyProductRegisterPage() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body2 text-gray-500">{p.name}</p>
-                  <p className="truncate text-caption text-gray-300">
-                    {p.brand}
-                    {p.originalPrice != null && ` · ${p.originalPrice.toLocaleString()}원`}
+                  <p className="flex gap-2 truncate text-caption text-gray-300">
+                    <span className="truncate">{p.brand}</span>
+                    {p.originalPrice != null && <span className="shrink-0">{p.originalPrice.toLocaleString()}원</span>}
                   </p>
                 </div>
               </button>
@@ -260,6 +414,42 @@ export function MyProductRegisterPage() {
         {/* 2. 선택 항목 — 제품을 고른 뒤에만 묻는다 */}
         {picked && (
           <div className="mt-5">
+            {/* 사진 두 장 중 2장째: 뒷면·바닥에서 기한을 읽는다. 사진으로 고른 제품만 */}
+            {pickedFromPhoto && (
+              <Field label="기한 (선택)">
+                {expiry ? (
+                  <div className="rounded-2xl border border-gray-100 bg-white p-3">
+                    <ReadRow label="유통기한" value={expiry.expiryDate.value} />
+                    <ReadRow
+                      label="개봉 후 사용 기간"
+                      value={expiry.paoMonths.value != null ? `${expiry.paoMonths.value}개월` : null}
+                    />
+                    <ReadRow label="제조일" value={expiry.manufacturedAt.value} />
+                    <button
+                      className="mt-1 min-h-9 text-caption text-primary-600"
+                      onClick={() => backInput.current?.click()}
+                      type="button"
+                    >
+                      다시 찍기
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="flex h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary-300 bg-primary-50 text-body2 text-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={recognizing != null}
+                    onClick={() => backInput.current?.click()}
+                    type="button"
+                  >
+                    <ScanText aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+                    {recognizing === "back" ? "기한을 읽는 중…" : "뒷면 사진으로 기한 읽기"}
+                  </button>
+                )}
+                <p className="mt-1 text-[11px] text-gray-300">
+                  유통기한이나 개봉 후 사용 기간이 적힌 면을 찍어주세요. 읽은 값만 저장해요.
+                </p>
+              </Field>
+            )}
+
             <Field label="개봉일">
               {!skipOpened && (
                 <OpenedDateInput
@@ -328,10 +518,10 @@ export function MyProductRegisterPage() {
           </div>
         )}
 
-        {failed && <p className="mt-3 text-caption text-[#E05A5A]">{failed}</p>}
+        {failed && <p className="mt-3 text-caption text-red-700">{failed}</p>}
 
         <button
-          className="mt-5 h-[52px] w-full rounded-2xl bg-primary-500 text-body1 text-white disabled:bg-gray-200 disabled:text-gray-300"
+          className="mt-5 h-[52px] w-full rounded-2xl bg-primary-600 text-body1 text-white disabled:bg-gray-200 disabled:text-gray-300"
           disabled={!picked || !openedReady || saving}
           onClick={() => void submit()}
           type="button"
@@ -357,6 +547,16 @@ function Header({ onBack, title }: { onBack: () => void; title: string }) {
       </button>
       <h1 className="text-body1 text-gray-500">{title}</h1>
     </header>
+  );
+}
+
+/** 뒷면에서 읽은 값 한 줄. 못 읽은 항목은 추측하지 않고 그렇다고 밝힌다. */
+function ReadRow({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex items-center justify-between py-1 text-caption">
+      <span className="text-gray-400">{label}</span>
+      <span className={value ? "tabular-nums text-gray-500" : "text-gray-300"}>{value ?? "못 읽었어요"}</span>
+    </div>
   );
 }
 

@@ -15,7 +15,7 @@ LLM 은 빈칸만 채운다. 경로는 채워진 값을 보고 코드가 정한�
 목록에 없거나 카테고리에 맞지 않는 종류는 특징에서 빼고 문장 조건으로 옮긴다.
 필터는 목록의 이름으로만 비교하므로, 모르는 이름을 특징에 두면 맞는 상품이 하나도
 남지 않는다. 문장 조건으로 옮기면 검색 문장에는 그대로 들어간다. 세트 단계의 종류도
-같이 바꾸고, 모르면 비운다.
+같이 바꾸고, 모르면 비운다. 그 카테고리의 특징 표에 없는 키는 버린다.
 
 모델이 빈 값 자리에 문자열 "null" 을 넣는 일이 있다. 검증 전에 빈 값으로 읽는다. 그대로 두면
 카테고리 검증에 두 번 실패해 되묻기로 넘어가고, 그 사이 예산과 세트 경로를 잃는다.
@@ -35,7 +35,8 @@ from pydantic import ValidationError
 
 from contracts.query_spec import QuerySpec, RequestType
 from graph.state import GraphState
-from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM
+from prompts.product_types_text import query_feature_keys
+from prompts.query_normalize import QUERY_NORMALIZE_SYSTEM, QUERY_SPEC_SCHEMA
 from rules.product_types import canonical
 
 logger = logging.getLogger(__name__)
@@ -118,8 +119,18 @@ def _한_종류(값):
 
 
 def _종류_다듬기(spec: QuerySpec) -> QuerySpec:
-    """제품 종류를 표준 이름으로 바꾼다. 모르는 종류는 문장 조건으로 옮긴다."""
-    특징 = dict(spec.features)
+    """제품 종류를 표준 이름으로 바꾼다. 모르는 종류는 문장 조건으로 옮긴다.
+
+    그 카테고리의 특징 표에 없는 키는 버린다. 스키마는 모든 카테고리의 키를 한 목록으로
+    열어 두어, 스킨케어 질의에 waterproof 같은 키가 들어올 수 있다. 그런 키는 사용자가
+    말한 조건이 아니라 모델이 채운 값이라 문장 조건으로 옮기지 않는다. 남겨 두면 점수와
+    검색 문장에 들어가 순위를 바꾼다.
+    """
+    허용 = query_feature_keys(_카테고리(spec.category))
+    버린 = sorted(set(spec.features) - 허용)
+    if 버린:
+        logger.info("normalize: 카테고리 %s 의 특징 표에 없는 키를 버린다 %s", _카테고리(spec.category), 버린)
+    특징 = {키: 값 for 키, 값 in spec.features.items() if 키 in 허용}
     조건 = list(spec.conditions)
     if "product_type" in 특징:
         값 = _한_종류(특징.pop("product_type"))
@@ -157,7 +168,10 @@ async def parse_query(
     llm = get_llm(LLMRole.NORMALIZE)
 
     for 시도 in range(1, _최대_시도 + 1):
-        원본 = await llm.chat_json(system=system, user=사용자_말, temperature=temperature)
+        # 스키마로 답의 모양을 강제할 수 있는 모델은 이 스키마를 쓴다. 나머지 모델은 받기만 한다
+        원본 = await llm.chat_json(
+            system=system, user=사용자_말, temperature=temperature, schema=QUERY_SPEC_SCHEMA,
+        )
         if 원본 is None:
             logger.warning("normalize: JSON 이 아니다 (%d/%d) %r", 시도, _최대_시도, raw)
             continue
