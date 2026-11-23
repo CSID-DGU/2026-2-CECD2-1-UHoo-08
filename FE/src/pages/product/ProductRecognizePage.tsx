@@ -65,7 +65,7 @@ export function ProductRecognizePage() {
 
         <div className="mt-auto grid gap-3">
           <button
-            className="h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+            className="h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
             disabled={!result?.productId}
             onClick={handleConfirm}
             type="button"

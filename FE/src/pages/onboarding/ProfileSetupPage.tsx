@@ -123,7 +123,7 @@ export function ProfileSetupPage() {
                   <button
                     className={`h-[50px] rounded-lg text-body1 ${
                       gender === value
-                        ? "bg-primary-500 text-white"
+                        ? "bg-primary-600 text-white"
                         : "bg-gray-100 text-gray-500"
                     }`}
                     key={value}
@@ -143,7 +143,7 @@ export function ProfileSetupPage() {
         </div>
 
         <button
-          className="mt-auto h-14 w-full rounded-xl bg-primary-500 text-body1 text-white disabled:opacity-50"
+          className="mt-auto h-14 w-full rounded-xl bg-primary-600 text-body1 text-white disabled:opacity-50"
           disabled={loading}
           onClick={handleNext}
           type="button"

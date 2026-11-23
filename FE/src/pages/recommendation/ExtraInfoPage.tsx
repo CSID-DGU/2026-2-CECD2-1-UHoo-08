@@ -108,7 +108,7 @@ export function ExtraInfoPage() {
           {recommendationReasons.map((item) => (
             <button
               className={`h-9 rounded-full px-4 text-caption ${
-                reason === item ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-500"
+                reason === item ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-500"
               }`}
               key={item}
               onClick={() => setReason(item)}
@@ -135,7 +135,7 @@ export function ExtraInfoPage() {
             return (
               <button
                 className={`h-[84px] rounded-xl text-center ${
-                  selected ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-300"
+                  selected ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-300"
                 }`}
                 key={item.id}
                 onClick={() => setPriceRange(item.id)}
@@ -162,7 +162,7 @@ export function ExtraInfoPage() {
         </div>
 
         <button
-          className="mt-auto h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-auto h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           disabled={loading || !productId}
           onClick={handleSubmit}
           type="button"

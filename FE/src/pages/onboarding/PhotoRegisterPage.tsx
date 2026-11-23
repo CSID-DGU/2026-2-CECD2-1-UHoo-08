@@ -211,7 +211,7 @@ export function PhotoRegisterPage() {
               <p className="text-caption text-gray-300">{product.brand}</p>
             </div>
             <button
-              className="h-9 rounded-xl bg-primary-500 px-4 text-caption text-white"
+              className="h-9 rounded-xl bg-primary-600 px-4 text-caption text-white"
               onClick={handleAdd}
               type="button"
             >
@@ -279,7 +279,7 @@ export function PhotoRegisterPage() {
               </button>
               {phase === "result" ? (
                 <button
-                  className="h-[52px] rounded-xl bg-primary-500 text-body2 text-white"
+                  className="h-[52px] rounded-xl bg-primary-600 text-body2 text-white"
                   onClick={handleAdd}
                   type="button"
                 >

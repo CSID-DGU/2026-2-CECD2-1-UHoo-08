@@ -122,7 +122,7 @@ export function ClarifyForm({
       <button
         type="submit"
         disabled={empty || submitting}
-        className="mt-4 h-12 w-full rounded-xl bg-primary-500 text-body2 font-semibold text-white disabled:opacity-40"
+        className="mt-4 h-12 w-full rounded-xl bg-primary-600 text-body2 font-semibold text-white disabled:opacity-40"
       >
         {submitting ? "보내는 중" : "답하고 계속 찾기"}
       </button>

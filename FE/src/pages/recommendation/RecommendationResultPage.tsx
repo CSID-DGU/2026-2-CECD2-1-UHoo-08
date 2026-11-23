@@ -178,7 +178,7 @@ export function RecommendationResultPage() {
 
 
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white"
           onClick={() => navigate("/home")}
           type="button"
         >

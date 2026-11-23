@@ -149,7 +149,7 @@ export function NfcScanPage() {
                   <h2 className="mt-8 text-h3 text-gray-500">스캔 실패</h2>
                   <p className="mt-3 text-body2 text-gray-300">{errorMsg}</p>
                   <button
-                    className="mt-8 h-12 rounded-xl bg-primary-500 px-8 text-body2 text-white"
+                    className="mt-8 h-12 rounded-xl bg-primary-600 px-8 text-body2 text-white"
                     onClick={() => {
                       setState("idle");
                       setErrorMsg("");

@@ -428,7 +428,7 @@ function EditForm({
           취소
         </button>
         <button
-          className="h-[44px] flex-1 rounded-xl bg-primary-500 text-body2 text-white disabled:bg-gray-200"
+          className="h-[44px] flex-1 rounded-xl bg-primary-600 text-body2 text-white disabled:bg-gray-200"
           disabled={saving}
           onClick={() => void save()}
           type="button"

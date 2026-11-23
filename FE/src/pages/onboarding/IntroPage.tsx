@@ -128,7 +128,7 @@ export function IntroPage() {
             <button
               type="button"
               onClick={finish}
-              className="flex h-12 items-center gap-1.5 rounded-full bg-primary-500 px-6 text-body2 font-semibold text-white shadow-primary"
+              className="flex h-12 items-center gap-1.5 rounded-full bg-primary-600 px-6 text-body2 font-semibold text-white shadow-primary"
             >
               {again ? "확인" : "시작"}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function IntroPage() {
                 type="button"
                 onClick={() => go(step + 1)}
                 aria-label="다음"
-                className="grid h-12 w-12 place-items-center rounded-full bg-primary-500 text-white shadow-primary"
+                className="grid h-12 w-12 place-items-center rounded-full bg-primary-600 text-white shadow-primary"
               >
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </button>

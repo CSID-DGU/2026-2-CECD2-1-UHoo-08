@@ -257,7 +257,7 @@ export function MyProductRegisterPage() {
               목록 보기
             </button>
             <button
-              className="h-[52px] flex-1 rounded-2xl bg-primary-500 text-body1 text-white"
+              className="h-[52px] flex-1 rounded-2xl bg-primary-600 text-body1 text-white"
               onClick={reset}
               type="button"
             >
@@ -287,7 +287,7 @@ export function MyProductRegisterPage() {
             />
           </div>
           <button
-            className="h-[48px] shrink-0 rounded-2xl bg-primary-500 px-4 text-body2 text-white disabled:bg-gray-200"
+            className="h-[48px] shrink-0 rounded-2xl bg-primary-600 px-4 text-body2 text-white disabled:bg-gray-200"
             disabled={searching || !keyword.trim()}
             onClick={() => void search()}
             type="button"
@@ -521,7 +521,7 @@ export function MyProductRegisterPage() {
         {failed && <p className="mt-3 text-caption text-red-700">{failed}</p>}
 
         <button
-          className="mt-5 h-[52px] w-full rounded-2xl bg-primary-500 text-body1 text-white disabled:bg-gray-200 disabled:text-gray-300"
+          className="mt-5 h-[52px] w-full rounded-2xl bg-primary-600 text-body1 text-white disabled:bg-gray-200 disabled:text-gray-300"
           disabled={!picked || !openedReady || saving}
           onClick={() => void submit()}
           type="button"

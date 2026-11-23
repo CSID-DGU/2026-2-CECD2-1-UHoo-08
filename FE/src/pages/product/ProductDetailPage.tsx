@@ -258,7 +258,7 @@ export function ProductDetailPage() {
             {wishlisted ? <Heart className="h-6 w-6 fill-red-500 text-red-500" strokeWidth={1.8} /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
           </button>
           <button
-            className="h-12 flex-1 rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+            className="h-12 flex-1 rounded-xl bg-primary-600 text-body1 font-semibold text-white"
             onClick={() => void handleViewReport()}
             disabled={!product || analysing}
             type="button"

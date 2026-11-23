@@ -278,7 +278,7 @@ export function PriceHistoryPage() {
           <span className="text-body2 text-gray-300">원</span>
         </div>
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           disabled={saving || !newTargetPrice}
           onClick={handleSaveTargetPrice}
           type="button"

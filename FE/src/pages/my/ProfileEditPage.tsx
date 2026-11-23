@@ -126,7 +126,7 @@ export function ProfileEditPage() {
                   <button
                     className={`h-[50px] rounded-lg text-body1 ${
                       gender === value
-                        ? "bg-primary-500 text-white"
+                        ? "bg-primary-600 text-white"
                         : "bg-gray-100 text-gray-500"
                     }`}
                     key={value}
@@ -142,7 +142,7 @@ export function ProfileEditPage() {
             {error && <p className="mt-3 text-caption text-red-500">{error}</p>}
 
             <button
-              className="mt-6 h-14 w-full rounded-xl bg-primary-500 text-body1 text-white disabled:opacity-50"
+              className="mt-6 h-14 w-full rounded-xl bg-primary-600 text-body1 text-white disabled:opacity-50"
               disabled={loading}
               onClick={handleSave}
               type="button"

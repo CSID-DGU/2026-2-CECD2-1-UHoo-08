@@ -35,7 +35,7 @@ export function OnboardingCompletePage() {
         <div className="text-center">
           <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-primary-50">
             <div className="flex h-[116px] w-[116px] items-center justify-center rounded-full bg-primary-100">
-              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-500 text-white">
+              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-600 text-white">
                 <Check aria-hidden="true" className="h-11 w-11" strokeWidth={2.5} />
               </div>
             </div>
@@ -59,7 +59,7 @@ export function OnboardingCompletePage() {
         )}
 
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           onClick={handleStart}
           disabled={loading}
           type="button"

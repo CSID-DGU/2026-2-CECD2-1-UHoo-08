@@ -195,7 +195,7 @@ export function PriceTrackingAddPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button
-            className="h-12 rounded-xl bg-primary-500 px-4 text-body2 text-white disabled:opacity-50"
+            className="h-12 rounded-xl bg-primary-600 px-4 text-body2 text-white disabled:opacity-50"
             disabled={searching || !searchQuery.trim()}
             type="submit"
           >

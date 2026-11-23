@@ -181,7 +181,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <p className="mt-1 text-body2 text-gray-300">지금 바로 가격 추적을 시작해보세요</p>
       </div>
       <button
-        className="mt-2 h-12 rounded-xl bg-primary-500 px-8 text-body2 text-white"
+        className="mt-2 h-12 rounded-xl bg-primary-600 px-8 text-body2 text-white"
         onClick={onAdd}
         type="button"
       >
@@ -218,7 +218,7 @@ function AchievedCard({
       </div>
       <div className="flex flex-col gap-2">
         <button
-          className="rounded-xl bg-primary-500 px-4 py-2 text-caption text-white"
+          className="rounded-xl bg-primary-600 px-4 py-2 text-caption text-white"
           onClick={onNavigate}
           type="button"
         >

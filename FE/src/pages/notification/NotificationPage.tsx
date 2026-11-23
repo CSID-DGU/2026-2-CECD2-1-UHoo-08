@@ -184,7 +184,7 @@ function NotificationCard({
       <div className="flex gap-4">
         <div
           className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
-            active ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-300"
+            active ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-300"
           }`}
         >
           {active ? (
@@ -203,7 +203,7 @@ function NotificationCard({
           <p className="mt-1 truncate text-caption text-gray-400">{item.body}</p>
           {active && item.actionUrl && (
             <button
-              className="mt-2 rounded-md bg-primary-500 px-4 py-1 text-caption text-white"
+              className="mt-2 rounded-md bg-primary-600 px-4 py-1 text-caption text-white"
               type="button"
               onClick={(e) => {
                 e.stopPropagation();

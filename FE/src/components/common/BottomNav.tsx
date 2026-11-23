@@ -21,7 +21,7 @@ export function BottomNav({ compactSearch = false }: { compactSearch?: boolean }
       </button>
 
       <button
-        className={compactSearch ? "mx-auto flex flex-col items-center gap-1 text-primary-600" : `mx-auto grid h-14 w-14 cursor-pointer place-items-center rounded-full ${centerActive ? "bg-primary-600" : "bg-primary-500"} text-white`}
+        className={compactSearch ? "mx-auto flex flex-col items-center gap-1 text-primary-600" : `mx-auto grid h-14 w-14 cursor-pointer place-items-center rounded-full ${centerActive ? "bg-primary-600" : "bg-primary-600"} text-white`}
         onClick={() => navigate("/search")}
         type="button"
         aria-label="제품 검색과 질문"
