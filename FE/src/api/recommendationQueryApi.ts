@@ -234,6 +234,15 @@ export const submitFeedback = (
     body,
   );
 
+/**
+ * 피드백이나 자주 고른 조건으로 바뀐 가중치 한 건을 되돌린다.
+ * 이미 되돌렸으면 409 CHANGE_NOT_REVERTIBLE, 내 변경이 아니면 404 NOT_FOUND.
+ */
+export const revertPreferenceChange = (changeId: string) =>
+  api.post<ApiResponse<{ changeId: string; reverted: boolean }>>(
+    `/users/me/preference-weights/changes/${encodeURIComponent(changeId)}/revert`,
+  );
+
 /** 세트 한 칸의 교체 후보. 목데이터 세트(jobId 가 mock- 으로 시작)면 목데이터로 답한다. */
 export const getBundleSlotOptions = async (jobId: string, bundleIndex: number, slotKey: string) => {
   if (isMockJob(jobId)) return { success: true, data: mockBundleSlotOptions(bundleIndex, slotKey) };

@@ -6,6 +6,7 @@ import {
   Plus,
   Shuffle,
   Sparkles,
+  Undo2,
   UsersRound,
 } from "lucide-react";
 import {
@@ -23,6 +24,7 @@ import {
   getRefinementOptions,
   requestQuery,
   requestRefinement,
+  revertPreferenceChange,
   submitFeedback,
   type ClarifyField,
   type QueryResult,
@@ -261,6 +263,32 @@ function SearchResultContent() {
   const [feedbackError, setFeedbackError] = useState("");
   const [feedbackSent, setFeedbackSent] = useState<Record<string, true>>({});
   const [toast, setToast] = useState("");
+  // 피드백으로 가중치가 바뀌었으면 알림에서 바로 되돌릴 수 있게 둔다.
+  const [toastChangeId, setToastChangeId] = useState<string | null>(null);
+  // 되돌린 가중치 변경. 같은 변경을 다시 되돌리지 않게 버튼을 숨긴다.
+  const [revertedChanges, setRevertedChanges] = useState<Record<string, true>>({});
+  const [reverting, setReverting] = useState<string | null>(null);
+
+  /** 가중치 변경 한 건을 되돌린다. 이미 되돌린 변경(409)도 되돌린 것으로 본다. */
+  async function revertChange(changeId: string) {
+    setReverting(changeId);
+    try {
+      await revertPreferenceChange(changeId);
+      setRevertedChanges((previous) => ({ ...previous, [changeId]: true }));
+      setToastChangeId(null);
+      setToast("되돌렸어요. 다음 추천부터 반영돼요");
+    } catch (error) {
+      if (apiErrorCode(error) === "CHANGE_NOT_REVERTIBLE") {
+        setRevertedChanges((previous) => ({ ...previous, [changeId]: true }));
+        setToastChangeId(null);
+        setToast("이미 되돌린 변경이에요");
+      } else {
+        setToast("되돌리지 못했어요. 다시 시도해주세요.");
+      }
+    } finally {
+      setReverting(null);
+    }
+  }
 
   // 사진·NFC로 찾기
   const lens = useProductLens(picking ? "recommend" : "detail");
@@ -379,9 +407,13 @@ function SearchResultContent() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 3000);
+    // 되돌리기 버튼이 있으면 누를 시간을 더 준다.
+    const timer = setTimeout(() => {
+      setToast("");
+      setToastChangeId(null);
+    }, toastChangeId ? 6000 : 3000);
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [toast, toastChangeId]);
 
   // ── job 흐름 ──────────────────────────────────────────────────────────
   function showResult(next: QueryResult) {
@@ -715,6 +747,7 @@ function SearchResultContent() {
         [feedbackTarget.item.productId]: true,
       }));
       setFeedbackTarget(null);
+      setToastChangeId(data?.changeId ?? null);
       setToast(data?.message || "의견을 다음 추천에 반영할게요");
     } catch {
       setFeedbackError("피드백을 보내지 못했어요. 다시 시도해주세요.");
@@ -995,11 +1028,30 @@ function SearchResultContent() {
                     {result.summary.notice}
                   </p>
                 )}
-                {ready && result?.appliedPreference?.text && (
-                  <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                    {result.appliedPreference.text}
-                  </p>
-                )}
+                {ready && result?.appliedPreference?.text && (() => {
+                  const changeId = result.appliedPreference.changeId;
+                  const reverted = changeId != null && revertedChanges[changeId];
+                  return (
+                    <div className="mt-2 flex items-start justify-between gap-3 text-[11px] leading-5 text-slate-500">
+                      <p>
+                        {reverted
+                          ? "이 조건은 되돌렸어요. 다음 추천부터 빠져요."
+                          : result.appliedPreference.text}
+                      </p>
+                      {changeId && !reverted && !mockResult && (
+                        <button
+                          type="button"
+                          onClick={() => void revertChange(changeId)}
+                          disabled={reverting === changeId}
+                          className="flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Undo2 aria-hidden="true" className="h-3.5 w-3.5" />
+                          {reverting === changeId ? "되돌리는 중" : "되돌리기"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {ready && items.length > 0 && (
                   <>
                     <div className="mt-5 flex items-center justify-between gap-2">
@@ -1159,12 +1211,23 @@ function SearchResultContent() {
       )}
 
       {toast && (
-        <p
+        <div
           role="status"
-          className="fixed bottom-[150px] left-1/2 z-40 w-[calc(100%-36px)] max-w-[394px] -translate-x-1/2 rounded-xl bg-slate-800/90 px-4 py-3 text-center text-xs text-white"
+          className="fixed bottom-[150px] left-1/2 z-40 flex w-[calc(100%-36px)] max-w-[394px] -translate-x-1/2 items-center justify-between gap-3 rounded-xl bg-slate-800/90 px-4 py-3 text-xs text-white"
         >
-          {toast}
-        </p>
+          <span className={toastChangeId ? "" : "w-full text-center"}>{toast}</span>
+          {toastChangeId && !revertedChanges[toastChangeId] && (
+            <button
+              type="button"
+              onClick={() => void revertChange(toastChangeId)}
+              disabled={reverting === toastChangeId}
+              className="flex min-h-8 shrink-0 items-center gap-1 font-semibold text-primary-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Undo2 aria-hidden="true" className="h-3.5 w-3.5" />
+              되돌리기
+            </button>
+          )}
+        </div>
       )}
 
       <BottomNav compactSearch />
