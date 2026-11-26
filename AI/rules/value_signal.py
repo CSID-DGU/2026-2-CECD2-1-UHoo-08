@@ -89,6 +89,40 @@ def sale_price(product: dict) -> float | None:
     return _positive(product.get("lowest_price"))
 
 
+def group_of(product: dict) -> Group | None:
+    """비교 제품군: (카테고리, 첫 번째 표준 제품 종류). 둘 중 하나라도 모르면 None."""
+    category = product.get("category")
+    if category not in SCOPE_CATEGORIES:
+        return None
+    types = product_types(product.get("feature_json") or {}, category)
+    if not types:
+        return None
+    return (category, types[0])
+
+
+def group_prices(master: Iterable[dict]) -> dict[Group, dict[str, float]]:
+    """상품 마스터 → {제품군: {product_id: 판매가}}. 판매가 없는 상품은 뺀다."""
+    out: dict[Group, dict[str, float]] = defaultdict(dict)
+    for p in master:
+        g, price = group_of(p), sale_price(p)
+        if g and price is not None:
+            out[g][p["product_id"]] = price
+    return dict(out)
+
+
+def relative_price(product_id: str, price: float, peers: dict[str, float]) -> tuple[float | None, int]:
+    """제품군 안 상대 가격 (점수, 비교 상품 수). 이 상품이 마스터에 없으면 넣어서 센다."""
+    prices = dict(peers)
+    prices[product_id] = price
+    n = len(prices)
+    if n < MIN_PEERS:
+        return None, n
+    lower = sum(1 for v in prices.values() if v < price)
+    equal = sum(1 for v in prices.values() if v == price)   # 자기 자신 포함
+    rank = lower + (equal + 1) / 2                         # 평균 순위 (1부터)
+    return 1 - (rank - 1) / (n - 1), n
+
+
 def budget_fit(price: float, budget: float | None) -> float | None:
     if not budget or budget <= 0:
         return None
