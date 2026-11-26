@@ -39,6 +39,11 @@ def test_hair_and_body_lines_are_skipped():
     assert ids("엑소좀 바이오 스칼프 앰플 증정\n판테놀 크림 추천") == ["panthenol"]
 
 
+def test_english_skip_words_match_whole_words_only():
+    assert ids("Everybody loves this panthenol cream") == ["panthenol"]
+    assert ids("panthenol body lotion") == []
+
+
 def test_short_ascii_needs_word_boundary():
     assert ids("bha 토너로 각질 정리") == ["acids", "exfoliation"]
     assert ids("alpha 버전 출시") == []

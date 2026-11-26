@@ -100,10 +100,21 @@ def find_form(text: str, kw: Keyword) -> str | None:
     return None
 
 
+def _skip_line(line: str, words: tuple[str, ...]) -> bool:
+    """헤어 · 바디 제품을 말하는 줄인가. 영문은 단어 단위로 본다("everybody" 는 body 가 아니다)."""
+    for w in words:
+        if w.isascii():
+            if re.search(rf"(?<![a-z]){re.escape(w)}(?![a-z])", line):
+                return True
+        elif w in line:
+            return True
+    return False
+
+
 def extract_keywords(caption: str | None, d: KeywordDictionary) -> list[KeywordHit]:
     """캡션 하나 → 걸린 키워드 목록 (사전 순서, 키워드마다 하나)."""
     text = _MENTION.sub(" ", caption or "").lower()
-    lines = [ln for ln in text.splitlines() if ln.strip() and not any(w in ln for w in d.skip_line_words)]
+    lines = [ln for ln in text.splitlines() if ln.strip() and not _skip_line(ln, d.skip_line_words)]
     hits = []
     for kw in d.keywords:
         for ln in lines:
