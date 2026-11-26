@@ -151,3 +151,66 @@ def preference(weight: Any) -> float:
         return DEFAULT_PREFERENCE
     w = max(0.0, float(weight))
     return min(1.0, DEFAULT_PREFERENCE + (1 - DEFAULT_PREFERENCE) * w / PREFERENCE_FULL_AT)
+
+
+def _weighted(parts: list[tuple[float, float]]) -> float | None:
+    total = sum(w for _, w in parts)
+    return sum(s * w for s, w in parts) / total if total else None
+
+
+def value_score(product: dict, groups: dict[Group, dict[str, float]], budget: float | None,
+                u: float = DEFAULT_PREFERENCE) -> ValueBreakdown:
+    if product.get("category") not in SCOPE_CATEGORIES:
+        return ValueBreakdown(score=None, reason_codes=["OUT_OF_SCOPE"])
+    price = sale_price(product)
+    if price is None:
+        return ValueBreakdown(score=None, reason_codes=["NO_SALE_PRICE"])
+
+    codes: list[str] = []
+    f = budget_fit(price, budget)
+    if f is not None:
+        if price > budget:
+            codes.append("OVER_BUDGET")
+        else:
+            codes.append("WITHIN_BUDGET")
+            if price <= budget * (1 - UNDER_BUDGET):
+                codes.append("UNDER_BUDGET")
+
+    g = group_of(product)
+    p, peers = (None, 0)
+    if g is not None:
+        p, peers = relative_price(product["product_id"], price, groups.get(g, {}))
+    if p is None:
+        codes.append("SMALL_GROUP" if g else "NO_GROUP")
+    elif p >= CHEAP_IN_GROUP:
+        codes.append("CHEAP_IN_GROUP")
+
+    original = product.get("original_price")
+    d = discount_rate(price, original)
+    if d is None:
+        codes.append("NO_ORIGINAL_PRICE")
+    else:
+        if price > float(original):
+            codes.append("PRICE_ABOVE_ORIGINAL")
+        if d >= HIGH_DISCOUNT:
+            codes.append("HIGH_DISCOUNT")
+
+    ds = discount_score(d)
+    a = _weighted([(s, w) for s, w in ((f, W_BUDGET), (p, W_RELATIVE)) if s is not None])
+    alpha = ALPHA_BASE + ALPHA_RANGE * max(0.0, min(1.0, u))
+    if a is None:
+        # 현재 가격을 판단할 근거가 없다. 할인율만으로 점수를 내지 않는다
+        codes.append("NO_PRICE_BASIS")
+        v = None
+    else:
+        v = _weighted([(s, w) for s, w in ((a, 1 - alpha), (ds, alpha)) if s is not None])
+    return ValueBreakdown(
+        score=None if v is None else round(v, 4),
+        budget_fit=None if f is None else round(f, 4),
+        relative_price=None if p is None else round(p, 4),
+        discount_rate=d,
+        discount_score=None if ds is None else round(ds, 4),
+        price_score=None if a is None else round(a, 4),
+        weights={"current_price": round(1 - alpha, 4), "discount": round(alpha, 4)},
+        group=g, peer_count=peers, reason_codes=codes,
+    )
