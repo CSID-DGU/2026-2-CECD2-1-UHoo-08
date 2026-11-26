@@ -20,6 +20,7 @@ data/synthetic/
   queries/    검색 질의
   feedback/   피드백·조건 수정 세션
   env/        환경 기록 백필
+  trend/      트렌드 지수 계산 검증용 게시물 언급
 
 eval/golden/
   router/         질의 → 시나리오·QuerySpec
