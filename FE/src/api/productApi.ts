@@ -34,7 +34,8 @@ export const getProductDetail = (productId: string) =>
   api.get<ApiResponse<ProductDetail>>(`/products/${productId}`);
 
 export interface RecognizeResult {
-  productId: string;
+  /** 제품을 찾지 못하면 서버가 비워 준다(200) */
+  productId: string | null;
   name: string;
   brand: string;
   imageUrl?: string | null;
@@ -114,21 +115,3 @@ export function aiSearch(query: string): Promise<AiSearchResponse> {
   pendingSearches.set(key, request);
   return request;
 }
-
-// ── AI 제품 인식 (FastAPI /internal/recognize) ────────────────────────────────
-
-export interface AiRecognizeResult {
-  productId: string | null;
-  name: string | null;
-  brand: string | null;
-  category: string | null;
-  geminiPrice: Record<string, unknown>;
-  reviewSummary: Record<string, unknown>;
-  ingredients: string[];
-}
-
-export const aiRecognizeProduct = (
-  type: "IMAGE" | "TEXT" | "NFC",
-  data: string,
-): Promise<AiRecognizeResult> =>
-  api.post<AiRecognizeResult>("/ai/internal/recognize", { type, data });
