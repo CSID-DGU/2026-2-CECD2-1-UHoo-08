@@ -54,6 +54,17 @@ async def test_scorer_empty_products_reads_nothing(monkeypatch):
     assert await scorer.value_signal([], _ctx()) == {}
 
 
+@pytest.mark.asyncio
+async def test_explain_reads_no_db(monkeypatch):
+    def boom(*_):
+        raise AssertionError("explain 은 DB 를 읽지 않는다")
+    monkeypatch.setattr(scorer, "_load_master", boom)
+    monkeypatch.setattr(scorer, "_load_preference_weight", boom)
+    assert await scorer.explain([A, p("x", 28000)], _ctx(30000)) == {"A": "정가보다 20% 저렴해요"}
+
+
+# ── 기존 채점(services/scoring)과의 연동 ─────────────────────────────
+
 def test_none_value_signal_is_dropped_by_build_score():
     from contracts.score import build_score
 

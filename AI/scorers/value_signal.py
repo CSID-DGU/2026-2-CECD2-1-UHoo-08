@@ -8,6 +8,9 @@
 
 판매가(최저가)가 없는 상품은 None 이다.
 
+explain 은 가성비 배지 문구다. Compose 가 이 항목 점수가 높은 상품에만 부른다. DB 를 읽지
+않고 상품 정보(판매가 · 정가)와 이번 질의의 예산만으로 문구를 만든다.
+
 DB 는 함수 안에서 import 한다. 키 없이도 이 모듈을 불러올 수 있어야 한다.
 """
 from __future__ import annotations
@@ -17,7 +20,7 @@ import json
 from typing import Any
 
 from contracts.score import ScoreContext
-from rules.value_signal import group_prices, preference, value_score
+from rules.value_signal import explain_text, group_prices, preference, value_score
 
 _MASTER_COLUMNS = "product_id, category, feature_json, lowest_price, original_price"
 _PAGE = 1000
@@ -65,4 +68,14 @@ async def value_signal(products: list[dict[str, Any]], ctx: ScoreContext) -> dic
     for p in products:
         v = value_score(p, groups, budget, u).score
         out[p["product_id"]] = None if v is None else round(v * 100, 2)
+    return out
+
+
+async def explain(products: list[dict[str, Any]], ctx: ScoreContext) -> dict[str, str]:
+    budget = ctx.query_spec.budget.max
+    out = {}
+    for p in products:
+        text = explain_text(p, budget)
+        if text:
+            out[p["product_id"]] = text
     return out
