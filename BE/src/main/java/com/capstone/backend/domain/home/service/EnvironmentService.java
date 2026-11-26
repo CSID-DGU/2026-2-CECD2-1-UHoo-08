@@ -4,24 +4,18 @@ import com.capstone.backend.common.config.HwadamProperties;
 import com.capstone.backend.common.config.HwadamProperties.EnvThresholds;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
-import com.capstone.backend.common.util.JsonUtil;
 import com.capstone.backend.domain.home.dto.response.EnvironmentDailyResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Condition;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.SeasonChange;
 import com.capstone.backend.domain.home.dto.response.EnvironmentSummaryResponse.Stats;
 import com.capstone.backend.domain.home.entity.EnvDaily;
-import com.capstone.backend.domain.home.entity.HomeRecommendation;
 import com.capstone.backend.domain.home.enums.EnvMetric;
 import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
 import com.capstone.backend.domain.home.repository.EnvDailyRepository;
-import com.capstone.backend.domain.home.repository.HomeRecommendationRepository;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +34,6 @@ import java.util.UUID;
  * 하루 환경 집계는 AI 가 쓰고 BE 는 읽어서 센다. 관측이 없는 날(sample_count=0)은 "괜찮은 날"로 세지 않도록 아예 뺀다.
  * 환경이 요구하는 제품 조건과 보유 제품이 채우는지는 AI 홈 환경 추천 결과에서 읽는다.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EnvironmentService {
@@ -53,9 +46,8 @@ public class EnvironmentService {
 
     private final UserRepository userRepository;
     private final EnvDailyRepository envDailyRepository;
-    private final HomeRecommendationRepository homeRecommendationRepository;
+    private final HomeResultReader homeResultReader;
     private final HwadamProperties hwadamProperties;
-    private final JsonUtil jsonUtil;
 
     /** 지역을 설정하지 않았으면 REGION_NOT_SET */
     @Transactional(readOnly = true)
@@ -70,9 +62,8 @@ public class EnvironmentService {
         List<EnvDaily> rows = envDailyRepository.findByRegionAndDateBetween(user.getRegion(), periodStart, today);
         List<EnvDaily> observed = rows.stream().filter(day -> day.getSampleCount() > 0).toList();
 
-        Optional<HomeRecommendation> recommendation = homeRecommendationRepository.findById(
-                new HomeRecommendation.Key(userId, HomeRecommendationKind.ENV));
-        Optional<List<Condition>> found = recommendation.flatMap(row -> conditions(row, userId));
+        Optional<List<Condition>> found = homeResultReader.find(userId, HomeRecommendationKind.ENV)
+                .flatMap(HomeResultReader::conditionsOf);
         List<Condition> conditions = found.orElseGet(List::of);
         return new EnvironmentSummaryResponse(
                 user.getRegionLabel() != null ? user.getRegionLabel() : user.getRegion(),
@@ -150,19 +141,5 @@ public class EnvironmentService {
 
     private static OptionalDouble averageHumidity(List<EnvDaily> days) {
         return days.stream().map(EnvDaily::getHumidityAvg).filter(Objects::nonNull).mapToDouble(Float::doubleValue).average();
-    }
-
-    /** AI 홈 환경 추천 결과의 조건 목록. 결과에 조건 블록이 없거나 읽을 수 없으면 비어 있다 */
-    private Optional<List<Condition>> conditions(HomeRecommendation recommendation, UUID userId) {
-        return EnvConditions.parse(readTree(recommendation.getResult(), userId));
-    }
-
-    private JsonNode readTree(String json, UUID userId) {
-        try {
-            return jsonUtil.readTree(json);
-        } catch (BusinessException e) {
-            log.warn("[Environment] 홈 환경 추천 결과를 읽지 못해 조건을 비워 둔다: userId={}", userId, e);
-            return MissingNode.getInstance();
-        }
     }
 }

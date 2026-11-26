@@ -6,6 +6,5 @@ package com.capstone.backend.domain.recommendation.enums;
 public enum FeedbackReason {
     TOO_EXPENSIVE,
     NOT_MY_SKIN,
-    BAD_REVIEWS,
-    ALREADY_HAVE_SIMILAR
+    BAD_REVIEWS
 }

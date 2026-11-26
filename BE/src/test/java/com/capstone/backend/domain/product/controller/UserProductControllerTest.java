@@ -19,6 +19,7 @@ import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.enums.UserProductStatus;
 import com.capstone.backend.domain.product.enums.RegistrationSource;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
+import com.capstone.backend.domain.product.service.UserProductRegistrationService;
 import com.capstone.backend.domain.product.service.UserProductService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +69,8 @@ class UserProductControllerTest {
     PhotoRecognitionService photoRecognitionService;
     @Mock
     UserProductService userProductService;
+    @Mock
+    UserProductRegistrationService userProductRegistrationService;
     @InjectMocks
     UserProductController controller;
 
@@ -205,7 +208,7 @@ class UserProductControllerTest {
         UUID productId = UUID.randomUUID();
         UUID userProductId = UUID.randomUUID();
         ArgumentCaptor<UserProductCreateRequest> request = ArgumentCaptor.forClass(UserProductCreateRequest.class);
-        given(userProductService.create(eq(userId), request.capture()))
+        given(userProductRegistrationService.create(eq(userId), request.capture()))
                 .willReturn(new UserProductCreateResponse(userProductId, productId, "그린티 씨드 세럼", List.of()));
 
         mockMvc.perform(post("/user-products")
@@ -255,7 +258,7 @@ class UserProductControllerTest {
 
     @Test
     void 같은_제품을_이미_쓰는_중이면_409_ALREADY_REGISTERED다() throws Exception {
-        given(userProductService.create(eq(userId), any()))
+        given(userProductRegistrationService.create(eq(userId), any()))
                 .willThrow(new BusinessException(ErrorCode.ALREADY_REGISTERED));
 
         mockMvc.perform(post("/user-products")
@@ -269,7 +272,7 @@ class UserProductControllerTest {
 
     @Test
     void 없는_제품이면_404_PRODUCT_NOT_FOUND다() throws Exception {
-        given(userProductService.create(eq(userId), any()))
+        given(userProductRegistrationService.create(eq(userId), any()))
                 .willThrow(new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         mockMvc.perform(post("/user-products")
@@ -279,7 +282,7 @@ class UserProductControllerTest {
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"));
-        verify(userProductService).create(eq(userId), any());
+        verify(userProductRegistrationService).create(eq(userId), any());
     }
     @Test
     void 사진_등록인데_인식ID가_없으면_422_VALIDATION_ERROR다() throws Exception {

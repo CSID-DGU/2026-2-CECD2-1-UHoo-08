@@ -18,7 +18,7 @@ async 서버(FastAPI) 안에서 그대로 쓰면 전체 흐름이 막힐 수 있
 """
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from db.supabase_client import get_supabase
 
@@ -30,6 +30,9 @@ async def update(
     status: Optional[str] = None,
     error_msg: Optional[str] = None,
     result: Optional[Dict[str, Any]] = None,
+    steps: Optional[List[Dict[str, Any]]] = None,
+    scenario: Optional[str] = None,
+    query_spec: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     recommendation_jobs row를 부분 갱신.
@@ -48,6 +51,13 @@ async def update(
         payload["error_msg"] = error_msg
     if result is not None:
         payload["result"] = result
+    if steps is not None:
+        payload["steps"] = steps
+    # BE 의 상태 조회는 scenario 를, 검색 기록과 조건 수정 이력은 query_spec 을 읽는다.
+    if scenario is not None:
+        payload["scenario"] = scenario
+    if query_spec is not None:
+        payload["query_spec"] = query_spec
 
     def _do_update():
         sb = get_supabase()

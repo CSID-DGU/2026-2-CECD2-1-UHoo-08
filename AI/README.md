@@ -113,10 +113,20 @@ spec = await llm.chat_json(system=..., user=...)
 | `weight` | 점수 가중치 보정 |
 | `compose` | 추천 이유 문장 |
 | `vlm` | 사진 인식 |
+| `ad` | 인스타 캡션 광고 판별 (1차 규칙이 못 정한 것) |
 
 역할마다 모델·주소·키를 환경 변수로 따로 정할 수 있다(`LLM_NORMALIZE_MODEL` 등).
 비워 두면 지금 쓰는 값이다. "이 역할만 상위 모델로 올리면 얼마나 좋아지는지"를
 코드를 고치지 않고 재 보기 위한 구조다.
+
+사진을 읽는 역할은 사진을 글과 함께 넘긴다. OpenAI 호환 주소로 부르는 모델만 받는다.
+
+```python
+from services.llm import LLMImage, LLMRole, get_llm
+
+llm = get_llm(LLMRole.VLM)
+답 = await llm.chat(system=..., user=..., images=[LLMImage(data=사진, mime_type="image/jpeg")])
+```
 
 아직 옮기지 않은 곳은 `TODO(llm)` 으로 표시해 두었다. 웹 검색 도구를 함께
 넘기는 호출은 이 래퍼에 맞지 않아 그대로 둔다.

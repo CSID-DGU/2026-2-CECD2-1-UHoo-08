@@ -54,7 +54,10 @@ public class RecommendationJobService {
     private final JsonUtil jsonUtil;
     private final ProductRepository productRepository;
 
-    /** 검색창 문장으로 추천을 요청한다. 내 피부 기준인데 피부 정보가 없으면 SKIN_PROFILE_NOT_FOUND */
+    /**
+     * 검색창 문장이나 기준 상품으로 추천을 요청한다. 내 피부 기준인데 피부 정보가 없으면 SKIN_PROFILE_NOT_FOUND,
+     * 기준 상품이 없는 상품이면 PRODUCT_NOT_FOUND
+     */
     @Transactional
     public RecommendationQueryResponse requestQuery(UUID userId, RecommendationQueryRequest request) {
         User user = userRepository.findById(userId)
@@ -67,7 +70,12 @@ public class RecommendationJobService {
         // 쓰실 분 정보는 다른 사람 기준일 때만 의미가 있다
         String targetProfile = basis == RecommendationBasis.OTHER ? jsonUtil.write(request.getTargetProfile()) : null;
 
-        Recommendation job = startJob(new NewJob(user, request.getQuery().strip(), basis, targetProfile, null, null, null));
+        Product baseProduct = request.getBaseProductId() == null ? null
+                : productRepository.findById(request.getBaseProductId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        String rawQuery = request.hasQuery() ? request.getQuery().strip() : null;
+
+        Recommendation job = startJob(new NewJob(user, rawQuery, baseProduct, basis, targetProfile, null, null, null));
         return new RecommendationQueryResponse(job.getId(), ESTIMATED_SECONDS,
                 "/recommendations/" + job.getId() + "/status");
     }
@@ -134,11 +142,13 @@ public class RecommendationJobService {
     /**
      * 새로 만들 job 의 값.
      *
+     * @param rawQuery      검색창 문장. 기준 상품만으로 요청했으면 null
+     * @param baseProduct   상품 기준 추천의 기준 상품. 없으면 null
      * @param parentJobId   조건 수정이면 이어 온 직전 job
      * @param refinePresets 조건 수정에서 고른 조건 키. 고르지 않았으면 null
      * @param refineText    조건 수정에서 직접 쓴 조건. 없으면 null
      */
-    record NewJob(User user, String rawQuery, RecommendationBasis basis, String targetProfile,
+    record NewJob(User user, String rawQuery, Product baseProduct, RecommendationBasis basis, String targetProfile,
                   UUID parentJobId, String[] refinePresets, String refineText) {
     }
 
@@ -151,6 +161,7 @@ public class RecommendationJobService {
         LocalDateTime now = LocalDateTime.now();
         Recommendation job = recommendationRepository.save(Recommendation.builder()
                 .user(user)
+                .product(newJob.baseProduct())
                 .status(JobStatus.PENDING)
                 .progress(0)
                 .rawQuery(newJob.rawQuery())
@@ -163,15 +174,20 @@ public class RecommendationJobService {
                 .updatedAt(now)
                 .build());
 
-        searchLogRepository.save(SearchLog.builder()
-                .userId(user.getId())
-                .jobId(job.getId())
-                .rawQuery(newJob.rawQuery())
-                .build());
+        // 검색 기록은 문장 해석 결과를 보기 위한 것이라, 문장이 없으면 남기지 않는다
+        if (newJob.rawQuery() != null) {
+            searchLogRepository.save(SearchLog.builder()
+                    .userId(user.getId())
+                    .jobId(job.getId())
+                    .rawQuery(newJob.rawQuery())
+                    .build());
+        }
 
         UUID parentJobId = newJob.parentJobId();
+        Product baseProduct = newJob.baseProduct();
         AgentRunV2Request aiRequest = new AgentRunV2Request(job.getId().toString(), user.getId().toString(),
-                newJob.rawQuery(), newJob.basis().name(), toMap(newJob.targetProfile()),
+                newJob.rawQuery(), baseProduct == null ? null : baseProduct.getId().toString(),
+                newJob.basis().name(), toMap(newJob.targetProfile()),
                 parentJobId == null ? null : parentJobId.toString());
         afterCommit(() -> runAgent(aiRequest));
         return job;

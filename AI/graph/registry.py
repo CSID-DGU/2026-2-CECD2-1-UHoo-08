@@ -74,9 +74,10 @@ SCENARIOS: dict[Scenario, tuple[str, ...]] = {
     "S6_BUNDLE": (
         "budget", "retrieve", "inventory", "prefilter", "score", "bundle", "compose",
     ),
-    # 방금 결과에 조건 추가. 재정렬이 아니라 다시 찾는다.
+    # 방금 결과에 조건 추가. 예산을 낮추거나 제외 성분만 더했으면 이전 후보를 다시
+    # 줄 세우고, 아니면 다시 찾는다. 이전 결과와 비교한 순위 변화를 싣는다.
     "S7_REFINE": (
-        "refine", "retrieve", "inventory", "prefilter", "score", "compose",
+        "refine", "retrieve", "inventory", "prefilter", "score", "rerank", "compose",
     ),
     # 홈 — 보유 제품끼리 충돌하면 알려주고 대체 제품을 추천
     "HOME_ROUTINE": (

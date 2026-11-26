@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Smile, Layers, Sun, Droplets, Folder, Plus, X, LayoutGrid } from "lucide-react";
+import { Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder, Plus, X, LayoutGrid } from "lucide-react";
 import { type WishlistItem, getWishlists } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -12,6 +12,8 @@ const DEFAULT_FOLDERS = [
   { key: "base", label: "Base", Icon: Layers },
   { key: "sun", label: "Sun", Icon: Sun },
   { key: "skincare", label: "Skincare", Icon: Droplets },
+  { key: "eye", label: "Eye", Icon: Eye },
+  { key: "cheek", label: "Cheek", Icon: Sparkles },
 ];
 
 function loadCustomFolders(): string[] {
@@ -73,7 +75,7 @@ export function WishlistPage() {
         <PageHeader title="찜한 제품" onBack={() => navigate(-1)} />
 
         {loading ? (
-          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : (
           <>
             {totalCount > 0 && (
@@ -121,7 +123,7 @@ export function WishlistPage() {
 
             <button
               className="mt-4 flex h-[72px] w-full items-center justify-center gap-2 rounded-2xl text-body2 text-primary-500"
-              style={{ border: "1.5px dashed #4A90D9", background: "#F0F7FF" }}
+              style={{ border: "1.5px dashed var(--color-primary-500)", background: "var(--color-primary-50)" }}
               onClick={() => setShowAddSheet(true)}
               type="button"
             >
@@ -142,8 +144,14 @@ export function WishlistPage() {
       )}
 
       <div
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6 transition-transform duration-300"
-        style={{ transform: showAddSheet ? "translateY(0)" : "translateY(100%)" }}
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showAddSheet}
+        style={{
+          transform: showAddSheet ? "translateY(0)" : "translateY(100%)",
+          // 닫힌 시트가 화면 아래로 비쳐 보이지 않게 닫히는 애니메이션 뒤에 숨긴다.
+          visibility: showAddSheet ? "visible" : "hidden",
+          transition: `transform 0.3s ease, visibility 0s linear ${showAddSheet ? "0s" : "0.3s"}`,
+        }}
       >
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200" />
         <h2 className="text-h3 text-gray-500">폴더 이름 입력</h2>
@@ -158,7 +166,7 @@ export function WishlistPage() {
           />
         </div>
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           disabled={!newFolderName.trim()}
           onClick={handleAddFolder}
           type="button"
@@ -186,7 +194,7 @@ function FolderCard({
   return (
     <button
       className="relative flex flex-col items-center gap-3 rounded-2xl py-6 text-primary-700"
-      style={{ background: "linear-gradient(135deg, #9DBFEE, #C5DDF5)" }}
+      style={{ background: "linear-gradient(135deg, var(--color-primary-300), var(--color-primary-150))" }}
       onClick={onClick}
       type="button"
     >

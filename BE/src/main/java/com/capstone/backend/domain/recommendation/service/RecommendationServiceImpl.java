@@ -62,6 +62,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Override
     @Transactional
     public RecommendationJobResponse requestRecommendation(UUID userId, RecommendationRequest request) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations 호출: baseProductId={}", request.getBaseProductId());
+
         Product product = productRepository.findById(request.getBaseProductId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
@@ -149,22 +151,33 @@ public class RecommendationServiceImpl implements RecommendationService {
         return steps;
     }
 
-    /** 되묻기 질문은 AI 결과의 clarify.question 이다. 물어볼 항목은 시나리오로 정한다 */
+    /** 되묻기 질문은 AI 결과의 clarify.question 이다. 물어볼 항목은 AI 가 알려 준 빠진 필드로 정한다 */
     Clarify clarifyOf(Recommendation job) {
-        String question = readTreeOrMissing(job.getResult(), job.getId()).path("clarify").path("question").asText(null);
+        JsonNode clarify = readTreeOrMissing(job.getResult(), job.getId()).path("clarify");
+        String question = clarify.path("question").asText(null);
         String message = question == null || question.isBlank() ? DEFAULT_CLARIFY_MESSAGE : question;
-        return new Clarify(message, ClarifyFieldMapper.map(job.getScenario(), null));
+        return new Clarify(message, ClarifyFieldMapper.map(job.getScenario(), missingFieldsOf(clarify)));
+    }
+
+    /** 빠진 필드 이름. 목록이 아니면 없는 것으로 보고, 문자열이 아닌 값은 건너뛴다 */
+    private static List<String> missingFieldsOf(JsonNode clarify) {
+        JsonNode node = clarify.path("missingFields");
+        if (!node.isArray()) {
+            return null;
+        }
+        List<String> fields = new ArrayList<>();
+        for (JsonNode field : node) {
+            if (field.isTextual()) {
+                fields.add(field.textValue());
+            }
+        }
+        return fields;
     }
 
     private void recordInterpretation(Recommendation job) {
-        Float confidence = null;
-        JsonNode spec = readTreeOrMissing(job.getQuerySpec(), job.getId());
-        if (spec.path("confidence").isNumber()) {
-            confidence = spec.path("confidence").floatValue();
-        }
         for (SearchLog searchLog : searchLogRepository.findByJobId(job.getId())) {
             if (searchLog.isInterpretationEmpty()) {
-                searchLog.recordInterpretation(job.getScenario(), job.getQuerySpec(), confidence);
+                searchLog.recordInterpretation(job.getScenario(), job.getQuerySpec());
             }
         }
     }
@@ -315,6 +328,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public ProductSearchResponse searchProducts(UUID userId, String query) {
+        log.warn("[Recommendation] 사용 중단된 POST /recommendations/search 호출. POST /recommendations/queries 로 옮겨야 한다: userId={}", userId);
         return agentClient.searchProducts(query, userId != null ? userId.toString() : null);
     }
 

@@ -9,6 +9,6 @@
     llm = get_llm(LLMRole.NORMALIZE)
     spec = await llm.chat_json(system=..., user=...)
 """
-from services.llm.client import LLMClient, LLMRole, get_llm
+from services.llm.client import LLMClient, LLMImage, LLMRole, get_llm
 
-__all__ = ["LLMClient", "LLMRole", "get_llm"]
+__all__ = ["LLMClient", "LLMImage", "LLMRole", "get_llm"]

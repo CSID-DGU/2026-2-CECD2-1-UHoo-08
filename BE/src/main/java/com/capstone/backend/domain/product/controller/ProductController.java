@@ -2,9 +2,11 @@ package com.capstone.backend.domain.product.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.product.dto.request.RecognizeRequest;
+import com.capstone.backend.domain.product.dto.response.ProductCompatibilityResponse;
 import com.capstone.backend.domain.product.dto.response.ProductDetailResponse;
 import com.capstone.backend.domain.product.dto.response.ProductRecognizeResponse;
 import com.capstone.backend.domain.product.dto.response.ProductSearchResponse;
+import com.capstone.backend.domain.product.service.CompatibilityService;
 import com.capstone.backend.domain.product.service.ProductRecognizeService;
 import com.capstone.backend.domain.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +26,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductRecognizeService productRecognizeService;
+    private final CompatibilityService compatibilityService;
 
     @Operation(
             summary = "제품 인식 (IMAGE / NFC / TEXT)",
@@ -47,6 +50,19 @@ public class ProductController {
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID productId) {
         return ResponseEntity.ok(ApiResponse.success(productService.getProductDetail(userId, productId)));
+    }
+
+    @Operation(
+            summary = "보유 제품과 함께 쓰기 확인",
+            description = "이 제품을 지금 쓰는 제품들과 함께 써도 되는지 판정한다. level: OK, SEPARATE, AVOID. " +
+                    "쓰는 제품이 없거나 AI 호출에 실패하면 level=OK. OK 면 bannerText 는 null. " +
+                    "pairs 는 AVOID → SEPARATE 순이고, schedule 은 지금 tip 만 채운다. 없는 상품이면 404 PRODUCT_NOT_FOUND."
+    )
+    @GetMapping("/products/{productId}/compatibility")
+    public ResponseEntity<ApiResponse<ProductCompatibilityResponse>> checkCompatibility(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID productId) {
+        return ResponseEntity.ok(ApiResponse.success(compatibilityService.check(userId, productId)));
     }
 
     @Operation(

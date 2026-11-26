@@ -2,7 +2,9 @@ package com.capstone.backend.domain.recommendation.repository;
 
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
 import com.capstone.backend.domain.recommendation.enums.JobStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +19,11 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
     @Query("SELECT r FROM Recommendation r WHERE r.id = :id AND r.user.id = :userId")
     Optional<Recommendation> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    /** 결과를 고치려고 job 행을 잠그고 읽는다. 동시에 고쳐도 한쪽 수정이 사라지지 않는다 */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Recommendation r WHERE r.id = :id AND r.user.id = :userId")
+    Optional<Recommendation> findByIdAndUserIdForUpdate(@Param("id") UUID id, @Param("userId") UUID userId);
 
     /** 이 사용자가 since 이후에 만든 job 들의 조건 수정 선택지. 고르지 않은 job 은 뺀다 */
     @Query("SELECT r.refinePresets FROM Recommendation r "

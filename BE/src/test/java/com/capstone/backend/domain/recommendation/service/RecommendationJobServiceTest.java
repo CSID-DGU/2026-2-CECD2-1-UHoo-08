@@ -128,7 +128,72 @@ class RecommendationJobServiceTest {
         assertThat(log.getValue().isClarified()).isFalse();
 
         verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
-                "여름 가벼운 매트 쿠션", "SELF", null, null));
+                "여름 가벼운 매트 쿠션", null, "SELF", null, null));
+    }
+
+    private Product givenBaseProduct() {
+        Product product = Product.builder().id(UUID.randomUUID()).name("기준 쿠션").build();
+        given(productRepository.findById(product.getId())).willReturn(Optional.of(product));
+        return product;
+    }
+
+    @Test
+    void 기준_상품만_있으면_문장_없이_job을_만들고_검색_기록은_남기지_않는다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder().baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getProduct()).isEqualTo(product);
+        assertThat(saved.getValue().getRawQuery()).isNull();
+        verify(searchLogRepository, never()).save(any());
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                null, product.getId().toString(), "SELF", null, null));
+    }
+
+    @Test
+    void 문장과_기준_상품이_함께_오면_둘_다_남기고_AI에_넘긴다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder()
+                .query(" 이 쿠션 어때 ").baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getProduct()).isEqualTo(product);
+        assertThat(saved.getValue().getRawQuery()).isEqualTo("이 쿠션 어때");
+        verify(searchLogRepository).save(any());
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                "이 쿠션 어때", product.getId().toString(), "SELF", null, null));
+    }
+
+    @Test
+    void 문장이_공백이어도_기준_상품이_있으면_문장_없는_요청이다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder()
+                .query("   ").baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getRawQuery()).isNull();
+        verify(searchLogRepository, never()).save(any());
+    }
+
+    @Test
+    void 없는_기준_상품이면_PRODUCT_NOT_FOUND이고_job을_만들지_않는다() {
+        givenUser("DRY");
+        UUID missing = UUID.randomUUID();
+        given(productRepository.findById(missing)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.requestQuery(userId,
+                RecommendationQueryRequest.builder().baseProductId(missing).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.PRODUCT_NOT_FOUND);
+
+        verify(recommendationRepository, never()).save(any());
+        verify(aiInternalClient, never()).runAgentV2(any());
     }
 
     @Test
@@ -342,14 +407,14 @@ class RecommendationJobServiceTest {
         ArgumentCaptor<Recommendation> saved = givenSave();
         UUID parentJobId = UUID.randomUUID();
 
-        service.startJob(new RecommendationJobService.NewJob(user, "더 저렴한 제품으로", RecommendationBasis.SELF, null,
+        service.startJob(new RecommendationJobService.NewJob(user, "더 저렴한 제품으로", null, RecommendationBasis.SELF, null,
                 parentJobId, new String[]{"CHEAPER"}, null));
 
         assertThat(saved.getValue().getParentJobId()).isEqualTo(parentJobId);
         assertThat(saved.getValue().getRefinePresets()).containsExactly("CHEAPER");
         assertThat(saved.getValue().getRefineText()).isNull();
         verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
-                "더 저렴한 제품으로", "SELF", null, parentJobId.toString()));
+                "더 저렴한 제품으로", null, "SELF", null, parentJobId.toString()));
     }
 
     @Test

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -110,7 +111,41 @@ class ResultAssemblerTest {
     }
 
     @Test
-    void 예산_세트는_조합마다_합계_남은_예산_점수_합과_순서로_된_칸을_만든다() throws IOException {
+    void 칸_정보가_없는_기존_세트_결과는_칸_순서로_두고_칸_이름을_비운다() throws IOException {
+        JsonNode bundles = MAPPER.readTree("""
+                [{"label":"균형형","totalPrice":1000,"items":[
+                  {"productId":"p1","name":"토너","price":500,"totalScore":80},
+                  {"productId":"p2","name":"세럼","price":500,"totalScore":70,"slotKey":" ","slotLabel":null},
+                  {"productId":"p3","name":"크림","price":0,"totalScore":60,"slotKey":"cream","slotLabel":"크림"}
+                ]}]
+                """);
+
+        assertThat(ResultAssembler.bundles(bundles, MissingNode.getInstance(), Map.of()).get(0).getSlots())
+                .extracting(Slot::getSlotKey, Slot::getLabel)
+                .containsExactly(tuple("0", null), tuple("1", null), tuple("cream", "크림"));
+    }
+
+    @Test
+    void 일부_제품에만_칸_키가_있으면_칸_순서_키가_AI_칸_키와_겹치지_않는다() throws IOException {
+        JsonNode bundles = MAPPER.readTree("""
+                [{"label":"균형형","totalPrice":1000,"items":[
+                  {"productId":"p1","name":"토너","price":500,"slotKey":"1"},
+                  {"productId":"p2","name":"세럼","price":500},
+                  {"productId":"p3","name":"크림","price":0}
+                ]},{"label":"알뜰형","totalPrice":1000,"items":[
+                  {"productId":"p1","name":"토너","price":500},
+                  {"productId":"p2","name":"세럼","price":500,"slotKey":"0"}
+                ]}]
+                """);
+
+        List<Bundle> result = ResultAssembler.bundles(bundles, MissingNode.getInstance(), Map.of());
+
+        assertThat(result.get(0).getSlots()).extracting(Slot::getSlotKey).containsExactly("1", "2", "3");
+        assertThat(result.get(1).getSlots()).extracting(Slot::getSlotKey).containsExactly("1", "0");
+    }
+
+    @Test
+    void 예산_세트는_조합마다_합계_남은_예산_점수_합과_AI가_준_칸을_만든다() throws IOException {
         RecommendationResultV2Response result = assemble("S6_BUNDLE", RecommendationBasis.SELF,
                 Map.of("55555555-5555-5555-5555-555555555555", product("55555555-5555-5555-5555-555555555555", 46000, null, null)));
 
@@ -124,9 +159,9 @@ class ResultAssemblerTest {
         assertThat(balanced.getTotalScore()).isEqualTo(225);
         assertThat(balanced.getSlots()).extracting(Slot::getSlotKey, Slot::getLabel, Slot::getName, Slot::getPrice, Slot::getScore)
                 .containsExactly(
-                        tuple("0", null, "그린티 토너", 22000, 80),
-                        tuple("1", null, "비타 세럼", 38000, 75),
-                        tuple("2", null, "수분 크림", 32000, 70));
+                        tuple("toner", "토너", "그린티 토너", 22000, 80),
+                        tuple("serum", "세럼", "비타 세럼", 38000, 75),
+                        tuple("cream", "크림", "수분 크림", 32000, 70));
 
         Bundle cheap = result.getBundles().get(1);
         assertThat(cheap.getIndex()).isEqualTo(2);

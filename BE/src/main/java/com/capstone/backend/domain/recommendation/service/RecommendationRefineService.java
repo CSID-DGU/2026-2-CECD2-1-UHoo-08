@@ -103,7 +103,8 @@ public class RecommendationRefineService {
         }
 
         Recommendation job = recommendationJobService.startJob(new NewJob(
-                parent.getUser(), rawQuery(presets, freeText), parent.getBasis(), parent.getTargetProfile(),
+                // 기준 상품을 다시 보내면 AI 가 문장을 해석하지 않아 추가 조건이 무시된다
+                parent.getUser(), rawQuery(presets, freeText), null, parent.getBasis(), parent.getTargetProfile(),
                 parent.getId(),
                 presets.isEmpty() ? null : presets.stream().map(RefinePreset::name).toArray(String[]::new),
                 freeText));

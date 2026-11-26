@@ -1,0 +1,14 @@
+{
+  "level": "SEPARATE",
+  "pairs": [
+    {
+      "userProductId": "33333333-3333-3333-3333-333333333333",
+      "ingredientA": "레티놀",
+      "ingredientB": "AHA",
+      "level": "SEPARATE",
+      "advice": "함께 쓰면 자극이 커질 수 있어요",
+      "schedule": "레티놀은 저녁, AHA는 아침에 쓰세요"
+    }
+  ],
+  "stub": false
+}

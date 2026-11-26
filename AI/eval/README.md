@@ -33,6 +33,7 @@ eval/golden/
 eval/prompts/   생성에 쓴 프롬프트 원문
 eval/assets/    JSONL 에 넣을 수 없는 원본 (인식용 사진 등)
 eval/reports/   평가 결과
+  experiments/  성능 실험 리포트. 실험마다 폴더를 따로 둔다
 ```
 
 파일 이름은 `<종류>_v<n>.jsonl` 이다. **기존 파일은 고치지 않는다.** 내용이 바뀌면 `v2`, `v3` 으로 새 파일을 만든다. 그래야 "전보다 나아졌는지"를 비교할 수 있다.
@@ -150,6 +151,18 @@ python -m eval.run_ad_audit score --out eval/reports/ad_audit_<날짜>.md
 ## 리포트
 
 `eval/reports/<대상>_<YYYYMMDD>.md` 에 쓴다.
+
+여러 조건을 견주는 성능 실험은 리포트가 많이 나오므로 실험마다 폴더를 따로 둔다.
+조건별 리포트는 `<조건>_<YYYYMMDD>.md`, 종합은 `summary_<YYYYMMDD>.md` 로 쓴다.
+
+```
+eval/reports/experiments/
+  a_router/      시나리오 결정 (Normalize → Router)
+  b_normalize/   Normalize 모델 비교. 모델 하나가 조건 하나다
+```
+
+모델 비교에서 연습용 문제로 한 번씩 돌려 본 결과(훑어보기)는 `<모델>_dev_<YYYYMMDD>.md` 로 쓴다.
+같은 모델을 설정을 바꿔 다시 잰 결과는 `<모델>_<설정>_<YYYYMMDD>.md` 로 쓴다(예: `claude-haiku-5-5_schema_20261120.md`).
 
 1. 데이터 개수와 파일 버전
 2. 핵심 지표 (test split 기준)

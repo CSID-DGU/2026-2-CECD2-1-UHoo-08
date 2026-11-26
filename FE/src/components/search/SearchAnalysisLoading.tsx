@@ -19,7 +19,7 @@ export function SearchAnalysisLoading({ searching, step, progress }: { searching
         <span className="font-semibold tabular-nums text-primary-600">{percent == null ? "—%" : `${percent}%`}</span>
       </div>
       <div role="progressbar" aria-label={searching ? "검색 진행률" : "피부 분석 진행률"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent ?? undefined} aria-valuetext={percent == null ? "서버 응답을 기다리고 있어요" : `${percent}%`} className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-        <div className={`h-full rounded-full bg-[#9DBDE9] ${percent == null ? "search-progress-pending" : "transition-[width] duration-500 motion-reduce:transition-none"}`} style={{ width: percent == null ? "28%" : `${percent}%` }} />
+        <div className={`h-full rounded-full bg-primary-200 ${percent == null ? "search-progress-pending" : "w-full origin-left transition-transform duration-500 motion-reduce:transition-none"}`} style={percent == null ? { width: "28%" } : { transform: `scaleX(${percent / 100})` }} />
       </div>
     </div>
     <p className="mt-4 text-center text-[11px] leading-5 text-gray-300">{searching ? "검색 결과를 준비하고 있어요" : "분석이 끝나면 제품과 분석 이유를 함께 보여드려요"}</p>

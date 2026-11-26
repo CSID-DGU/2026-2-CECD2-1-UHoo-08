@@ -31,6 +31,9 @@ import com.capstone.backend.domain.recommendation.enums.RecommendationBasis;
 import com.capstone.backend.domain.recommendation.enums.RefinePreset;
 import com.capstone.backend.domain.recommendation.enums.TargetPersonalColor;
 import com.capstone.backend.domain.recommendation.enums.TargetRelation;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
+import com.capstone.backend.domain.recommendation.service.BundleOptionService;
 import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
@@ -62,6 +65,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,6 +82,8 @@ class RecommendationControllerTest {
     RecommendationRefineService recommendationRefineService;
     @Mock
     RecommendationFeedbackService recommendationFeedbackService;
+    @Mock
+    BundleOptionService bundleOptionService;
     @InjectMocks
     RecommendationController controller;
 
@@ -98,6 +104,84 @@ class RecommendationControllerTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void 세트_교체_후보를_명세_모양으로_내려보낸다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 1, "toner")).willReturn(new BundleSlotOptionsResponse(50000, 48200,
+                List.of(new BundleSlotOptionsResponse.Option("p1", "토너", 26000, 92, 52200, -2200, false, false, 2200),
+                        new BundleSlotOptionsResponse.Option("p2", "순한 토너", 20500, 88, 46700, 3300, true, true, null))));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 1, "toner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.budget").value(50000))
+                .andExpect(jsonPath("$.data.currentTotal").value(48200))
+                .andExpect(jsonPath("$.data.options[0].productId").value("p1"))
+                .andExpect(jsonPath("$.data.options[0].name").value("토너"))
+                .andExpect(jsonPath("$.data.options[0].price").value(26000))
+                .andExpect(jsonPath("$.data.options[0].score").value(92))
+                .andExpect(jsonPath("$.data.options[0].newTotal").value(52200))
+                .andExpect(jsonPath("$.data.options[0].remaining").value(-2200))
+                .andExpect(jsonPath("$.data.options[0].isCurrent").value(false))
+                .andExpect(jsonPath("$.data.options[0].selectable").value(false))
+                .andExpect(jsonPath("$.data.options[0].overBudgetBy").value(2200))
+                .andExpect(jsonPath("$.data.options[1].isCurrent").value(true))
+                .andExpect(jsonPath("$.data.options[1].overBudgetBy").doesNotExist())
+                .andExpect(jsonPath("$.data.options[0].current").doesNotExist());
+    }
+
+    @Test
+    void 세트_제품을_교체하면_갱신된_조합을_돌려준다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.swap(eq(userId), eq(jobId), eq(1), any())).willReturn(new BundleSwapResponse(
+                new RecommendationResultV2Response.Bundle(1, null, "균형형", 46700, 3300, 174, List.of(
+                        new RecommendationResultV2Response.Slot("toner", "토너", "p1", "토너 제품", 20500, 88)))));
+
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", jobId, 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\"toner\",\"productId\":\"p1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.bundle.index").value(1))
+                .andExpect(jsonPath("$.data.bundle.total").value(46700))
+                .andExpect(jsonPath("$.data.bundle.remaining").value(3300))
+                .andExpect(jsonPath("$.data.bundle.totalScore").value(174))
+                .andExpect(jsonPath("$.data.bundle.slots[0].slotKey").value("toner"))
+                .andExpect(jsonPath("$.data.bundle.slots[0].productId").value("p1"));
+    }
+
+    @Test
+    void 세트_제품_교체로_예산을_넘으면_422다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.swap(eq(userId), eq(jobId), eq(1), any()))
+                .willThrow(new BusinessException(ErrorCode.BUNDLE_OVER_BUDGET));
+
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", jobId, 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\"toner\",\"productId\":\"p1\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("BUNDLE_OVER_BUDGET"));
+    }
+
+    @Test
+    void 세트_제품_교체에_값이_비어_있으면_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(patch("/recommendations/{jobId}/bundles/{bundleIndex}", UUID.randomUUID(), 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotKey\":\" \"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(bundleOptionService);
+    }
+
+    @Test
+    void 세트_칸이_없으면_404다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        given(bundleOptionService.getOptions(userId, jobId, 9, "toner"))
+                .willThrow(new BusinessException(ErrorCode.NOT_FOUND));
+
+        mockMvc.perform(get("/recommendations/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options", jobId, 9, "toner"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     // 자연어 추천 요청
@@ -127,7 +211,35 @@ class RecommendationControllerTest {
     }
 
     @Test
-    void 문장이_비었으면_422_VALIDATION_ERROR다() throws Exception {
+    void 기준_상품만_있어도_접수한다() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        ArgumentCaptor<RecommendationQueryRequest> request = ArgumentCaptor.forClass(RecommendationQueryRequest.class);
+        given(recommendationJobService.requestQuery(eq(userId), request.capture())).willReturn(
+                new RecommendationQueryResponse(jobId, 8, "/recommendations/" + jobId + "/status"));
+
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"baseProductId\":\"" + productId + "\"}"))
+                .andExpect(status().isAccepted());
+
+        assertThat(request.getValue().getBaseProductId()).isEqualTo(productId);
+    }
+
+    @Test
+    void 기준_상품_ID가_UUID가_아니면_422_VALIDATION_ERROR다() throws Exception {
+        mockMvc.perform(post("/recommendations/queries")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"baseProductId":"not-a-uuid"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(recommendationJobService);
+    }
+
+    @Test
+    void 문장과_기준_상품이_모두_없으면_422_VALIDATION_ERROR다() throws Exception {
         mockMvc.perform(post("/recommendations/queries")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -255,7 +367,7 @@ class RecommendationControllerTest {
                 .andExpect(jsonPath("$.data.alternativesDroppedCount").value(0))
                 .andExpect(jsonPath("$.data.bundles[0].index").value(1))
                 .andExpect(jsonPath("$.data.bundles[0].remaining").value(8000))
-                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("2"))
+                .andExpect(jsonPath("$.data.bundles[0].slots[2].slotKey").value("cream"))
                 .andExpect(content().string(containsString("\"parentJobId\":null")))
                 .andExpect(content().string(containsString("\"appliedPreference\":null")))
                 .andExpect(content().string(containsString("\"type\":null")))

@@ -138,7 +138,7 @@ public class RecommendationResultV2Response implements RecommendationResultBody 
     public static class Bundle {
         /** 1부터 */
         private int index;
-        /** 조합 유형. AI 가 칸 정보를 주기 전까지 null */
+        /** 조합 유형. AI 계약에 없어 지금은 null */
         private String type;
         private String label;
         private int total;
@@ -151,9 +151,9 @@ public class RecommendationResultV2Response implements RecommendationResultBody 
     @Getter
     @AllArgsConstructor
     public static class Slot {
-        /** 칸 키. AI 가 칸 정보를 주기 전까지 칸 순서("0", "1", ...) */
+        /** 칸 키. 칸 정보가 없는 기존 결과는 칸 순서("0", "1", ...) */
         private String slotKey;
-        /** 칸 이름. AI 가 칸 정보를 주기 전까지 null */
+        /** 칸 이름. 칸 정보가 없는 기존 결과는 null */
         private String label;
         private String productId;
         private String name;

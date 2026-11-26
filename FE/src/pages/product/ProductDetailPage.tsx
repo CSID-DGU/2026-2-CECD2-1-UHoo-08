@@ -1,12 +1,13 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Heart, Smile, Layers, Sun, Droplets, Folder } from "lucide-react";
+import { Heart, Smile, Layers, Sun, Droplets, Eye, Sparkles, Folder, Star } from "lucide-react";
 import { type ProductDetail, type StoreInfo, getProductDetail, recordProductView } from "../../api/productApi";
 import { addWishlist, deleteWishlist } from "../../api/wishlistApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import { ProductThumbnail } from "../../components/common/ProductThumbnail";
 import { beginSearchAnalysis, withDeadline } from "../../lib/searchAnalysis";
 import AppLayout from "../../layouts/AppLayout";
+import { CompatibilityNotice } from "../../components/product/CompatibilityNotice";
 
 function fmt(n: number | null | undefined) {
   if (n == null) return null;
@@ -14,46 +15,15 @@ function fmt(n: number | null | undefined) {
 }
 
 const FOLDERS = [
-  { key: "lip", label: "Lip", Icon: Smile },
-  { key: "base", label: "Base", Icon: Layers },
-  { key: "sun", label: "Sun", Icon: Sun },
-  { key: "skincare", label: "Skincare", Icon: Droplets },
+  { key: "lip", label: "립", Icon: Smile },
+  { key: "base", label: "베이스", Icon: Layers },
+  { key: "sun", label: "선케어", Icon: Sun },
+  { key: "skincare", label: "스킨케어", Icon: Droplets },
+  { key: "eye", label: "아이", Icon: Eye },
+  { key: "cheek", label: "치크", Icon: Sparkles },
   { key: "other", label: "기타", Icon: Folder },
 ];
 
-function GlassHeart() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="hFill" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7AAEE4" />
-          <stop offset="100%" stopColor="#3565B5" />
-        </linearGradient>
-        <linearGradient id="hShine" x1="6" y1="5" x2="13" y2="11" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z"
-        fill="url(#hFill)"
-      />
-      <path
-        d="M8 5.5C6.5 6 5 7.5 4.5 9.5"
-        stroke="url(#hShine)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        opacity="0.75"
-      />
-      <path
-        d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z"
-        fill="none"
-        stroke="rgba(255,255,255,0.4)"
-        strokeWidth="1"
-      />
-    </svg>
-  );
-}
 
 export function ProductDetailPage() {
   const navigate = useNavigate();
@@ -153,7 +123,7 @@ export function ProductDetailPage() {
               type="button"
               aria-label="찜하기"
             >
-              {wishlisted ? <GlassHeart /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
+              {wishlisted ? <Heart className="h-6 w-6 fill-red-500 text-red-500" strokeWidth={1.8} /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
             </button>
           }
         />
@@ -167,11 +137,11 @@ export function ProductDetailPage() {
           )}
         </div>
 
-        <p className="mt-3 text-caption text-gray-300">
-          {product?.brand ?? "—"}
-          {product?.category ? ` · ${product.category}` : ""}
+        <p className="mt-3 flex gap-2 text-caption text-gray-300">
+          {product?.brand && <span>{product.brand}</span>}
+          {product?.category && <span>{product.category}</span>}
         </p>
-        <h1 className="mt-1 text-h2 text-gray-500">{product?.name ?? "로딩 중..."}</h1>
+        <h1 className="mt-1 text-h2 text-gray-500">{product?.name ?? "로딩 중…"}</h1>
 
         {/* 가격 */}
         {product?.originalPrice != null && (
@@ -196,6 +166,8 @@ export function ProductDetailPage() {
           </div>
         )}
 
+        {/* 보유 제품과의 궁합. 문제가 있을 때만 보인다 */}
+        {productId && <CompatibilityNotice productId={productId} />}
 
         {/* 주요 성분 */}
         {ingredients && ingredients.length > 0 && (
@@ -231,7 +203,7 @@ export function ProductDetailPage() {
               <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4">
                 <div>
                   <span className="text-h1 text-gray-500">{product.averageScore} 점</span>
-                  <span className="ml-3 text-[#FFB000]">★★★★★</span>
+                  <Star aria-hidden="true" className="ml-2 inline h-5 w-5 -translate-y-0.5 fill-star text-star" />
                   <p className="text-caption text-gray-300">/ 5.0점</p>
                 </div>
               </div>
@@ -262,7 +234,7 @@ export function ProductDetailPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-body2 text-gray-500">{store.storeName}</span>
                     {store.isLowest && (
-                      <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[10px] text-white">최저</span>
+                      <span className="rounded-full bg-primary-700 px-2 py-0.5 text-[11px] text-white">최저</span>
                     )}
                   </div>
                   <span className={`text-body2 ${store.isLowest ? "font-semibold text-primary-500" : "text-gray-500"}`}>
@@ -283,10 +255,10 @@ export function ProductDetailPage() {
             type="button"
             aria-label="찜하기"
           >
-            {wishlisted ? <GlassHeart /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
+            {wishlisted ? <Heart className="h-6 w-6 fill-red-500 text-red-500" strokeWidth={1.8} /> : <Heart className="h-6 w-6 text-gray-400" strokeWidth={1.8} />}
           </button>
           <button
-            className="h-12 flex-1 rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+            className="h-12 flex-1 rounded-xl bg-primary-600 text-body1 font-semibold text-white"
             onClick={() => void handleViewReport()}
             disabled={!product || analysing}
             type="button"
@@ -301,9 +273,9 @@ export function ProductDetailPage() {
 
       {/* dim */}
       <div
-        className="fixed inset-0 z-40 transition-all duration-300"
+        className="fixed inset-0 z-40 transition-opacity duration-300 motion-reduce:transition-none"
         style={{
-          background: "rgba(0,0,0,0.3)",
+          background: "color-mix(in srgb, var(--color-gray-500) 30%, transparent)",
           opacity: showCategorySheet ? 1 : 0,
           pointerEvents: showCategorySheet ? "auto" : "none",
         }}
@@ -313,9 +285,14 @@ export function ProductDetailPage() {
       {/* 카테고리 선택 바텀시트 */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showCategorySheet}
         style={{
           transform: showCategorySheet ? "translateY(0)" : "translateY(105%)",
-          transition: sheetEverOpened ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+          // 닫힌 시트가 화면 아래로 비쳐 보이지 않게 닫히는 애니메이션 뒤에 숨긴다.
+          visibility: showCategorySheet ? "visible" : "hidden",
+          transition: sheetEverOpened
+            ? `transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear ${showCategorySheet ? "0s" : "0.32s"}`
+            : "none",
           willChange: "transform",
         }}
       >
@@ -327,9 +304,9 @@ export function ProductDetailPage() {
           {FOLDERS.map(({ key, label, Icon }) => (
             <button
               key={key}
-              className="flex flex-col items-center gap-2 rounded-2xl py-4 transition-all"
+              className="flex flex-col items-center gap-2 rounded-2xl py-4"
               style={{
-                background: "linear-gradient(135deg, #9DBFEE, #C5DDF5)",
+                background: "linear-gradient(135deg, var(--color-primary-300), var(--color-primary-150))",
               }}
               onClick={() => handleAddToCategory(key)}
               disabled={adding}
@@ -337,7 +314,7 @@ export function ProductDetailPage() {
             >
               <span
                 className="flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: "rgba(255,255,255,0.5)" }}
+                style={{ background: "color-mix(in srgb, var(--color-white) 50%, transparent)" }}
               >
                 <Icon className="h-5 w-5 text-primary-600" strokeWidth={1.8} />
               </span>

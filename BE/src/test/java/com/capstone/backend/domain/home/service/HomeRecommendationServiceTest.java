@@ -66,8 +66,9 @@ class HomeRecommendationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HomeRecommendationService(userRepository, homeRecommendationRepository, userProductRepository,
-                new ResultAssembler(productRepository), new JsonUtil(MAPPER));
+        service = new HomeRecommendationService(userRepository,
+                new HomeResultReader(homeRecommendationRepository, new JsonUtil(MAPPER)), userProductRepository,
+                new ResultAssembler(productRepository));
     }
 
     private void givenUser(String region) {
@@ -87,7 +88,7 @@ class HomeRecommendationServiceTest {
                 .willReturn(Optional.of(row));
     }
 
-    /** 홈 환경 결과 샘플에 조건 블록을 붙인다 */
+    /** 홈 환경 결과 샘플의 조건 블록을 이 테스트의 값으로 바꾼다 */
     private static String sampleWithConditions() throws Exception {
         try (InputStream in = HomeRecommendationServiceTest.class.getResourceAsStream("/ai-results/HOME_ENV.json")) {
             ObjectNode result = (ObjectNode) MAPPER.readTree(in);
@@ -157,7 +158,9 @@ class HomeRecommendationServiceTest {
     void 조건_블록이_없는_결과면_조건은_비어_있다() throws Exception {
         givenUser("경기");
         try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ENV.json")) {
-            givenHomeEnv(new String(in.readAllBytes()));
+            ObjectNode oldResult = (ObjectNode) MAPPER.readTree(in);
+            oldResult.remove("conditions");
+            givenHomeEnv(MAPPER.writeValueAsString(oldResult));
         }
 
         EnvironmentRecommendationResponse response = service.getEnvironment(userId);

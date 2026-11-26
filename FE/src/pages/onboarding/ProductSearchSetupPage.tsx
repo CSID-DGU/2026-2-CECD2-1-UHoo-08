@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { searchProducts } from "../../api/productApi";
 import type { ProductSearchItem } from "../../api/productApi";
@@ -61,7 +62,7 @@ export function ProductSearchSetupPage() {
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
-            className="h-12 rounded-xl bg-primary-500 px-5 text-body2 text-white disabled:opacity-50"
+            className="h-12 rounded-xl bg-primary-600 px-5 text-body2 text-white disabled:opacity-50"
             onClick={handleSearch}
             disabled={loading || !keyword.trim()}
             type="button"
@@ -105,13 +106,17 @@ export function ProductSearchSetupPage() {
                     className={`h-8 rounded-xl px-4 text-caption ${
                       addedIds.has(item.id)
                         ? "bg-primary-100 text-primary-500"
-                        : "bg-primary-500 text-white"
+                        : "bg-primary-600 text-white"
                     }`}
                     onClick={() => handleAdd(item)}
                     disabled={addedIds.has(item.id)}
                     type="button"
                   >
-                    {addedIds.has(item.id) ? "추가됨 ✓" : "추가"}
+                    {addedIds.has(item.id) ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        <Check aria-hidden="true" className="h-3.5 w-3.5" /> 추가됨
+                      </span>
+                    ) : "추가"}
                   </button>
                 </div>
               ))}
@@ -126,7 +131,7 @@ export function ProductSearchSetupPage() {
         )}
 
         <button
-          className="mt-auto h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white"
+          className="mt-auto h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white"
           onClick={() => navigate("/onboarding/products")}
           type="button"
         >

@@ -204,7 +204,7 @@ class PhotoRecognitionServiceTest {
     @Test
     void 기한_세_항목을_모두_읽으면_READ로_돌려주고_인식_결과에_남긴다() {
         PhotoRecognition recognition = givenRecognitionAndUpload();
-        given(aiInternalClient.recognizePhotos(new RecognizePhotosRequest(nameImageUrl, imageUrl))).willReturn(
+        given(aiInternalClient.recognizePhotos(new RecognizePhotosRequest(null, imageUrl))).willReturn(
                 new RecognizePhotosResponse(List.of(), "2027-04-18", 12, "2025-04-18", Map.of("date", "EXP 2027.04.18"), false));
 
         ExpiryRecognitionResponse response = service.recognizeExpiry(userId, recognitionId, backImage);

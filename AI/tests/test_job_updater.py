@@ -26,6 +26,18 @@ class TestJobUpdater:
 
     @pytest.mark.asyncio
     @patch("services.job_updater.get_supabase")
+    async def test_steps(self, mock_get_sb):
+        sb = MagicMock()
+        mock_get_sb.return_value = sb
+        steps = [{"key": "normalize", "label": "요청 이해", "state": "NOW"}]
+
+        await update("job_001", step="요청 이해", progress=0, steps=steps)
+
+        payload = sb.table.return_value.update.call_args.args[0]
+        assert payload["steps"] == steps
+
+    @pytest.mark.asyncio
+    @patch("services.job_updater.get_supabase")
     async def test_completed_status(self, mock_get_sb):
         sb = MagicMock()
         mock_get_sb.return_value = sb

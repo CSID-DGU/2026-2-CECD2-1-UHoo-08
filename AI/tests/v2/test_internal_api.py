@@ -9,7 +9,8 @@ from pydantic import ValidationError
 from contracts.internal_api import (
     AgentClarifyRequest,
     AgentRunV2Request,
-    BundleSwapRequest,
+    CompatibilityCheckRequest,
+    CompatibilityCheckResponse,
     FeedbackApplyRequest,
     HomeKind,
     HomeRunRequest,
@@ -22,7 +23,9 @@ from contracts.internal_api import (
 def test_BE로_나갈_때_camelCase가_된다():
     요청 = AgentRunV2Request(job_id="j1", user_id="u1", raw_query="여름 쿠션")
     나감 = 요청.model_dump(mode="json", by_alias=True)
-    assert set(나감) == {"jobId", "userId", "rawQuery", "basis", "targetProfile", "parentJobId"}
+    assert set(나감) == {
+        "jobId", "userId", "rawQuery", "baseProductId", "basis", "targetProfile", "parentJobId",
+    }
 
 
 def test_job_상태값이_컬럼_길이에_들어간다():
@@ -47,6 +50,8 @@ def test_되묻기는_실패가_아니다():
         lambda: RecognizePhotosRequest(date_image=""),
         lambda: RecognizePhotosRequest(name_image="", date_image="https://x/d.jpg"),
         lambda: FeedbackApplyRequest(user_id=""),
+        lambda: CompatibilityCheckRequest(user_id="", product_id="p1"),
+        lambda: CompatibilityCheckRequest(user_id="u1", product_id=""),
     ],
 )
 def test_빈_문자열을_거부한다(만들기):
@@ -78,18 +83,88 @@ def test_사진이_하나도_없으면_거부한다(본문):
 def test_모르는_필드를_거부한다():
     """BE 가 옛 이름으로 보내면 조용히 무시되는 대신 400 이 난다."""
     with pytest.raises(ValidationError):
-        AgentRunV2Request(job_id="j1", user_id="u1", raw_query="q", baseProductId="p1")
+        AgentRunV2Request(job_id="j1", user_id="u1", raw_query="q", productCode="p1")
+
+
+@pytest.mark.parametrize("값", [
+    {"rawQuery": "여름 쿠션"},
+    {"baseProductId": "p1"},
+    {"rawQuery": None, "baseProductId": "p1"},
+    {"rawQuery": "이 제품 어때", "baseProductId": "p1"},
+])
+def test_질의나_기준_상품_중_하나면_받는다(값):
+    AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
+
+
+@pytest.mark.parametrize("값", [
+    {},
+    {"rawQuery": None, "baseProductId": None},
+    {"rawQuery": ""},
+    {"baseProductId": ""},
+    {"rawQuery": "여름 쿠션", "baseProductId": ""},
+])
+def test_질의와_기준_상품이_모두_없거나_빈_값이면_거부한다(값):
+    with pytest.raises(ValidationError):
+        AgentRunV2Request.model_validate({"jobId": "j1", "userId": "u1", **값})
+
+
+def test_기준_상품과_이전_job이_함께_오면_거부한다():
+    """기준 상품이 있으면 조건 수정 경로로 가지 않아 이전 job 의 조건이 버려진다."""
+    AgentRunV2Request.model_validate(
+        {"jobId": "j1", "userId": "u1", "rawQuery": "무향으로", "parentJobId": "j0"}
+    )
+    with pytest.raises(ValidationError):
+        AgentRunV2Request.model_validate({
+            "jobId": "j1", "userId": "u1", "rawQuery": "무향으로",
+            "baseProductId": "p1", "parentJobId": "j0",
+        })
+
+
+def test_궁합_요청은_camelCase로_받는다():
+    요청 = CompatibilityCheckRequest.model_validate({"userId": "u1", "productId": "p1"})
+    assert 요청.model_dump(by_alias=True) == {"userId": "u1", "productId": "p1"}
+
+
+def test_궁합_응답을_왕복한다():
+    본문 = {
+        "level": "SEPARATE",
+        "pairs": [{
+            "userProductId": "up1",
+            "ingredientA": "레티놀",
+            "ingredientB": "AHA",
+            "level": "SEPARATE",
+            "advice": "시간을 나눠 쓰세요",
+            "schedule": "레티놀은 저녁에 쓰세요",
+        }],
+        "stub": False,
+    }
+    결과 = CompatibilityCheckResponse.model_validate(본문)
+    assert 결과.model_dump(mode="json", by_alias=True) == 본문
+
+
+def test_궁합_안내는_비어_있어도_된다():
+    쌍 = {"userProductId": "up1", "ingredientA": "레티놀", "ingredientB": "AHA", "level": "AVOID"}
+    결과 = CompatibilityCheckResponse.model_validate({"level": "AVOID", "pairs": [쌍]})
+    assert 결과.pairs[0].advice is None and 결과.pairs[0].schedule is None
+
+
+@pytest.mark.parametrize("본문", [
+    {},
+    {"level": "GOOD"},
+    {"level": "OK", "pairs": [{"userProductId": "up1", "ingredientA": "레티놀",
+                               "ingredientB": "AHA", "level": "GOOD"}]},
+    {"level": "AVOID", "pairs": [{"userProductId": "up1", "ingredientA": "",
+                                  "ingredientB": "AHA", "level": "AVOID"}]},
+])
+def test_잘못된_궁합_응답을_거부한다(본문):
+    with pytest.raises(ValidationError):
+        CompatibilityCheckResponse.model_validate(본문)
 
 
 def test_홈은_두_종류만_받는다():
     assert {k.value for k in HomeKind} == {"ROUTINE", "ENV"}
     with pytest.raises(ValidationError):
         HomeRunRequest(user_id="u1", kind="TREND")
-
-
-def test_세트_교체_위치는_음수가_될_수_없다():
-    with pytest.raises(ValidationError):
-        BundleSwapRequest(job_id="j1", bundle_index=-1, slot=0, product_id="p1")
 
 
 def test_인식_결과는_모르는_값을_비워_둔다():

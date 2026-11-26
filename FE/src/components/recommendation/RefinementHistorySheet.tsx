@@ -1,23 +1,29 @@
 import { BottomSheet } from "../common/BottomSheet";
-import type { AiSearchProduct } from "../../api/productApi";
 
-export interface SearchHistoryEntry {
+/** 조건 수정 이력 한 단계. 서버의 refinements/history 한 줄과 같다. */
+export interface RefinementHistoryEntry {
+  jobId: string;
+  /** "처음 검색" 또는 "+ 더 저렴하게" */
   title: string;
-  conditions: string[];
-  baseQuery: string;
-  products: AiSearchProduct[];
+  /** 처음 검색이면 검색 문장, 나머지는 직전 단계와 달라진 조건 */
+  detail: string;
+  candidateCount: number;
 }
 
 export function RefinementHistorySheet({
   entries,
-  activeIndex,
+  activeJobId,
+  loading,
+  error,
   onClose,
   onSelect,
 }: {
-  entries: SearchHistoryEntry[];
-  activeIndex: number;
+  entries: RefinementHistoryEntry[];
+  activeJobId: string | null;
+  loading?: boolean;
+  error?: string;
   onClose: () => void;
-  onSelect: (index: number) => void;
+  onSelect: (jobId: string) => void;
 }) {
   return (
     <BottomSheet label="조건 수정 이력" onClose={onClose}>
@@ -31,34 +37,47 @@ export function RefinementHistorySheet({
         <p className="mt-1 text-caption text-gray-300">
           원하는 시점으로 되돌릴 수 있어요
         </p>
+        {loading && (
+          <p role="status" className="mt-4 text-caption text-gray-300">
+            이력을 불러오고 있어요
+          </p>
+        )}
+        {!loading && error && (
+          <p role="alert" className="mt-4 text-caption text-red-700">
+            {error}
+          </p>
+        )}
         <ol className="mt-4 grid gap-2">
-          {entries.map((entry, index) => (
-            <li
-              key={index}
-              className={`relative rounded-xl border p-3 pl-7 ${activeIndex === index ? "border-primary-300 bg-primary-50" : "border-gray-100"}`}
-            >
-              <span
-                className={`absolute left-3 top-4 h-2 w-2 rounded-full border ${activeIndex === index ? "border-primary-500 bg-primary-500" : "border-gray-200"}`}
-              />
-              <div className="flex justify-between gap-2">
-                <p className="text-caption font-semibold">{entry.title}</p>
-                <span className="shrink-0 text-[11px] text-gray-300">
-                  후보 {entry.products.length}개
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-gray-300">
-                {[entry.baseQuery, ...entry.conditions].join(" · ")}
-              </p>
-              <button
-                type="button"
-                onClick={() => onSelect(index)}
-                disabled={index === activeIndex}
-                className={`mt-2 rounded-md px-2 py-1 text-[11px] ${index === activeIndex ? "bg-primary-500 text-white" : "border border-gray-200 bg-white text-gray-400"}`}
+          {entries.map((entry) => {
+            const active = entry.jobId === activeJobId;
+            return (
+              <li
+                key={entry.jobId}
+                className={`relative rounded-xl border p-3 pl-7 ${active ? "border-primary-300 bg-primary-50" : "border-gray-100"}`}
               >
-                {index === activeIndex ? "지금 보고 있어요" : "이 시점으로"}
-              </button>
-            </li>
-          ))}
+                <span
+                  className={`absolute left-3 top-4 h-2 w-2 rounded-full border ${active ? "border-primary-500 bg-primary-500" : "border-gray-200"}`}
+                />
+                <div className="flex justify-between gap-2">
+                  <p className="text-caption font-semibold">{entry.title}</p>
+                  <span className="shrink-0 text-[11px] text-gray-300">
+                    후보 {entry.candidateCount}개
+                  </span>
+                </div>
+                {entry.detail && (
+                  <p className="mt-1 text-[11px] text-gray-300">{entry.detail}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onSelect(entry.jobId)}
+                  disabled={active}
+                  className={`mt-2 rounded-md px-2 py-1 text-[11px] ${active ? "bg-primary-600 text-white" : "border border-gray-200 bg-white text-gray-400"}`}
+                >
+                  {active ? "지금 보고 있어요" : "이 시점으로"}
+                </button>
+              </li>
+            );
+          })}
         </ol>
 
         <p className="mt-4 rounded-lg bg-gray-100 p-3 text-[11px] leading-5 text-gray-300">

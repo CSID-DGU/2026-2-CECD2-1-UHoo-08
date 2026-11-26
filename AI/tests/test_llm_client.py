@@ -64,3 +64,768 @@ class TestLLMClient:
         c = LLMClient(model="m", base_url="http://x", api_key="k")
         out = await c.chat_json(system="s", user="u")
         assert out is None
+
+class TestMaxRetries:
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_max_retries_is_applied_only_when_given(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        client_mock = MagicMock()
+        응답 = MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))], usage=None)
+        client_mock.chat.completions.create.return_value = 응답
+        client_mock.with_options.return_value.chat.completions.create.return_value = 응답
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+        client_mock.with_options.assert_not_called()
+
+        await c.chat(system="s", user="u", max_retries=0)
+        client_mock.with_options.assert_called_once_with(max_retries=0)
+
+
+class TestThinkingOffOption:
+    """생각 기능이 기본으로 켜진 모델에만 끄는 값을 보내는지 본다."""
+
+    @staticmethod
+    def _보낸_값(mock_openai_cls):
+        return mock_openai_cls.return_value.chat.completions.create.call_args.kwargs
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_model_that_thinks_by_default_gets_the_off_value(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3.8-flash", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+
+        assert self._보낸_값(mock_openai_cls)["reasoning_effort"] == "none"
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_other_models_get_nothing_extra(self, mock_openai_cls):
+        """받지 않는 모델에 보내면 오류가 날 수 있다. 지금 쓰는 모델의 요청도 바뀌면 안 된다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen-plus", base_url="http://x", api_key="k")
+        # 스키마는 Claude 만 쓴다. 줘도 요청은 그대로다
+        await c.chat(system="s", user="u", response_json=True, timeout=5.0, schema={"type": "object"})
+
+        assert set(self._보낸_값(mock_openai_cls)) == {
+            "model", "messages", "temperature", "response_format", "timeout",
+        }
+
+
+class TestLLMCallRecord:
+    """호출마다 모델, 토큰 수, 걸린 시간이 기록되는지 본다."""
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_records_model_tokens_and_time(self, mock_openai_cls):
+        from services.llm.client import LLMClient, LLMRole
+        from services.llm.usage import collect_calls
+
+        client_mock = MagicMock()
+        client_mock.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))],
+            usage=MagicMock(prompt_tokens=120, completion_tokens=30),
+        )
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k", role=LLMRole.NORMALIZE)
+        with collect_calls() as calls:
+            await c.chat(system="s", user="u")
+
+        assert len(calls) == 1
+        call = calls[0]
+        assert (call.role, call.model) == ("normalize", "m")
+        assert (call.input_tokens, call.output_tokens) == (120, 30)
+        assert call.seconds >= 0
+        assert call.ok is True
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_missing_usage_counts_as_zero(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        client_mock = MagicMock()
+        client_mock.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))],
+            usage=None,
+        )
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        with collect_calls() as calls:
+            out = await c.chat(system="s", user="u")
+
+        assert out == "hello"
+        assert (calls[0].input_tokens, calls[0].output_tokens) == (0, 0)
+        assert calls[0].role == ""
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_failed_call_is_recorded_and_raised(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        client_mock = MagicMock()
+        client_mock.chat.completions.create.side_effect = RuntimeError("timeout")
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        with collect_calls() as calls:
+            with pytest.raises(RuntimeError):
+                await c.chat(system="s", user="u")
+
+        assert len(calls) == 1
+        assert calls[0].ok is False
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_cancelled_call_is_recorded_and_reraised(self, mock_openai_cls):
+        import asyncio
+
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        mock_openai_cls.return_value = MagicMock()
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+
+        async def 취소된_스레드(*_args, **_kwargs):
+            raise asyncio.CancelledError
+
+        with patch("services.llm.client.asyncio.to_thread", 취소된_스레드):
+            with collect_calls() as calls:
+                with pytest.raises(asyncio.CancelledError):
+                    await c.chat(system="s", user="u")
+
+        assert len(calls) == 1
+        assert calls[0].ok is False
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_concurrent_calls_are_collected_together(self, mock_openai_cls):
+        import asyncio
+
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        client_mock = MagicMock()
+        client_mock.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))],
+            usage=MagicMock(prompt_tokens=10, completion_tokens=2),
+        )
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        with collect_calls() as calls:
+            await asyncio.gather(*(c.chat(system="s", user="u") for _ in range(5)))
+
+        assert len(calls) == 5
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_nothing_collected_outside_scope(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        client_mock = MagicMock()
+        client_mock.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))],
+            usage=MagicMock(prompt_tokens=10, completion_tokens=2),
+        )
+        mock_openai_cls.return_value = client_mock
+
+        c = LLMClient(model="m", base_url="http://x", api_key="k")
+        with collect_calls() as calls:
+            pass
+        await c.chat(system="s", user="u")
+
+        assert calls == []
+
+
+class TestClaude:
+    """모델 이름이 claude- 로 시작하면 Anthropic SDK 로 부르는지 본다."""
+
+    @staticmethod
+    def _응답(글='{"a": 1}', **토큰):
+        토큰 = 토큰 or {"input_tokens": 100, "output_tokens": 20}
+        return MagicMock(
+            content=[MagicMock(type="thinking"), MagicMock(type="text", text=글)],
+            usage=MagicMock(**토큰),
+        )
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    @patch("anthropic.Anthropic")
+    async def test_claude_model_goes_to_anthropic_sdk(self, mock_anthropic_cls, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="https://proxy.example", api_key="k")
+        out = await c.chat_json(system="s", user="u", temperature=0.0)
+
+        assert out == {"a": 1}
+        mock_openai_cls.assert_not_called()
+        mock_anthropic_cls.assert_called_once_with(api_key="k", base_url="https://proxy.example")
+        보낸 = create.call_args.kwargs
+        assert 보낸["model"] == "claude-haiku-5-5"
+        assert 보낸["system"] == "s"
+        assert 보낸["messages"] == [{"role": "user", "content": "u"}]
+        assert 보낸["max_tokens"] > 0
+        # 받지 않는 옵션은 보내지 않는다
+        assert "temperature" not in 보낸
+        assert "response_format" not in 보낸
+        assert "timeout" not in 보낸
+        # 스키마를 받지 않았으면 답의 모양을 강제하지 않는다
+        assert "output_config" not in 보낸
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_empty_base_url_falls_back_to_official_address(self, mock_anthropic_cls):
+        """비워 두면 SDK 가 환경 변수의 주소를 읽으므로 공식 주소를 직접 준다."""
+        from services.llm.client import LLMClient
+
+        LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+
+        assert mock_anthropic_cls.call_args.kwargs["base_url"] == "https://api.anthropic.com"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("model, 생각", [
+        ("claude-haiku-5-5", {"type": "disabled"}),
+        ("claude-sonnet-5-5", {"type": "between_tools"}),
+    ])
+    @patch("anthropic.Anthropic")
+    async def test_thinking_is_turned_off_per_model(self, mock_anthropic_cls, model, 생각):
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+
+        c = LLMClient(model=model, base_url="", api_key="k")
+        await c.chat(system="s", user="u")
+
+        assert create.call_args.kwargs["thinking"] == 생각
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_unlisted_model_keeps_its_default_thinking(self, mock_anthropic_cls):
+        """끄는 값을 모르는 모델에는 보내지 않는다. 잘못된 값은 오류가 난다."""
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+
+        c = LLMClient(model="claude-opus-5-5", base_url="", api_key="k")
+        await c.chat(system="s", user="u")
+
+        assert "thinking" not in create.call_args.kwargs
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_timeout_is_passed(self, mock_anthropic_cls):
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        await c.chat(system="s", user="u", timeout=15.0)
+
+        assert create.call_args.kwargs["timeout"] == 15.0
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_schema_forces_the_answer_shape(self, mock_anthropic_cls):
+        """프롬프트로만 양식을 지키게 하면 짧은 말에 대화하듯 답하는 일이 있다."""
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+        스키마 = {
+            "type": "object",
+            "properties": {"a": {"type": "integer"}},
+            "required": ["a"],
+            "additionalProperties": False,
+        }
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        out = await c.chat_json(system="s", user="u", schema=스키마)
+
+        assert out == {"a": 1}
+        assert create.call_args.kwargs["output_config"] == {
+            "format": {"type": "json_schema", "schema": 스키마},
+        }
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_schema_constraints_the_api_rejects_are_removed(self, mock_anthropic_cls):
+        """숫자 범위나 글자 수 제약이 남아 있으면 요청이 거절된다. SDK 가 빼고 보낸다."""
+        from services.llm.client import LLMClient
+
+        create = mock_anthropic_cls.return_value.messages.create
+        create.return_value = self._응답()
+        스키마 = {
+            "type": "object",
+            "properties": {"a": {"type": "integer", "minimum": 1}, "b": {"type": "object", "properties": {}}},
+            "required": ["a"],
+        }
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        await c.chat(system="s", user="u", schema=스키마)
+
+        보낸 = create.call_args.kwargs["output_config"]["format"]["schema"]
+        assert "minimum" not in 보낸["properties"]["a"]
+        assert 보낸["additionalProperties"] is False
+        assert 보낸["properties"]["b"]["additionalProperties"] is False
+        # 받은 스키마는 건드리지 않는다
+        assert 스키마["properties"]["a"] == {"type": "integer", "minimum": 1}
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_records_tokens_including_cached_input(self, mock_anthropic_cls):
+        from services.llm.client import LLMClient, LLMRole
+        from services.llm.usage import collect_calls
+
+        mock_anthropic_cls.return_value.messages.create.return_value = self._응답(
+            input_tokens=10, cache_creation_input_tokens=30, cache_read_input_tokens=60, output_tokens=5,
+        )
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k", role=LLMRole.COMPOSE)
+        with collect_calls() as calls:
+            await c.chat(system="s", user="u")
+
+        call = calls[0]
+        assert (call.role, call.model, call.ok) == ("compose", "claude-haiku-5-5", True)
+        assert (call.input_tokens, call.output_tokens) == (100, 5)
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_answer_without_text_is_empty(self, mock_anthropic_cls):
+        """모델이 답을 거절하면 글 블록이 없다. 빈 답이 되고 JSON 으로는 None 이다."""
+        from services.llm.client import LLMClient
+
+        mock_anthropic_cls.return_value.messages.create.return_value = MagicMock(
+            content=[], usage=MagicMock(input_tokens=5, output_tokens=0),
+        )
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+
+        assert await c.chat(system="s", user="u") == ""
+        assert await c.chat_json(system="s", user="u") is None
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_failed_call_is_recorded_and_raised(self, mock_anthropic_cls):
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        mock_anthropic_cls.return_value.messages.create.side_effect = RuntimeError("timeout")
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        with collect_calls() as calls:
+            with pytest.raises(RuntimeError):
+                await c.chat(system="s", user="u")
+
+        assert (calls[0].ok, calls[0].input_tokens, calls[0].output_tokens) == (False, 0, 0)
+
+    def test_empty_key_is_rejected(self):
+        """빈 키로 만들면 SDK 가 환경의 다른 인증 정보를 찾아 쓴다. 만들 때 막는다."""
+        from services.llm.client import LLMClient
+
+        with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
+            LLMClient(model="claude-haiku-5-5", base_url="", api_key="")
+
+
+class TestRoleSettings:
+    """역할의 모델을 보고 주소와 키의 기본값을 고르는지 본다."""
+
+    @staticmethod
+    def _역할_값(monkeypatch, 모델="", 주소="", 키=""):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_MODEL", 모델)
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_BASE_URL", 주소)
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_API_KEY", 키)
+        monkeypatch.setattr(client.settings, "ANTHROPIC_API_KEY", "anthropic-key")
+        monkeypatch.setattr(client.settings, "DASHSCOPE_API_KEY", "dashscope-key")
+        return client
+
+    def test_claude_model_gets_anthropic_address_and_key(self, monkeypatch):
+        client = self._역할_값(monkeypatch, 모델="claude-haiku-5-5")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "claude-haiku-5-5", "https://api.anthropic.com", "anthropic-key",
+        )
+
+    def test_role_address_and_key_win(self, monkeypatch):
+        client = self._역할_값(monkeypatch, 모델="claude-haiku-5-5", 주소="https://proxy.example", 키="role-key")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "claude-haiku-5-5", "https://proxy.example", "role-key",
+        )
+
+    def test_other_models_keep_qwen_defaults(self, monkeypatch):
+        client = self._역할_값(monkeypatch)
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            client.settings.QWEN_TEXT_MODEL, client.settings.QWEN_TEXT_BASE_URL, "dashscope-key",
+        )
+
+
+class TestVertexGemini:
+    """주소 없이 고른 Gemini 를 Vertex AI 로 부르는지 본다."""
+
+    @pytest.fixture(autouse=True)
+    def _프로젝트(self, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "my-project")
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_LOCATION", "global")
+
+    @staticmethod
+    def _응답(글='{"a": 1}', **토큰):
+        토큰 = 토큰 or {"prompt_token_count": 100, "candidates_token_count": 20}
+        조각들 = [
+            MagicMock(text="속으로 한 생각", thought=True),
+            MagicMock(text=None, thought=None),
+            MagicMock(text=글, thought=None),
+        ]
+        return MagicMock(
+            candidates=[MagicMock(content=MagicMock(parts=조각들))],
+            usage_metadata=MagicMock(**토큰),
+        )
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    @patch("google.genai.Client")
+    async def test_gemini_without_address_goes_to_vertex(self, mock_genai_cls, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        out = await c.chat_json(system="s", user="u", temperature=0.0)
+
+        assert out == {"a": 1}
+        mock_openai_cls.assert_not_called()
+        만든 = mock_genai_cls.call_args.kwargs
+        assert (만든["vertexai"], 만든["project"], 만든["location"]) == (True, "my-project", "global")
+        보낸 = generate.call_args.kwargs
+        assert (보낸["model"], 보낸["contents"]) == ("gemini-3.8-flash", "u")
+        설정 = 보낸["config"]
+        assert 설정.system_instruction == "s"
+        assert 설정.response_mime_type == "application/json"
+        # 기본값으로 두라고 안내하는 값은 보내지 않는다
+        assert 설정.temperature is None
+        assert 설정.http_options is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_plain_chat_does_not_ask_for_json(self, mock_genai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답(글="hello")
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert await c.chat(system="s", user="u") == "hello"
+        assert generate.call_args.kwargs["config"].response_mime_type is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_schema_is_not_sent(self, mock_genai_cls):
+        """스키마는 Claude 만 쓴다. Gemini 는 JSON 응답 옵션으로 양식을 지키게 한다."""
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        out = await c.chat_json(system="s", user="u", schema={"type": "object"})
+
+        assert out == {"a": 1}
+        설정 = generate.call_args.kwargs["config"]
+        assert 설정.response_mime_type == "application/json"
+        assert 설정.response_schema is None and 설정.response_json_schema is None
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    @patch("google.genai.Client")
+    async def test_gemini_with_address_stays_on_openai_compatible(self, mock_genai_cls, mock_openai_cls):
+        """주소를 줬으면 전처럼 그 주소의 OpenAI 호환 방식으로 부른다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="http://x", api_key="k")
+
+        assert await c.chat(system="s", user="u") == "hello"
+        mock_genai_cls.assert_not_called()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("model, 단계", [
+        ("gemini-3.5-flash-lite", "MINIMAL"),
+        ("gemini-3.8-flash", "LOW"),
+        ("gemini-3.1-pro-preview", "LOW"),
+    ])
+    @patch("google.genai.Client")
+    async def test_thinking_is_set_to_lowest_level_per_model(self, mock_genai_cls, model, 단계):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model=model, base_url="", api_key="")
+        await c.chat(system="s", user="u")
+
+        assert generate.call_args.kwargs["config"].thinking_config.thinking_level.value == 단계
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_unlisted_model_keeps_its_default_thinking(self, mock_genai_cls):
+        """가장 낮은 단계를 모르는 모델에는 보내지 않는다. 받지 않는 단계는 오류가 난다."""
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-4-carbon", base_url="", api_key="")
+        await c.chat(system="s", user="u")
+
+        assert generate.call_args.kwargs["config"].thinking_config is None
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_timeout_is_passed_in_milliseconds(self, mock_genai_cls):
+        from services.llm.client import LLMClient
+
+        generate = mock_genai_cls.return_value.models.generate_content
+        generate.return_value = self._응답()
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        await c.chat(system="s", user="u", timeout=15.0)
+
+        assert generate.call_args.kwargs["config"].http_options.timeout == 15000
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_retries_like_the_other_sdks(self, mock_genai_cls):
+        """이 SDK 는 정하지 않으면 다시 보내지 않는다. 다른 SDK 처럼 두 번까지 다시 보낸다."""
+        from services.llm.client import LLMClient
+
+        LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert mock_genai_cls.call_args.kwargs["http_options"].retry_options.attempts == 3
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_records_tokens_including_thinking(self, mock_genai_cls):
+        from services.llm.client import LLMClient, LLMRole
+        from services.llm.usage import collect_calls
+
+        mock_genai_cls.return_value.models.generate_content.return_value = self._응답(
+            prompt_token_count=100, candidates_token_count=20, thoughts_token_count=30,
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="", role=LLMRole.NORMALIZE)
+        with collect_calls() as calls:
+            await c.chat(system="s", user="u")
+
+        call = calls[0]
+        assert (call.role, call.model, call.ok) == ("normalize", "gemini-3.8-flash", True)
+        assert (call.input_tokens, call.output_tokens) == (100, 50)
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_blocked_answer_is_empty(self, mock_genai_cls):
+        """답이 막히면 후보가 없다. 빈 답이 되고 JSON 으로는 None 이다."""
+        from services.llm.client import LLMClient
+
+        mock_genai_cls.return_value.models.generate_content.return_value = MagicMock(
+            candidates=[], usage_metadata=MagicMock(prompt_token_count=5),
+        )
+
+        c = LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+        assert await c.chat(system="s", user="u") == ""
+        assert await c.chat_json(system="s", user="u") is None
+
+    def test_missing_project_is_rejected(self, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "")
+
+        with pytest.raises(RuntimeError, match="GOOGLE_CLOUD_PROJECT"):
+            client.LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+
+
+class TestGeminiRoleSettings:
+    """Gemini 를 고른 역할이 Vertex AI 로 갈지, OpenAI 호환 주소로 갈지 본다."""
+
+    @staticmethod
+    def _역할_값(monkeypatch, 주소="", 키="", 프로젝트="my-project"):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_MODEL", "gemini-3.8-flash")
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_BASE_URL", 주소)
+        monkeypatch.setattr(client.settings, "LLM_NORMALIZE_API_KEY", 키)
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", 프로젝트)
+        monkeypatch.setattr(client.settings, "DASHSCOPE_API_KEY", "dashscope-key")
+        return client
+
+    def test_without_address_address_stays_empty_for_vertex(self, monkeypatch):
+        client = self._역할_값(monkeypatch)
+
+        assert client._설정(client.LLMRole.NORMALIZE) == ("gemini-3.8-flash", "", "")
+
+    def test_with_address_uses_that_address_and_key(self, monkeypatch):
+        client = self._역할_값(monkeypatch, 주소="https://gemini.example/openai/", 키="gemini-key")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "gemini-3.8-flash", "https://gemini.example/openai/", "gemini-key",
+        )
+
+    def test_without_project_behaves_as_before(self, monkeypatch):
+        """프로젝트를 정하지 않은 곳에서는 Vertex AI 로 보내지 않는다."""
+        client = self._역할_값(monkeypatch, 프로젝트="")
+
+        assert client._설정(client.LLMRole.NORMALIZE) == (
+            "gemini-3.8-flash", client.settings.QWEN_TEXT_BASE_URL, "dashscope-key",
+        )
+
+
+class TestImages:
+    """사진을 글과 함께 보내는 호출을 본다."""
+
+    @staticmethod
+    def _사진():
+        from services.llm.client import LLMImage
+
+        # JPEG 파일의 앞 세 바이트. base64 로 옮기면 "/9j/" 다
+        return LLMImage(data=b"\xff\xd8\xff", mime_type="image/jpeg")
+
+    @staticmethod
+    def _보낸_글(mock_openai_cls):
+        return mock_openai_cls.return_value.chat.completions.create.call_args.kwargs["messages"]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_image_goes_before_the_text_as_data_url(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
+        out = await c.chat(system="s", user="u", images=[self._사진()])
+
+        assert out == "hello"
+        assert self._보낸_글(mock_openai_cls) == [
+            {"role": "system", "content": "s"},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/"}},
+                {"type": "text", "text": "u"},
+            ]},
+        ]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_several_images_keep_their_order(self, mock_openai_cls):
+        from services.llm.client import LLMClient, LLMImage
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u", images=[
+            self._사진(), LLMImage(data=b"\x89PNG", mime_type="image/png"),
+        ])
+
+        내용 = self._보낸_글(mock_openai_cls)[1]["content"]
+        assert [조각["type"] for 조각 in 내용] == ["image_url", "image_url", "text"]
+        assert 내용[0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+        assert 내용[1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_without_images_the_text_is_sent_as_before(self, mock_openai_cls):
+        """글만 보내는 역할의 요청이 바뀌면 안 된다."""
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hello"))]
+        )
+
+        c = LLMClient(model="qwen-plus", base_url="http://x", api_key="k")
+        await c.chat(system="s", user="u")
+        await c.chat(system="s", user="u", images=[])
+
+        for 호출 in mock_openai_cls.return_value.chat.completions.create.call_args_list:
+            assert 호출.kwargs["messages"] == [
+                {"role": "system", "content": "s"},
+                {"role": "user", "content": "u"},
+            ]
+
+    @pytest.mark.asyncio
+    @patch("services.llm.client.OpenAI")
+    async def test_chat_json_sends_images_too(self, mock_openai_cls):
+        from services.llm.client import LLMClient
+
+        mock_openai_cls.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content='{"a": 1}'))]
+        )
+
+        c = LLMClient(model="qwen3-vl-plus", base_url="http://x", api_key="k")
+        out = await c.chat_json(system="s", user="u", images=[self._사진()])
+
+        assert out == {"a": 1}
+        assert self._보낸_글(mock_openai_cls)[1]["content"][0]["type"] == "image_url"
+
+    @pytest.mark.asyncio
+    @patch("anthropic.Anthropic")
+    async def test_claude_refuses_images(self, mock_anthropic_cls):
+        """사진을 빼고 글만 보내면 사진을 본 답처럼 읽힌다. 보내지 않고 오류를 낸다."""
+        from services.llm.client import LLMClient
+        from services.llm.usage import collect_calls
+
+        c = LLMClient(model="claude-haiku-5-5", base_url="", api_key="k")
+        with collect_calls() as calls:
+            with pytest.raises(NotImplementedError):
+                await c.chat(system="s", user="u", images=[self._사진()])
+
+        mock_anthropic_cls.return_value.messages.create.assert_not_called()
+        assert calls[0].ok is False
+
+    @pytest.mark.asyncio
+    @patch("google.genai.Client")
+    async def test_vertex_gemini_refuses_images(self, mock_genai_cls, monkeypatch):
+        from services.llm import client
+
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_PROJECT", "my-project")
+        monkeypatch.setattr(client.settings, "GOOGLE_CLOUD_LOCATION", "global")
+
+        c = client.LLMClient(model="gemini-3.8-flash", base_url="", api_key="")
+        with pytest.raises(NotImplementedError):
+            await c.chat(system="s", user="u", images=[self._사진()])
+
+        mock_genai_cls.return_value.models.generate_content.assert_not_called()

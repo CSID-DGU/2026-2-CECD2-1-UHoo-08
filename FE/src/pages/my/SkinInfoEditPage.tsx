@@ -14,10 +14,10 @@ import AppLayout from "../../layouts/AppLayout";
 import { personalColors, skinConcerns, skinTypes } from "../../data/profileOptions";
 
 const glass = {
-  background: "rgba(255,255,255,0.68)",
+  background: "color-mix(in srgb, var(--color-white) 68%, transparent)",
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
-  border: "1px solid rgba(255,255,255,0.9)",
+  border: "1px solid color-mix(in srgb, var(--color-white) 90%, transparent)",
 };
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -96,7 +96,7 @@ export function SkinInfoEditPage() {
     <AppLayout>
       <div
         className="flex h-screen flex-col overflow-hidden"
-        style={{ background: "linear-gradient(160deg, #eef4fc 0%, #f8fbff 55%, #e8f1fb 100%)" }}
+        style={{ background: "linear-gradient(160deg, var(--color-surface-tint) 0%, var(--color-white) 55%, var(--color-line-tint) 100%)" }}
       >
         <div className="flex-1 overflow-y-auto scrollbar-none">
         <section className="flex flex-col px-5 pb-8 pt-10">
@@ -106,15 +106,15 @@ export function SkinInfoEditPage() {
           <div
             className="mt-2 flex items-center gap-4 rounded-2xl px-5 py-5"
             style={{
-              background: "linear-gradient(135deg, rgba(91,143,217,0.18), rgba(155,191,238,0.12))",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 18%, transparent), color-mix(in srgb, var(--color-primary-300) 12%, transparent))",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,0.85)",
+              border: "1px solid color-mix(in srgb, var(--color-white) 85%, transparent)",
             }}
           >
             <div
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-              style={{ background: "linear-gradient(135deg, #7AAEE4, #3565B5)" }}
+              style={{ background: "linear-gradient(135deg, var(--color-primary-400), var(--color-primary-700))" }}
             >
               <Droplets className="h-6 w-6 text-white" strokeWidth={1.8} />
             </div>
@@ -130,14 +130,14 @@ export function SkinInfoEditPage() {
               {skinTypes.map((type) => (
                 <button
                   key={type}
-                  className="h-10 rounded-xl px-5 text-body2 transition-all"
+                  className="h-10 rounded-xl px-5 text-body2 transition-colors"
                   style={
                     skinType === type
                       ? {
-                          background: "linear-gradient(135deg, #5B8FD9, #3565B5)",
+                          background: "linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700))",
                           color: "white",
                         }
-                      : { background: "rgba(255,255,255,0.7)", color: "#7b818c", border: "1px solid rgba(203,208,214,0.5)" }
+                      : { background: "color-mix(in srgb, var(--color-white) 70%, transparent)", color: "var(--color-gray-300)", border: "1px solid color-mix(in srgb, var(--color-gray-200) 50%, transparent)" }
                   }
                   onClick={() => setSkinType(type)}
                   type="button"
@@ -154,16 +154,16 @@ export function SkinInfoEditPage() {
               {personalColors.map((item) => (
                 <button
                   key={item}
-                  className={`h-[52px] whitespace-pre-line rounded-xl text-body2 transition-all ${
+                  className={`h-[52px] whitespace-pre-line rounded-xl text-body2 transition-colors ${
                     item === "잘 모르겠어요" ? "col-span-2" : ""
                   }`}
                   style={
                     color === item
                       ? {
-                          background: "linear-gradient(135deg, #3a3a3a, #18191d)",
+                          background: "linear-gradient(135deg, var(--color-gray-400), var(--color-gray-500))",
                           color: "white",
                         }
-                      : { background: "rgba(255,255,255,0.7)", color: "#7b818c", border: "1px solid rgba(203,208,214,0.5)" }
+                      : { background: "color-mix(in srgb, var(--color-white) 70%, transparent)", color: "var(--color-gray-300)", border: "1px solid color-mix(in srgb, var(--color-gray-200) 50%, transparent)" }
                   }
                   onClick={() => setColor(item)}
                   type="button"
@@ -180,14 +180,14 @@ export function SkinInfoEditPage() {
               {skinConcerns.map((concern) => (
                 <button
                   key={concern}
-                  className="h-9 rounded-full px-4 text-body2 transition-all"
+                  className="h-9 rounded-full px-4 text-body2 transition-colors"
                   style={
                     selected.includes(concern)
                       ? {
-                          background: "linear-gradient(135deg, #7AAEE4, #4778C8)",
+                          background: "linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600))",
                           color: "white",
                         }
-                      : { background: "rgba(255,255,255,0.7)", color: "#7b818c", border: "1px solid rgba(203,208,214,0.5)" }
+                      : { background: "color-mix(in srgb, var(--color-white) 70%, transparent)", color: "var(--color-gray-300)", border: "1px solid color-mix(in srgb, var(--color-gray-200) 50%, transparent)" }
                   }
                   onClick={() => toggleConcern(concern)}
                   type="button"
@@ -205,7 +205,7 @@ export function SkinInfoEditPage() {
                 <div
                   key={idx}
                   className="flex items-center justify-between rounded-xl px-4 py-3"
-                  style={{ background: "rgba(240,247,255,0.8)", border: "1px solid rgba(155,191,238,0.4)" }}
+                  style={{ background: "color-mix(in srgb, var(--color-primary-50) 80%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary-300) 40%, transparent)" }}
                 >
                   <p className="flex-1 text-body2 text-gray-500">{note}</p>
                   <button
@@ -232,7 +232,7 @@ export function SkinInfoEditPage() {
                 />
                 <button
                   className="h-10 rounded-xl px-4 text-caption text-white"
-                  style={{ background: "linear-gradient(135deg, #5B8FD9, #3565B5)" }}
+                  style={{ background: "linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700))" }}
                   onClick={addNote}
                   type="button"
                 >

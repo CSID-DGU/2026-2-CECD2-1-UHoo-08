@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { completeOnboarding, saveOnboardingProducts } from "../../api/userApi";
 import AppLayout from "../../layouts/AppLayout";
 import { getRegisteredProducts } from "../../lib/onboardingProducts";
+import { Check } from "lucide-react";
 
 const KEY = "onboarding_products";
 
@@ -34,21 +35,8 @@ export function OnboardingCompletePage() {
         <div className="text-center">
           <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-primary-50">
             <div className="flex h-[116px] w-[116px] items-center justify-center rounded-full bg-primary-100">
-              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-500 text-white">
-                <svg
-                  aria-hidden="true"
-                  className="h-11 w-11"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="m5 12 4 4L19 6"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                  />
-                </svg>
+              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary-600 text-white">
+                <Check aria-hidden="true" className="h-11 w-11" strokeWidth={2.5} />
               </div>
             </div>
           </div>
@@ -60,7 +48,7 @@ export function OnboardingCompletePage() {
         </div>
 
         <div className="mt-4 rounded-xl bg-primary-50 p-4">
-          <p className="text-body2 text-primary-500">✦ 이제 뭘 하면 될까요?</p>
+          <h2 className="text-body2 font-semibold text-primary-600">이제 뭘 하면 될까요?</h2>
           <p className="mt-1 text-caption text-gray-500">
             홈에서 제품을 검색하거나 AI 추천을 받아보세요
           </p>
@@ -71,7 +59,7 @@ export function OnboardingCompletePage() {
         )}
 
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           onClick={handleStart}
           disabled={loading}
           type="button"

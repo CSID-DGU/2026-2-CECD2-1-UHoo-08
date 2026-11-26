@@ -3,13 +3,12 @@ package com.capstone.backend.common.ai;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.Accepted;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.BundleSwapRequest;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.BundleSwapResponse;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.CompatibilityCheckRequest;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.CompatibilityCheckResponse;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.FeedbackApplyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.HomeRunRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.RecognizePhotosRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.RecognizePhotosResponse;
-import com.capstone.backend.common.ai.dto.AiInternalDtos.TrendsResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,17 +42,16 @@ class AiContractTest {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    private static final Map<String, Class<?>> CONTRACTS = Map.of(
-            "accepted.response", Accepted.class,
-            "agent-run-v2.request", AgentRunV2Request.class,
-            "agent-clarify.request", AgentClarifyRequest.class,
-            "recognize-photos.request", RecognizePhotosRequest.class,
-            "recognize-photos.response", RecognizePhotosResponse.class,
-            "home-run.request", HomeRunRequest.class,
-            "bundle-swap.request", BundleSwapRequest.class,
-            "bundle-swap.response", BundleSwapResponse.class,
-            "trends.response", TrendsResponse.class,
-            "feedback-apply.request", FeedbackApplyRequest.class
+    private static final Map<String, Class<?>> CONTRACTS = Map.ofEntries(
+            Map.entry("accepted.response", Accepted.class),
+            Map.entry("agent-run-v2.request", AgentRunV2Request.class),
+            Map.entry("agent-clarify.request", AgentClarifyRequest.class),
+            Map.entry("recognize-photos.request", RecognizePhotosRequest.class),
+            Map.entry("recognize-photos.response", RecognizePhotosResponse.class),
+            Map.entry("home-run.request", HomeRunRequest.class),
+            Map.entry("feedback-apply.request", FeedbackApplyRequest.class),
+            Map.entry("compatibility-check.request", CompatibilityCheckRequest.class),
+            Map.entry("compatibility-check.response", CompatibilityCheckResponse.class)
     );
 
     static Stream<Arguments> contracts() {
@@ -69,6 +67,17 @@ class AiContractTest {
 
         JsonNode actual = MAPPER.valueToTree(dto);
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void 사진_인식_요청은_없는_면을_보내지_않는다() {
+        JsonNode dateOnly = MAPPER.valueToTree(new RecognizePhotosRequest(null, "https://x/date.jpg"));
+        JsonNode nameOnly = MAPPER.valueToTree(new RecognizePhotosRequest("https://x/name.jpg", null));
+
+        assertThat(dateOnly.has("nameImage")).isFalse();
+        assertThat(dateOnly.get("dateImage").asText()).isEqualTo("https://x/date.jpg");
+        assertThat(nameOnly.has("dateImage")).isFalse();
+        assertThat(nameOnly.get("nameImage").asText()).isEqualTo("https://x/name.jpg");
     }
 
     @Test

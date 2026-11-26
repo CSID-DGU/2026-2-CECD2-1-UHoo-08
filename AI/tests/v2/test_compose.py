@@ -1,0 +1,617 @@
+"""결과 조립이 지켜야 할 성질.
+
+BE 가 그대로 저장하고 FE 가 그대로 그리므로 계약 모양이 틀리면 화면이 깨진다.
+꼭 필요한 부품 없이 빈 결과가 완료로 나가면 "추천 없음" 으로 읽힌다.
+"""
+import json
+import sys
+import types
+from pathlib import Path
+
+import pytest
+
+from contracts.result import RecommendationResult
+from graph.nodes import compose as 노드
+
+_BE_예시 = Path(__file__).resolve().parents[3] / "BE/src/test/resources/ai-results/S2_SEARCH.json"
+
+
+@pytest.fixture(autouse=True)
+def 트렌드(monkeypatch):
+    """트렌드 조회를 가짜로 둔다. 기본은 빈 테이블이다."""
+    상태 = {"ids": set(), "터짐": False}
+
+    def get_trending_product_ids():
+        if 상태["터짐"]:
+            raise RuntimeError("DB 끊김")
+        return 상태["ids"]
+
+    모듈 = types.SimpleNamespace(get_trending_product_ids=get_trending_product_ids)
+    import db
+    monkeypatch.setitem(sys.modules, "db.trend_reader", 모듈)
+    monkeypatch.setattr(db, "trend_reader", 모듈, raising=False)
+    return 상태
+
+
+@pytest.fixture(autouse=True)
+def LLM(monkeypatch):
+    """이유 문장 LLM 을 가짜로 둔다. 기본은 응답 없음(규칙 문장)이다."""
+    상태: dict = {"응답": None, "예외": None, "받은": []}
+
+    class 가짜:
+        async def chat_json(self, system, user, **_):
+            상태["받은"].append(user)
+            if 상태["예외"]:
+                raise 상태["예외"]
+            return 상태["응답"]
+
+    모듈 = types.SimpleNamespace(LLMRole=types.SimpleNamespace(COMPOSE="compose"),
+                                get_llm=lambda role: 가짜())
+    import services
+    monkeypatch.setitem(sys.modules, "services.llm", 모듈)
+    monkeypatch.setattr(services, "llm", 모듈, raising=False)
+    return 상태
+
+
+@pytest.fixture
+def 가성비_설명(monkeypatch):
+    """C 의 가성비 항목에 설명 함수가 있는 경우."""
+    받은: list = []
+
+    async def explain(products, ctx):
+        받은.append([p["product_id"] for p in products])
+        return {p["product_id"]: "평소 쓰는 제품보다 약 30% 저렴해요" for p in products}
+
+    async def value_signal(products, ctx):
+        return {}
+
+    모듈 = types.SimpleNamespace(explain=explain, value_signal=value_signal)
+    import scorers
+    monkeypatch.setitem(sys.modules, "scorers.value_signal", 모듈)
+    monkeypatch.setattr(scorers, "value_signal", 모듈, raising=False)
+    return 받은
+
+
+def _점수표(pid, total, **항목):
+    breakdown = [{"key": k, "label": k, "score": v, "weight": 0.25} for k, v in 항목.items()]
+    return {"product_id": pid, "total": total, "breakdown": breakdown}
+
+
+def _메타(pid, **값):
+    return {"name": f"상품{pid}", "brand": "브랜드", "image_url": None, "price": 20000,
+            "category": "base", "feature_json": {}, **값}
+
+
+def _상태(**값):
+    return {
+        "scenario": "S2_SEARCH", "job_id": "j1", "user_id": "u1",
+        "raw_query": "여름 매트 쿠션",
+        "query_spec": {"request_type": "SEARCH", "category": "base",
+                       "features": {"finish": "매트"}, "conditions": ["여름"]},
+        "scored": [_점수표("p1", 85, personalization=93, budget_fit=87.5),
+                   _점수표("p2", 72)],
+        "product_meta": {"p1": _메타("p1"), "p2": _메타("p2"), "c1": _메타("c1"),
+                         "o1": _메타("o1")},
+        "excluded": [{"product_id": "o1", "name": None, "reason": "OWNED",
+                      "detail": "이미 쓰고 계신 제품이에요"}],
+        "collaborative": [{"product_id": "c1", "satisfaction_percent": 70}],
+        "trace": ["retrieve", "inventory", "prefilter", "score", "collaborative"],
+        **값,
+    }
+
+
+@pytest.mark.asyncio
+async def test_조건_탐색_결과가_계약을_지키고_BE_예시와_키가_같다():
+    결과 = (await 노드.compose(_상태()))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_BE_예시.read_text())
+    assert set(결과) == set(예시)
+    assert set(결과["items"][0]) == set(예시["items"][0])
+    assert set(결과["query"]) == set(예시["query"])
+    assert set(결과["excluded"][0]) == set(예시["excluded"][0])
+
+
+@pytest.mark.asyncio
+async def test_카드와_요약과_제외와_비슷한_사람들을_채운다():
+    결과 = (await 노드.compose(_상태()))["result"]
+
+    assert [i["productId"] for i in 결과["items"]] == ["p1", "p2"]
+    카드 = 결과["items"][0]
+    assert (카드["name"], 카드["price"], 카드["totalScore"]) == ("상품p1", 20000, 85)
+    assert [b["key"] for b in 카드["breakdown"]] == ["personalization", "budget_fit"]
+    assert 카드["reason"] == "내 피부 적합, 예산 적합 점수가 높아요"
+    assert 결과["items"][1]["reason"] is None
+    assert 결과["query"]["conditions"] == ["매트", "여름"]
+    # 이름이 비어 있으면 상품 정보에서 채운다
+    assert 결과["excluded"][0]["name"] == "상품o1"
+    assert 결과["similarUserProducts"][0]["totalScore"] == 70
+    assert 결과["similarUserProducts"][0]["breakdown"] == []
+
+
+@pytest.mark.asyncio
+async def test_카드는_10개까지고_상품_정보가_없으면_뺀다():
+    점수들 = [_점수표(f"p{i}", 90 - i) for i in range(12)]
+    메타 = {f"p{i}": _메타(f"p{i}") for i in range(12) if i != 3}
+    결과 = (await 노드.compose(_상태(scored=점수들, product_meta=메타)))["result"]
+    ids = [i["productId"] for i in 결과["items"]]
+    assert len(ids) == 10 and "p3" not in ids and ids[-1] == "p10"
+
+
+@pytest.mark.asyncio
+async def test_배지는_정한_순서로_두_개까지_단다(트렌드, 가성비_설명):
+    트렌드["ids"] = {"p1"}
+    필요 = {"key": "UV", "reason_text": "요즘 자외선이 강해요", "category": "base", "features": {}}
+    결과 = (await 노드.compose(_상태(
+        scored=[_점수표("p1", 90, env_fit=80, value_signal=75)],
+        conflict_marks={"p1": [{"user_product_id": "u1", "name": "레티놀 세럼",
+                                "level": "SEPARATE", "advice": "레티놀 세럼과 시간대를 나눠 쓰세요"}]},
+        env_summary={"needs": [필요]},
+    )))["result"]
+    assert [b["type"] for b in 결과["items"][0]["badges"]] == ["CONFLICT_SEPARATE", "ENV"]
+
+
+@pytest.mark.asyncio
+async def test_가성비와_요즘_언급_배지(트렌드, 가성비_설명):
+    트렌드["ids"] = {"p1", "p2"}
+    결과 = (await 노드.compose(_상태(
+        scored=[_점수표("p1", 90, value_signal=75), _점수표("p2", 80, value_signal=60)],
+    )))["result"]
+    assert [(b["type"], b["text"]) for b in 결과["items"][0]["badges"]] == [
+        ("VALUE", "평소 쓰는 제품보다 약 30% 저렴해요"), ("TREND", "요즘 언급이 늘고 있어요")]
+    # 가성비 점수가 기준보다 낮으면 설명을 묻지 않는다
+    assert 가성비_설명 == [["p1"]]
+    assert [b["type"] for b in 결과["items"][1]["badges"]] == ["TREND"]
+
+
+@pytest.mark.asyncio
+async def test_가성비_설명_함수가_없으면_가성비_배지가_없다():
+    결과 = (await 노드.compose(_상태(scored=[_점수표("p1", 90, value_signal=95)])))["result"]
+    assert 결과["items"][0]["badges"] == []
+
+
+@pytest.mark.asyncio
+async def test_환경_점수가_높아도_채우는_기능이_없으면_환경_배지가_없다():
+    필요 = {"key": "UV", "reason_text": "요즘 자외선이 강해요", "category": "sun", "features": {}}
+    결과 = (await 노드.compose(_상태(
+        scored=[_점수표("p1", 90, env_fit=95)], env_summary={"needs": [필요]},
+    )))["result"]
+    assert 결과["items"][0]["badges"] == []
+
+
+@pytest.mark.asyncio
+async def test_트렌드를_읽지_못해도_결과는_만든다(트렌드):
+    트렌드["터짐"] = True
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert [i["productId"] for i in 결과["items"]] == ["p1", "p2"]
+
+
+@pytest.mark.asyncio
+async def test_예산_세트는_조합을_그대로_싣고_단계를_조건으로_쓴다():
+    조합 = {
+        "label": "균형형", "total_price": 50000, "over_budget_reason": None,
+        "items": [{"product_id": "p1", "name": "토너", "brand": "b", "total_score": 80,
+                   "slot_key": "toner", "slot_label": "토너"}],
+    }
+    결과 = (await 노드.compose(_상태(
+        scenario="S6_BUNDLE",
+        query_spec={"request_type": "BUNDLE", "budget": {"total": 100000},
+                    "bundle_steps": [{"label": "토너"}, {"label": "크림"}]},
+        bundles=[조합],
+        trace=["budget", "retrieve", "inventory", "prefilter", "score", "bundle"],
+    )))["result"]
+    RecommendationResult.model_validate(결과)
+    assert 결과["items"] == []
+    assert 결과["bundles"][0]["items"][0]["slotKey"] == "toner"
+    assert 결과["query"]["conditions"] == ["토너", "크림"]
+    assert 결과["query"]["budgetTotal"] == 100000
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("시나리오, 빈_단계", [
+    ("S6_BUNDLE", "bundle"), ("S6_BUNDLE", "budget"),
+    ("HOME_ENV", "env_history"), ("HOME_ROUTINE", "compatibility"),
+])
+async def test_꼭_필요한_단계가_없으면_결과를_만들지_않는다(시나리오, 빈_단계):
+    with pytest.raises(노드.부품_없음):
+        await 노드.compose(_상태(scenario=시나리오, trace=[f"{빈_단계}(stub)"]))
+
+
+_HOME_ROUTINE_예시 = _BE_예시.with_name("HOME_ROUTINE.json")
+
+
+def _루틴_점검():
+    return {
+        "pairs": [
+            {"a": {"user_product_id": "u1", "name": "레티놀 앰플"},
+             "b": {"user_product_id": "u2", "name": "비타민C 세럼"},
+             "level": "AVOID", "title": "같이 쓰지 마세요", "reason": "자극이 커져요"},
+            {"a": {"user_product_id": "u1", "name": "레티놀 앰플"},
+             "b": {"user_product_id": "u3", "name": "수분 크림"},
+             "level": "OK", "title": None, "reason": None},
+            {"a": {"user_product_id": "u2", "name": "비타민C 세럼"},
+             "b": {"user_product_id": "u3", "name": "수분 크림"},
+             "level": "OK", "title": None, "reason": None},
+        ],
+        "counts": {"ok": 2, "separate": 0, "avoid": 1},
+        "schedule": {"morning": ["비타민C 세럼"], "evening": ["레티놀 앰플", "수분 크림"], "tip": None},
+        "uncompared_count": 0,
+        "checked_user_product_ids": ["u1", "u2", "u3"],
+    }
+
+
+def _루틴_상태(**값):
+    기본 = dict(
+        scenario="HOME_ROUTINE", job_id="home:u1:ROUTINE", raw_query="",
+        query_spec={"request_type": "SEARCH", "target": "SELF"},
+        inventory=[{"user_product_id": u, "product_id": f"x{u}"} for u in ("u1", "u2", "u3")],
+        routine_check=_루틴_점검(),
+        replace_target={"user_product_id": "u2", "product_id": "xu2", "name": "비타민C 세럼",
+                        "reason": "별점이 낮은 쪽을 바꾸는 걸 먼저 권해요"},
+        scored=[_점수표(f"p{i}", 90 - i) for i in range(5)],
+        product_meta={f"p{i}": _메타(f"p{i}") for i in range(5)},
+        conflict_marks={"p1": [{"level": "SEPARATE", "advice": "레티놀 앰플과는 저녁에 나눠 쓰세요"}]},
+        excluded=[], collaborative=[],
+        trace=["inventory", "compatibility", "alternative", "prefilter", "score_lite"],
+    )
+    return _상태(**{**기본, **값})
+
+
+@pytest.mark.asyncio
+async def test_홈_루틴_결과가_계약을_지키고_BE_예시와_키가_같다():
+    결과 = (await 노드.compose(_루틴_상태()))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_HOME_ROUTINE_예시.read_text())
+    assert set(결과) == set(예시)
+    assert set(결과["query"]) >= set(예시["query"])
+    assert set(결과["replacement"]) == set(예시["replacement"])
+    assert set(결과["replacement"]["items"][0]) >= set(예시["replacement"]["items"][0])
+    assert set(결과["pairs"][0]) == set(예시["pairs"][0])
+    assert 결과["items"] == [] and 결과["alternatives"] == []
+
+
+@pytest.mark.asyncio
+async def test_점검_결과는_고치지_않고_그대로_싣는다():
+    결과 = (await 노드.compose(_루틴_상태()))["result"]
+    점검 = _루틴_점검()
+    assert 결과["counts"] == 점검["counts"]
+    assert [(쌍["a"]["userProductId"], 쌍["b"]["userProductId"], 쌍["level"]) for 쌍 in 결과["pairs"]] \
+        == [(쌍["a"]["user_product_id"], 쌍["b"]["user_product_id"], 쌍["level"]) for 쌍 in 점검["pairs"]]
+    assert 결과["schedule"] == 점검["schedule"]
+    assert 결과["uncomparedCount"] == 0
+    assert 결과["checkedUserProductIds"] == ["u1", "u2", "u3"]
+
+
+@pytest.mark.asyncio
+async def test_대체_제안은_상위_3개에_괜찮음과_시간대_안내를_배지로_단다():
+    대체 = (await 노드.compose(_루틴_상태()))["result"]["replacement"]
+    assert 대체["replaceTarget"] == {"userProductId": "u2", "name": "비타민C 세럼"}
+    assert 대체["message"] == "별점이 낮은 쪽을 바꾸는 걸 먼저 권해요"
+    assert [(i["productId"], i["totalScore"], i["badge"]) for i in 대체["items"]] == [
+        ("p0", 90, "쓰시는 제품 2개와 모두 괜찮아요"),
+        ("p1", 89, "레티놀 앰플과는 저녁에 나눠 쓰세요"),
+        ("p2", 88, "쓰시는 제품 2개와 모두 괜찮아요"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_바꿀_제품이_없으면_대체_제안은_null_이다():
+    결과 = (await 노드.compose(_루틴_상태(replace_target=None, scored=[])))["result"]
+    assert "replacement" in 결과 and 결과["replacement"] is None
+    assert 결과["counts"] == _루틴_점검()["counts"]
+
+
+@pytest.mark.asyncio
+async def test_바꿀_제품이_점검한_보유_제품이_아니면_결과를_만들지_않는다():
+    """BE 는 점검하지 않은 제품을 가리키는 카드를 통째로 점검 전으로 내린다."""
+    with pytest.raises(노드.잘못된_참조):
+        await 노드.compose(_루틴_상태(replace_target={"user_product_id": "u9", "name": "모름"}))
+
+
+@pytest.mark.asyncio
+async def test_점검_결과의_모양이_틀리면_결과를_만들지_않는다():
+    점검 = {**_루틴_점검(), "counts": {"ok": 2}}
+    with pytest.raises(ValueError):
+        await 노드.compose(_루틴_상태(routine_check=점검))
+
+
+_HOME_ENV_예시 = _BE_예시.with_name("HOME_ENV.json")
+_건조 = {"key": "DRY", "label": "보습", "basis": "습도 40% 미만 18일",
+        "reason_text": "요즘 공기가 건조해요", "category": "base",
+        "features": {"finish": "글로우"}, "conditions": ["촉촉"]}
+_매트 = {"key": "MATTE", "label": "매트 마무리", "basis": "기온 28도 이상 10일",
+        "reason_text": "요즘 덥고 습해요", "category": "base",
+        "features": {"finish": "매트"}, "conditions": ["매트"]}
+
+
+def _홈_상태(env_conditions, **값):
+    값.setdefault("candidates", [
+        {"product_id": pid, "source": f"env:{키}", "similarity": 0.8}
+        for 키, pids in (("DRY", ("p1", "p2")),) for pid in pids
+    ])
+    return _상태(
+        scenario="HOME_ENV", job_id="home:u1:ENV", raw_query="",
+        query_spec={"request_type": "SEARCH", "target": "SELF", "use_env": True,
+                    "category": "base", "conditions": ["보습"]},
+        env_summary={"region": "서울", "day_count": 28, "needs": [_건조, _매트]},
+        env_conditions=env_conditions,
+        collaborative=[],
+        trace=["env_history", "inventory", "coverage", "retrieve", "prefilter", "score_lite"],
+        **값,
+    )
+
+
+_덮임 = [
+    {"key": "DRY", "label": "보습", "basis": "습도 40% 미만 18일", "covered": False,
+     "covered_by": None},
+    {"key": "MATTE", "label": "매트 마무리", "basis": "기온 28도 이상 10일", "covered": True,
+     "covered_by": "네오 쿠션"},
+]
+
+
+@pytest.mark.asyncio
+async def test_홈_환경_결과가_계약을_지키고_BE_예시와_키가_같다():
+    결과 = (await 노드.compose(_홈_상태(_덮임)))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_HOME_ENV_예시.read_text())
+    assert set(결과) == set(예시)
+    # 질의 요약은 조건 탐색과 같은 모양이다. 홈 예시는 쓰지 않는 예산 칸을 적지 않았다
+    assert set(결과["query"]) >= set(예시["query"])
+    assert set(결과["conditions"][0]) == set(예시["conditions"][0])
+    assert 결과["conditions"][1] == {"key": "MATTE", "label": "매트 마무리",
+                                     "basis": "기온 28도 이상 10일", "covered": True,
+                                     "coveredBy": "네오 쿠션"}
+    assert 결과["query"]["raw"] == "" and 결과["query"]["useEnv"] is True
+    assert 결과["similarUserProducts"] == []
+
+
+@pytest.mark.asyncio
+async def test_홈_환경_카드는_덮이지_않은_기능마다_상위_3개를_묶어_싣는다():
+    _빛 = {"key": "UV", "label": "자외선 차단", "basis": "자외선 6 이상 20일",
+          "reason_text": "요즘 자외선이 강해요", "category": "sun",
+          "features": {"product_type": "선크림"}, "conditions": ["자외선 차단"]}
+    조건 = [*_덮임, {"key": "UV", "label": "자외선 차단", "basis": "자외선 6 이상 20일",
+                   "covered": False, "covered_by": None}]
+    # 건조(DRY)로 찾은 d0~d4, 자외선(UV)으로 찾은 u0~u3, 덮인 매트(MATTE)로 찾은 m0
+    후보 = ([{"product_id": f"d{i}", "source": "env:DRY"} for i in range(5)]
+            + [{"product_id": f"u{i}", "source": "env:UV"} for i in range(4)]
+            + [{"product_id": "m0", "source": "env:MATTE"}])
+    # 점수는 기능이 섞인 순서로 온다
+    점수 = [_점수표(pid, 95 - i, review=60) for i, pid in enumerate(
+        ["u0", "d0", "u1", "d1", "m0", "d2", "u2", "d3", "u3", "d4"])]
+    메타 = {c["product_id"]: _메타(c["product_id"]) for c in 후보}
+    상태 = _홈_상태(조건, candidates=후보, scored=점수, product_meta=메타)
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _빛]}
+    결과 = (await 노드.compose(상태))["result"]
+
+    assert [i["productId"] for i in 결과["items"]] == ["d0", "d1", "d2", "u0", "u1", "u2"]
+    배지 = [[b["text"] for b in i["badges"] if b["type"] == "ENV"] for i in 결과["items"]]
+    assert 배지 == [["요즘 공기가 건조해요"]] * 3 + [["요즘 자외선이 강해요"]] * 3
+
+
+@pytest.mark.asyncio
+async def test_홈_환경에서_두_기능이_찾은_상품은_뒤_기능의_카드로도_실린다():
+    """p 를 건조(DRY)로 먼저 찾았지만 건조 상위 3개 밖이면, p 만 찾은 커버(COVER) 카드에 싣는다."""
+    _커버 = {"key": "COVER", "label": "커버", "basis": "자외선 6 이상 20일",
+            "reason_text": "요즘 잡티가 신경 쓰여요", "category": "base",
+            "features": {}, "conditions": ["커버"]}
+    조건 = [*_덮임, {"key": "COVER", "label": "커버", "basis": "자외선 6 이상 20일",
+                   "covered": False, "covered_by": None}]
+    후보 = ([{"product_id": pid, "source": "env:DRY", "env_keys": ["DRY"]} for pid in "abc"]
+            + [{"product_id": "p", "source": "env:DRY", "env_keys": ["DRY", "COVER"]}])
+    점수 = [_점수표(pid, 95 - i, review=60) for i, pid in enumerate("abcp")]
+    메타 = {c["product_id"]: _메타(c["product_id"]) for c in 후보}
+    상태 = _홈_상태(조건, candidates=후보, scored=점수, product_meta=메타)
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _커버]}
+    결과 = (await 노드.compose(상태))["result"]
+
+    assert [i["productId"] for i in 결과["items"]] == ["a", "b", "c", "p"]
+    assert [b["text"] for b in 결과["items"][3]["badges"] if b["type"] == "ENV"] == \
+        ["요즘 잡티가 신경 쓰여요"]
+
+
+@pytest.mark.asyncio
+async def test_홈_환경에서_앞_기능의_카드에_실린_상품은_뒤_기능에_다시_싣지_않는다():
+    조건 = [*_덮임, {"key": "COVER", "label": "커버", "basis": "b", "covered": False,
+                   "covered_by": None}]
+    _커버 = {"key": "COVER", "label": "커버", "reason_text": "커버", "category": "base",
+            "features": {}, "conditions": ["커버"]}
+    후보 = [{"product_id": "p", "source": "env:DRY", "env_keys": ["DRY", "COVER"]},
+            {"product_id": "q", "source": "env:COVER", "env_keys": ["COVER"]}]
+    점수 = [_점수표("p", 90, review=60), _점수표("q", 80, review=60)]
+    상태 = _홈_상태(조건, candidates=후보, scored=점수,
+                   product_meta={"p": _메타("p"), "q": _메타("q")})
+    상태["env_summary"] = {**상태["env_summary"],
+                         "needs": [*상태["env_summary"]["needs"], _커버]}
+    결과 = (await 노드.compose(상태))["result"]
+    assert [i["productId"] for i in 결과["items"]] == ["p", "q"]
+
+
+@pytest.mark.asyncio
+async def test_필요한_기능이_없으면_조건은_빈_목록이고_null_이_아니다():
+    결과 = (await 노드.compose(_홈_상태([], scored=[])))["result"]
+    assert 결과["conditions"] == [] and 결과["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_모두_덮였으면_카드가_없다():
+    모두 = [{**c, "covered": True, "covered_by": "네오 쿠션"} for c in _덮임]
+    # 점수가 남아 있어도 덮인 기능으로 찾은 상품은 싣지 않는다
+    결과 = (await 노드.compose(_홈_상태(모두)))["result"]
+    assert 결과["items"] == [] and all(c["covered"] for c in 결과["conditions"])
+
+
+@pytest.mark.asyncio
+async def test_검색_결과에는_홈_조건_칸이_없다():
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert "conditions" not in 결과
+
+
+@pytest.mark.asyncio
+async def test_보유_제품_단계가_없으면_경고만_남긴다(caplog):
+    결과 = await 노드.compose(_상태(trace=["retrieve", "inventory(stub)", "prefilter"]))
+    assert 결과["result"]["items"]
+    assert "보유 제품 단계가 아직 없다" in caplog.text
+
+
+def test_이유_문장은_점수가_높은_두_항목으로_만든다():
+    assert 노드.rule_reason(_점수표("p", 80, review=60, budget_fit=90, personalization=70)) == \
+        "예산 적합, 내 피부 적합 점수가 높아요"
+    assert 노드.rule_reason(_점수표("p", 80, review=60)) == "후기 일치 점수가 높아요"
+    assert 노드.rule_reason(_점수표("p", 80)) is None
+
+
+# 추천 이유 LLM
+
+@pytest.mark.asyncio
+async def test_LLM이_쓴_이유_문장을_쓴다(LLM):
+    LLM["응답"] = {"p1": "건성 피부에 맞고 원하신 매트한 마무리예요"}
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "건성 피부에 맞고 원하신 매트한 마무리예요"
+    # 한 번에 부르고, 점수 항목이 없는 카드는 LLM 에 넘기지 않는다
+    assert len(LLM["받은"]) == 1
+    assert '"p2"' not in LLM["받은"][0]
+    assert '"내 피부 적합"' in LLM["받은"][0] and '"매트"' in LLM["받은"][0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("응답", [
+    None, "문장", ["p1"],
+    {"p1": ""}, {"p1": 3}, {"p1": "가" * 41}, {"다른": "좋아요"},
+])
+async def test_이유_문장이_이상하면_규칙_문장으로_채운다(LLM, 응답):
+    LLM["응답"] = 응답
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "내 피부 적합, 예산 적합 점수가 높아요"
+
+
+@pytest.mark.asyncio
+async def test_LLM_호출이_실패하면_규칙_문장으로_채운다(LLM):
+    LLM["예외"] = TimeoutError("느림")
+    결과 = (await 노드.compose(_상태()))["result"]
+    assert 결과["items"][0]["reason"] == "내 피부 적합, 예산 적합 점수가 높아요"
+
+
+@pytest.mark.asyncio
+async def test_빠진_카드만_규칙_문장으로_채운다(LLM):
+    LLM["응답"] = {"p1": "가볍게 잘 맞는 쿠션이에요"}
+    결과 = (await 노드.compose(_상태(
+        scored=[_점수표("p1", 85, review=80), _점수표("p2", 72, budget_fit=90)],
+    )))["result"]
+    assert [i["reason"] for i in 결과["items"]] == ["가볍게 잘 맞는 쿠션이에요", "예산 적합 점수가 높아요"]
+
+
+@pytest.mark.asyncio
+async def test_점수_항목이_없으면_LLM을_부르지_않는다(LLM):
+    await 노드.compose(_상태(scored=[_점수표("p1", 70)]))
+    assert LLM["받은"] == []
+
+
+# 상품 평가
+
+_S1_예시 = _BE_예시.with_name("S1_EVALUATE.json")
+
+
+def _평가_상태(**값):
+    기본 = dict(
+        scenario="S1_EVALUATE", base_product_id="b1", raw_query="이 쿠션 어때?",
+        query_spec={"request_type": "EVALUATE", "category": "base", "target": "SELF"},
+        product_meta={pid: _메타(pid) for pid in ("b1", "a1", "a2")},
+        scored=[_점수표("b1", 64, personalization=60)],
+        alternatives=[
+            {"product_id": "a1", "total": 81, "similarity": 0.88,
+             "breakdown": [{"key": "similarity", "label": "비슷한 정도", "score": 88.0, "weight": 0.0},
+                           {"key": "personalization", "label": "내 피부 적합", "score": 80.0,
+                            "weight": 1.0}]},
+            {"product_id": "a2", "total": 77, "similarity": 0.7, "breakdown": []},
+        ],
+    )
+    return _상태(**{**기본, **값})
+
+
+@pytest.mark.asyncio
+async def test_상품_평가는_기준_상품_카드와_대체_후보를_낸다():
+    결과 = (await 노드.compose(_평가_상태()))["result"]
+
+    RecommendationResult.model_validate(결과)
+    assert set(결과) == set(json.loads(_S1_예시.read_text()))
+    assert [i["productId"] for i in 결과["items"]] == ["b1"]
+    assert [a["productId"] for a in 결과["alternatives"]] == ["a1", "a2"]
+    assert 결과["alternatives"][0]["breakdown"][0]["key"] == "similarity"
+    assert 결과["alternatives"][0]["totalScore"] == 81
+    assert 결과["query"]["category"] == "base"
+
+
+@pytest.mark.asyncio
+async def test_기준_상품만_카드로_낸다():
+    상태 = _평가_상태(scored=[_점수표("a1", 90, review=90), _점수표("b1", 64, review=60)])
+    결과 = (await 노드.compose(상태))["result"]
+    assert [i["productId"] for i in 결과["items"]] == ["b1"]
+
+
+@pytest.mark.asyncio
+async def test_보유_중인_기준_상품은_이유_앞에_알린다(LLM):
+    LLM["응답"] = {"b1": "건성 피부에는 조금 건조할 수 있어요"}
+    상태 = _평가_상태(base_conflicts={"b1": {"owned": True, "conflicts": []}})
+    카드 = (await 노드.compose(상태))["result"]["items"][0]
+    assert 카드["reason"] == "이미 쓰고 계신 제품이에요. 건성 피부에는 조금 건조할 수 있어요"
+
+
+@pytest.mark.asyncio
+async def test_함께_쓰면_안_되는_기준_상품은_이유_앞에_알리고_시간대는_배지로_단다():
+    상태 = _평가_상태(base_conflicts={"b1": {"owned": False, "conflicts": [
+        {"user_product_id": "u2", "name": "비타민 토너", "level": "SEPARATE",
+         "advice": "비타민 토너와 시간대를 나눠 쓰세요"},
+        {"user_product_id": "u1", "name": "레티놀 세럼", "level": "AVOID",
+         "advice": "레티놀 세럼과 함께 쓰지 않는 게 좋아요"},
+    ]}})
+    카드 = (await 노드.compose(상태))["result"]["items"][0]
+    assert 카드["reason"].startswith("레티놀 세럼과 함께 쓰지 않는 게 좋아요. ")
+    assert [(b["type"], b["text"]) for b in 카드["badges"]] == [
+        ("CONFLICT_SEPARATE", "비타민 토너와 시간대를 나눠 쓰세요")]
+
+
+@pytest.mark.asyncio
+async def test_대체_후보에_시간대_충돌_배지를_단다():
+    상태 = _평가_상태(conflict_marks={"a2": [{"level": "SEPARATE", "advice": "아침에 쓰세요"}]})
+    대체 = (await 노드.compose(상태))["result"]["alternatives"]
+    assert 대체[0]["badges"] == []
+    assert 대체[1]["badges"] == [{"type": "CONFLICT_SEPARATE", "text": "아침에 쓰세요"}]
+
+
+@pytest.mark.asyncio
+async def test_상품_정보가_없는_대체_후보는_뺀다():
+    상태 = _평가_상태()
+    del 상태["product_meta"]["a2"]
+    대체 = (await 노드.compose(상태))["result"]["alternatives"]
+    assert [a["productId"] for a in 대체] == ["a1"]
+
+
+# 조건 수정
+
+_S7_예시 = _BE_예시.with_name("S7_REFINE.json")
+
+
+@pytest.mark.asyncio
+async def test_조건_수정은_카드에_순위_변화를_싣고_BE_예시와_키가_같다():
+    상태 = _상태(
+        scenario="S7_REFINE", raw_query="더 저렴한 제품으로",
+        query_spec={"request_type": "REFINE", "category": "base", "budget": {"max": 20000},
+                    "features": {"finish": "매트"}},
+        rank_changes={"p1": {"change": "UP", "rank_delta": 3}},
+    )
+    결과 = (await 노드.compose(상태))["result"]
+
+    RecommendationResult.model_validate(결과)
+    예시 = json.loads(_S7_예시.read_text())
+    assert set(결과) == set(예시)
+    assert set(결과["items"][0]) >= set(예시["items"][0])
+    assert (결과["items"][0]["change"], 결과["items"][0]["rankDelta"]) == ("UP", 3)
+    # 변화를 모르는 카드는 비워 둔다
+    assert (결과["items"][1]["change"], 결과["items"][1]["rankDelta"]) == (None, None)
+    assert 결과["query"]["raw"] == "더 저렴한 제품으로"
+    assert 결과["query"]["budgetMax"] == 20000

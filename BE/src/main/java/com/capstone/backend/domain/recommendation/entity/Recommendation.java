@@ -111,4 +111,10 @@ public class Recommendation {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /** 세트 제품 교체로 바뀐 결과를 저장한다 */
+    public void replaceResult(String result, LocalDateTime now) {
+        this.result = result;
+        this.updatedAt = now;
+    }
 }

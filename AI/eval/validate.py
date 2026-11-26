@@ -54,7 +54,7 @@ def _접두어(path: Path) -> str | None:
     return None
 
 
-def _레코드_검사(rec: dict, 접두어: str, 골든: bool) -> list[str]:
+def _레코드_검사(rec: dict, 접두어: str, 골든: bool, 파일: str = "") -> list[str]:
     문제: list[str] = []
 
     아이디 = rec.get("id")
@@ -74,6 +74,17 @@ def _레코드_검사(rec: dict, 접두어: str, 골든: bool) -> list[str]:
                 문제.append(f"골든셋인데 {키} 가 없다")
         if "check" in rec and rec["check"] not in CHECKS:
             문제.append(f"check 는 exact·contains·property 중 하나다: {rec['check']!r}")
+        # 시나리오 골든셋은 평가 러너가 판정할 수 있는 성질만 쓴다. 모르는 키를 쓰면
+        # 러너가 그 레코드를 실패로 세어, 데이터 실수가 추천 품질 문제로 보인다.
+        # 피드백 골든셋(feedback_*.jsonl)은 피드백 러너의 성질을 쓴다.
+        if 접두어 == "scenario-g" and isinstance(rec.get("expected"), dict):
+            from eval import feedback_checks, scenario_checks
+
+            아는 = (feedback_checks.PROPERTY_KEYS if 파일.startswith("feedback_")
+                    else scenario_checks.PROPERTY_KEYS)
+            모르는 = sorted(set(rec["expected"]) - 아는)
+            if 모르는:
+                문제.append(f"시나리오 골든셋에 모르는 성질이 있다: {모르는}")
 
     for i, 보유 in enumerate(rec.get("inventory") or []):
         if not isinstance(보유, dict) or not 보유.get("product_id"):
@@ -86,15 +97,29 @@ def _레코드_검사(rec: dict, 접두어: str, 골든: bool) -> list[str]:
     return 문제
 
 
+_UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+
+def _상품_id_같다(v: object) -> bool:
+    """상품 id 는 UUID 다. 길이만 보면 캡션 같은 긴 문장도 상품 id 로 모은다."""
+    return isinstance(v, str) and bool(_UUID.fullmatch(v))
+
+
 def _상품_id_모으기(rec: dict) -> set[str]:
     ids = {보유["product_id"] for 보유 in (rec.get("inventory") or [])
            if isinstance(보유, dict) and 보유.get("product_id")}
     for 키 in ("expected", "input"):
         값 = rec.get(키)
         if isinstance(값, dict):
-            for 목록 in 값.values():
-                if isinstance(목록, list):
-                    ids.update(v for v in 목록 if isinstance(v, str) and "-" in v and len(v) >= 32)
+            for 칸 in 값.values():
+                # 목록(must_exclude), 키가 상품 id 인 dict(must_exclude_reason),
+                # 상품 id 하나(base_product_id)를 모두 모은다
+                if isinstance(칸, list):
+                    ids.update(v for v in 칸 if _상품_id_같다(v))
+                elif isinstance(칸, dict):
+                    ids.update(k for k in 칸 if _상품_id_같다(k))
+                elif _상품_id_같다(칸):
+                    ids.add(칸)
     return ids
 
 
@@ -127,7 +152,7 @@ def collect(roots: tuple[Path, ...] = (SYNTHETIC, GOLDEN)) -> tuple[list[str], s
                     문제.append(f"{위치}: 한 줄에 객체 하나여야 한다")
                     continue
 
-                for 사유 in _레코드_검사(rec, 접두어, 골든):
+                for 사유 in _레코드_검사(rec, 접두어, 골든, path.name):
                     문제.append(f"{위치}: {사유}")
 
                 아이디 = rec.get("id")

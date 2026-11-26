@@ -1,31 +1,46 @@
 import { useState } from "react";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
-import type { AiSearchProduct } from "../../api/productApi";
+import type { FeedbackReason } from "../../api/recommendationQueryApi";
 import { ProductThumbnail } from "../common/ProductThumbnail";
 import { PrimaryButton } from "../common/PrimaryButton";
 import { BottomSheet } from "../common/BottomSheet";
 
-export type FeedbackValue = { liked: boolean; reasons: string[] };
-const REASONS = [
-  "너무 비싸요",
-  "내 피부에 안 맞을 것 같아요",
-  "후기가 별로예요",
-  "이미 비슷한 걸 써요",
+export type FeedbackValue = { liked: boolean; reasons: FeedbackReason[] };
+
+/** 피드백 대상 제품. 추천 결과 카드에서 필요한 것만 받는다. */
+export interface FeedbackProduct {
+  name: string;
+  brand: string;
+  imageUrl?: string | null;
+  price: number | null;
+  score: number | null;
+}
+
+const REASONS: { key: FeedbackReason; label: string }[] = [
+  { key: "TOO_EXPENSIVE", label: "너무 비싸요" },
+  { key: "NOT_MY_SKIN", label: "내 피부에 안 맞을 것 같아요" },
+  { key: "BAD_REVIEWS", label: "후기가 별로예요" },
 ];
 
 export function RecommendationFeedbackSheet({
   product,
   initialLiked,
+  submitting = false,
+  error,
   onClose,
   onSubmit,
 }: {
-  product: AiSearchProduct;
+  product: FeedbackProduct;
   initialLiked: boolean;
+  /** 보내는 중이면 버튼을 막는다 */
+  submitting?: boolean;
+  /** 보내기에 실패했을 때 문구 */
+  error?: string;
   onClose: () => void;
   onSubmit: (value: FeedbackValue) => void;
 }) {
   const [liked, setLiked] = useState(initialLiked);
-  const [reasons, setReasons] = useState<string[]>([]);
+  const [reasons, setReasons] = useState<FeedbackReason[]>([]);
 
   return (
     <BottomSheet label="추천 피드백" onClose={onClose}>
@@ -47,23 +62,33 @@ export function RecommendationFeedbackSheet({
           알려주시면 다음 추천부터 반영해요
         </p>
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-gray-100 p-3">
-          <ProductThumbnail
-            className="h-12 w-12 shrink-0 bg-primary-50"
-            size="sm"
-            green
-          />
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt=""
+              className="h-12 w-12 shrink-0 rounded-lg bg-primary-50 object-contain p-1"
+            />
+          ) : (
+            <ProductThumbnail
+              className="h-12 w-12 shrink-0 bg-primary-50"
+              size="sm"
+              green
+            />
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-caption font-semibold">
               {product.name}
             </p>
             <p className="mt-1 text-[11px] text-gray-300">
               {product.brand}
-              {product.originalPrice != null && ` · ${product.originalPrice.toLocaleString("ko-KR")}원`}
+              {product.price != null && ` · ${product.price.toLocaleString("ko-KR")}원`}
             </p>
           </div>
-          <span className="rounded-md bg-primary-50 px-2 py-1 text-[11px] text-primary-500">
-            {product.matchScore}%
-          </span>
+          {product.score != null && (
+            <span className="rounded-md bg-primary-50 px-2 py-1 text-[11px] text-primary-500">
+              {Math.round(product.score)}점
+            </span>
+          )}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[true, false].map((value) => {
@@ -92,7 +117,7 @@ export function RecommendationFeedbackSheet({
               <span className="font-normal text-gray-300">복수 선택돼요</span>
             </legend>
             <div className="flex flex-wrap gap-2">
-              {REASONS.map((reason) => (
+              {REASONS.map(({ key: reason, label }) => (
                 <button
                   type="button"
                   key={reason}
@@ -106,7 +131,7 @@ export function RecommendationFeedbackSheet({
                   }
                   className={`rounded-lg px-3 py-2 text-[11px] ${reasons.includes(reason) ? "bg-primary-300 text-white" : "bg-gray-100 text-gray-400"}`}
                 >
-                  {reason}
+                  {label}
                 </button>
               ))}
             </div>
@@ -117,19 +142,25 @@ export function RecommendationFeedbackSheet({
             이렇게 반영돼요
           </p>
           <p className="mt-1 text-[11px] leading-5 text-gray-400">
-            {reasons.includes("너무 비싸요")
+            {reasons.includes("TOO_EXPENSIVE")
               ? "‘너무 비싸요’ → 다음 추천부터 가격을 조금 더 중요하게 봐요."
               : liked
                 ? "마음에 드는 추천의 특징을 다음 추천에 참고해요."
                 : "선택한 이유를 다음 추천 조건에 참고해요."}
-            <br />한 번에 조금씩만 바뀌고, 마이페이지에서 되돌릴 수 있어요.
+            <br />한 번에 조금씩만 바뀌어요.
           </p>
         </div>
+        {error && (
+          <p role="alert" className="mt-3 text-[11px] leading-4 text-red-700">
+            {error}
+          </p>
+        )}
         <PrimaryButton
-          className="mt-4"
-          onClick={() => onSubmit({ liked, reasons })}
+          className="mt-4 disabled:opacity-50"
+          disabled={submitting}
+          onClick={() => onSubmit({ liked, reasons: liked ? [] : reasons })}
         >
-          보내기
+          {submitting ? "보내는 중" : "보내기"}
         </PrimaryButton>
       </div>
     </BottomSheet>

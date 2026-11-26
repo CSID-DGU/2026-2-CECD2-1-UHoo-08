@@ -17,5 +17,9 @@
   "alternatives": [],
   "similarUserProducts": [],
   "bundles": [],
-  "excluded": []
+  "excluded": [],
+  "conditions": [
+    {"key": "UV_PROTECT", "label": "자외선 차단", "basis": "자외선 지수 6 이상 22일", "covered": true, "coveredBy": "닥터지 선크림"},
+    {"key": "SOOTHING", "label": "진정", "basis": "미세먼지 나쁨 14일", "covered": false, "coveredBy": null}
+  ]
 }

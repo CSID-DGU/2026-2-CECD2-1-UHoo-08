@@ -6,8 +6,13 @@ import com.capstone.backend.common.storage.StorageService;
 import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
 import com.capstone.backend.domain.user.dto.response.RegionResponse;
+import com.capstone.backend.domain.user.dto.response.UserMeResponse;
+import com.capstone.backend.domain.pricetracking.repository.PriceTrackingRepository;
+import com.capstone.backend.domain.product.enums.UsageType;
+import com.capstone.backend.domain.product.repository.UserProductRepository;
 import com.capstone.backend.domain.user.entity.User;
 import com.capstone.backend.domain.user.repository.UserRepository;
+import com.capstone.backend.domain.wishlist.repository.WishlistRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +39,12 @@ class UserServiceImplTest {
     UserRepository userRepository;
     @Mock
     StorageService storageService;
+    @Mock
+    WishlistRepository wishlistRepository;
+    @Mock
+    PriceTrackingRepository priceTrackingRepository;
+    @Mock
+    UserProductRepository userProductRepository;
     @InjectMocks
     UserServiceImpl userService;
 
@@ -43,6 +54,21 @@ class UserServiceImplTest {
         User user = User.builder().id(userId).name("하림").provider("KAKAO").build();
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userRepository.save(any(User.class))).willAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void 구매_제품_수는_쓰는_중인_보유_제품_수다() {
+        given(userRepository.findById(userId)).willReturn(Optional.of(
+                User.builder().id(userId).name("하림").provider("KAKAO").build()));
+        given(wishlistRepository.countByUserId(userId)).willReturn(3L);
+        given(priceTrackingRepository.countByUserId(userId)).willReturn(2L);
+        given(userProductRepository.countByUserIdAndUsageType(userId, UsageType.USING)).willReturn(5L);
+
+        UserMeResponse.StatsInfo stats = userService.getMyInfo(userId).getStats();
+
+        assertThat(stats.getWishlistCount()).isEqualTo(3);
+        assertThat(stats.getTrackingCount()).isEqualTo(2);
+        assertThat(stats.getRegisteredCount()).isEqualTo(5);
     }
 
     @Test

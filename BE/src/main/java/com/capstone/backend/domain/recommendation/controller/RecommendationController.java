@@ -1,12 +1,15 @@
 package com.capstone.backend.domain.recommendation.controller;
 
 import com.capstone.backend.common.response.ApiResponse;
+import com.capstone.backend.domain.recommendation.dto.request.BundleSwapRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
 import com.capstone.backend.domain.recommendation.dto.request.FeedbackRequest;
 import com.capstone.backend.domain.recommendation.dto.request.ProductSearchRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RefinementRequest;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationRequest;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSlotOptionsResponse;
+import com.capstone.backend.domain.recommendation.dto.response.BundleSwapResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.response.FeedbackResponse;
 import com.capstone.backend.domain.recommendation.dto.response.ProductSearchResponse;
@@ -17,6 +20,7 @@ import com.capstone.backend.domain.recommendation.dto.response.RecommendationSta
 import com.capstone.backend.domain.recommendation.dto.response.RefinementHistoryResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementOptionsResponse;
 import com.capstone.backend.domain.recommendation.dto.response.RefinementResponse;
+import com.capstone.backend.domain.recommendation.service.BundleOptionService;
 import com.capstone.backend.domain.recommendation.service.RecommendationFeedbackService;
 import com.capstone.backend.domain.recommendation.service.RecommendationJobService;
 import com.capstone.backend.domain.recommendation.service.RecommendationRefineService;
@@ -42,10 +46,13 @@ public class RecommendationController {
     private final RecommendationJobService recommendationJobService;
     private final RecommendationRefineService recommendationRefineService;
     private final RecommendationFeedbackService recommendationFeedbackService;
+    private final BundleOptionService bundleOptionService;
 
     @Operation(
             summary = "자연어 추천 요청",
-            description = "검색창 문장으로 추천 job 을 만들고 202 로 jobId 를 바로 돌려준다. 진행은 statusUrl 로 폴링한다. " +
+            description = "검색창 문장이나 기준 상품으로 추천 job 을 만들고 202 로 jobId 를 바로 돌려준다. 진행은 statusUrl 로 폴링한다. " +
+                    "query 와 baseProductId 중 하나는 있어야 한다. baseProductId 가 있으면 문장을 해석하지 않고 그 상품을 평가한다. " +
+                    "없는 상품이면 404 PRODUCT_NOT_FOUND. " +
                     "basis: SELF(기본, 내 피부), POPULAR(전체 인기), OTHER(다른 사람, targetProfile 함께). " +
                     "SELF 인데 피부 정보가 없으면 404 SKIN_PROFILE_NOT_FOUND. " +
                     "POST /recommendations/search(동기)를 대체한다."
@@ -58,7 +65,13 @@ public class RecommendationController {
                 .body(ApiResponse.success(recommendationJobService.requestQuery(userId, request)));
     }
 
-    @Operation(summary = "자연어 제품 검색", description = "검색창 자연어 입력 → FastAPI 벡터 검색 → 결과 반환 (동기)")
+    /** 검색은 POST /recommendations/queries 로 옮겨 간다. FE 호출을 옮기면 지운다 */
+    @Deprecated
+    @Operation(summary = "자연어 제품 검색 (사용 중단)",
+            description = "검색창 자연어 입력으로 벡터 검색 결과를 바로 돌려준다(동기). " +
+                    "사용 중단. POST /recommendations/queries(비동기)로 대체한다. 요청, 상태 조회, 결과 조회 순서로 부르고, " +
+                    "상태가 NEEDS_CLARIFICATION 이면 POST /recommendations/{jobId}/clarifications 로 답한 뒤 다시 상태를 조회한다.",
+            deprecated = true)
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<ProductSearchResponse>> searchProducts(
             @AuthenticationPrincipal UUID userId,
@@ -67,7 +80,12 @@ public class RecommendationController {
                 recommendationService.searchProducts(userId, request.getQuery())));
     }
 
-    @Operation(summary = "제품 추천 요청", description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인.")
+    /** 상품 기준 추천은 POST /recommendations/queries 의 baseProductId 로 옮겨 간다. FE 호출을 옮기면 지운다 */
+    @Deprecated
+    @Operation(summary = "제품 추천 요청 (사용 중단)",
+            description = "비동기 처리. 즉시 jobId 반환 후 status 폴링으로 완료 확인. " +
+                    "사용 중단. POST /recommendations/queries 에 baseProductId 를 보내는 것으로 대체한다.",
+            deprecated = true)
     @PostMapping
     public ResponseEntity<ApiResponse<RecommendationJobResponse>> requestRecommendation(
             @AuthenticationPrincipal UUID userId,
@@ -118,6 +136,38 @@ public class RecommendationController {
     }
 
     @Operation(
+            summary = "세트 교체 후보 조회",
+            description = "예산 세트의 한 칸을 바꿀 때 고를 수 있는 후보와 바꿨을 때의 총액을 적합도순으로 돌려준다. " +
+                    "bundleIndex 는 1부터. slotKey 는 추천 결과의 bundles[].slots[].slotKey. " +
+                    "selectable 은 예산 안이면 true 이고, 아니면 overBudgetBy 에 초과 금액을 준다. " +
+                    "예산이 없는 결과면 budget, remaining 은 null 이고 모두 선택할 수 있다. " +
+                    "job, 조합, 칸이 없거나 칸별 후보가 없거나 비어 있으면 404 NOT_FOUND."
+    )
+    @GetMapping("/{jobId}/bundles/{bundleIndex}/slots/{slotKey}/options")
+    public ResponseEntity<ApiResponse<BundleSlotOptionsResponse>> getBundleSlotOptions(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @PathVariable int bundleIndex,
+            @PathVariable String slotKey) {
+        return ResponseEntity.ok(ApiResponse.success(bundleOptionService.getOptions(userId, jobId, bundleIndex, slotKey)));
+    }
+
+    @Operation(
+            summary = "세트 제품 교체",
+            description = "예산 세트의 한 칸을 교체 후보 조회에서 고른 제품으로 바꾸고 총액과 총점을 다시 계산한다. 다른 조합은 그대로 둔다. " +
+                    "지금 제품을 다시 고르면 저장하지 않고 지금 조합을 돌려준다. 교체하면 예산을 넘으면 422 BUNDLE_OVER_BUDGET. " +
+                    "job, 조합, 칸이 없거나 후보에 없는 제품이면 404 NOT_FOUND."
+    )
+    @PatchMapping("/{jobId}/bundles/{bundleIndex}")
+    public ResponseEntity<ApiResponse<BundleSwapResponse>> swapBundleProduct(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID jobId,
+            @PathVariable int bundleIndex,
+            @Valid @RequestBody BundleSwapRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(bundleOptionService.swap(userId, jobId, bundleIndex, request)));
+    }
+
+    @Operation(
             summary = "조건 추가 선택지 조회",
             description = "'어떤 조건을 더할까요?' 시트에 보여줄 지금 조건 칩과 고를 수 있는 조건. " +
                     "지금 조건은 결과 상단의 조건 칩과 같고, 결과가 아직 없으면 빈 배열. " +
@@ -162,7 +212,7 @@ public class RecommendationController {
     @Operation(
             summary = "추천 피드백 등록",
             description = "결과 카드의 좋아요(UP)/별로예요(DOWN)와 이유를 저장한다. 같은 job 의 같은 제품에 다시 보내면 덮어쓴다. " +
-                    "reasonTags 는 DOWN 일 때만 저장한다(TOO_EXPENSIVE, NOT_MY_SKIN, BAD_REVIEWS, ALREADY_HAVE_SIMILAR). " +
+                    "reasonTags 는 DOWN 일 때만 저장한다(TOO_EXPENSIVE, NOT_MY_SKIN, BAD_REVIEWS). " +
                     "message 는 토스트 문구이고, 가중치는 AI 가 비동기로 반영해 changeId 는 항상 null. " +
                     "vote 나 reasonTags 값이 목록에 없거나 결과 추천 목록(items)에 없는 제품이면 422 VALIDATION_ERROR."
     )

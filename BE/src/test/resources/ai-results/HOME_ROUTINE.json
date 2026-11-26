@@ -29,5 +29,6 @@
   },
   "schedule": {"morning": ["수분 토너", "톤업 세럼", "선크림"], "evening": ["AHA 토너", "레티놀 앰플", "수분 크림"],
                "tip": "AHA 먼저, 레티놀은 하루 걸러 쓰세요"},
-  "uncomparedCount": 1
+  "uncomparedCount": 1,
+  "checkedUserProductIds": ["aaaaaaaa-0000-0000-0000-000000000001", "aaaaaaaa-0000-0000-0000-000000000002", "aaaaaaaa-0000-0000-0000-000000000003", "aaaaaaaa-0000-0000-0000-000000000004", "aaaaaaaa-0000-0000-0000-000000000005"]
 }
