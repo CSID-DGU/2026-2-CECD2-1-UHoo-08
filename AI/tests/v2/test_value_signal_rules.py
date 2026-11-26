@@ -2,6 +2,7 @@
 import pytest
 
 from rules.value_signal import (
+    DEFAULT_PREFERENCE,
     DISCOUNT_FULL_AT,
     MIN_PEERS,
     budget_fit,
@@ -9,6 +10,7 @@ from rules.value_signal import (
     discount_score,
     group_of,
     group_prices,
+    preference,
     relative_price,
 )
 
@@ -55,6 +57,16 @@ def test_groups_are_category_and_product_type():
     assert group_of({"product_id": "x", "category": "sun", "feature_json": {}}) is None
     assert set(group_prices([p("x", 1000), p("y", None), p("z", 1000, category="lip", kind="틴트")])) == {
         ("sun", "선크림"), ("lip", "틴트")}
+
+
+def test_preference_from_weight():
+    assert preference(None) == DEFAULT_PREFERENCE
+    assert preference(0) == DEFAULT_PREFERENCE
+    assert preference(0.15) == pytest.approx(0.75)
+    assert preference(0.3) == 1.0 and preference(0.9) == 1.0
+    assert preference("높음") == DEFAULT_PREFERENCE
+
+
 
 
 def test_out_of_scope_products_are_not_peers():

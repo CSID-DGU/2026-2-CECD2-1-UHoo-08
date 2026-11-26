@@ -143,3 +143,11 @@ def discount_score(rate: float | None) -> float | None:
     if rate is None:
         return None
     return min(1.0, rate / DISCOUNT_FULL_AT)
+
+
+def preference(weight: Any) -> float:
+    """사용자 선호 가중치의 value_signal 값 → 가성비 선호도 0~1. 값이 없으면 기본값."""
+    if weight is None or isinstance(weight, bool) or not isinstance(weight, (int, float)):
+        return DEFAULT_PREFERENCE
+    w = max(0.0, float(weight))
+    return min(1.0, DEFAULT_PREFERENCE + (1 - DEFAULT_PREFERENCE) * w / PREFERENCE_FULL_AT)
