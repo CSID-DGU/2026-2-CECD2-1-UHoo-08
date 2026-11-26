@@ -1,0 +1,106 @@
+[
+ {
+  "alias": "장벽천재세럼",
+  "product_id": "9a402d77-8314-4dd2-8f4f-cabf939cb147",
+  "brands": [
+   "ES NATURE"
+  ],
+  "official_name": "에스네이처 딥 아쿠아 스쿠알란 베리어 세럼 50ml",
+  "verified_by": "user",
+  "verified_at": "2026-11-03",
+  "source": "post 1"
+ },
+ {
+  "alias": "장벽크림토너",
+  "product_id": "129274fe-deda-4dc2-9ee8-6dbd6b19a3ed",
+  "brands": [
+   "ES NATURE"
+  ],
+  "official_name": "에스네이처 딥 아쿠아 스쿠알란 베리어 토너 200ml",
+  "verified_by": "user",
+  "verified_at": "2026-11-03",
+  "source": "post 1"
+ },
+ {
+  "alias": "컬러립밤",
+  "official_name": "유리아쥬 스틱레브르 컬러드",
+  "brands": [
+   "URIAGE",
+   "ROM&ND"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "https://www.harpersbazaar.co.kr/article/1911108 (유리아쥬 × 롬앤 컬러 립밤 = 스틱레브르 컬러드)"
+ },
+ {
+  "alias": "유리아쥬 컬러립밤",
+  "official_name": "유리아쥬 스틱레브르 컬러드",
+  "brands": [
+   "URIAGE",
+   "ROM&ND"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "https://www.harpersbazaar.co.kr/article/1911108"
+ },
+ {
+  "alias": "오리지널 립밤",
+  "official_name": "스틱레브르 오리지널",
+  "brands": [
+   "URIAGE"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "유리아쥬 오리지널 립밤(Stick Lèvres Original)"
+ },
+ {
+  "alias": "퓨어밤",
+  "official_name": "러브플레르 퓨어 플레르 밤",
+  "brands": [
+   "LOVEFLEUR"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "post 132 '퓨어밤 슈슈' (슈슈는 호수)"
+ },
+ {
+  "alias": "그린티 히알루론산 수분 선세럼",
+  "official_name": "이니스프리 데일리 UV 수분장벽 선세럼",
+  "brands": [
+   "INNISFREE"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "https://www.news1.kr/amp/industry/distribution/6164431 (리뉴얼 전 이름)"
+ },
+ {
+  "alias": "Candy Glow Tint",
+  "official_name": "원정요 캔디 글로우 틴트",
+  "brands": [
+   "WONJUNGYO"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "https://www.cosme.net/products/10263076/"
+ },
+ {
+  "alias": "キャンディーグロウティント",
+  "official_name": "원정요 캔디 글로우 틴트",
+  "brands": [
+   "WONJUNGYO"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "https://www.cosme.net/products/10263076/"
+ },
+ {
+  "alias": "젠 웨어 파운데이션",
+  "official_name": "코스메데코르테 젠 웨어 플루이드",
+  "brands": [
+   "DECORTE"
+  ],
+  "verified_by": "claude",
+  "verified_at": "2026-11-03",
+  "source": "캡션 'DECORTE - 젠 웨어 파운데이션' (젠 웨어 플루이드는 리퀴드 파운데이션)"
+ }
+]

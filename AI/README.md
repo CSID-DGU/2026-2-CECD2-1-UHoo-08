@@ -114,6 +114,7 @@ spec = await llm.chat_json(system=..., user=...)
 | `compose` | 추천 이유 문장 |
 | `vlm` | 사진 인식 |
 | `ad` | 인스타 캡션 광고 판별 (1차 규칙이 못 정한 것) |
+| `match` | 인스타 캡션 → 제품 언급 추출 · 후보 판정 (ProductMatcher v1) |
 
 역할마다 모델·주소·키를 환경 변수로 따로 정할 수 있다(`LLM_NORMALIZE_MODEL` 등).
 비워 두면 지금 쓰는 값이다. "이 역할만 상위 모델로 올리면 얼마나 좋아지는지"를

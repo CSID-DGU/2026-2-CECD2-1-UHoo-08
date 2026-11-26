@@ -41,3 +41,5 @@ beautifulsoup4
 
 # Openai
 openai>=1.30.0
+# 캡션 → 상품 문자열 유사도 매칭 (rules/product_match.py). 순수 C 확장이라 설치가 빠르다.
+rapidfuzz>=3.9

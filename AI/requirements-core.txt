@@ -7,5 +7,7 @@ fastapi>=0.110.0
 httpx
 # 그래프 조립. 임베딩·LLM 없이 그래프만 돌려볼 수 있어야 한다.
 langgraph>=0.1.0
+# 캡션 → 상품 문자열 유사도 매칭 (rules/product_match.py). 순수 C 확장이라 설치가 빠르다.
+rapidfuzz>=3.9
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

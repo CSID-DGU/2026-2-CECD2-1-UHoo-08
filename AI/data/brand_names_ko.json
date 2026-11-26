@@ -1,0 +1,554 @@
+[
+ {
+  "brand": "2AN",
+  "alias": "투에이엔",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "3CE",
+  "alias": "쓰리씨이",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "AESTURA",
+  "alias": "에스트라",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "AHC",
+  "alias": "에이에이치씨",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ALTERNATIVE STEREO",
+  "alias": "얼터너티브스테레오",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ALTERNATIVE STEREO",
+  "alias": "얼터너티브 스테레오",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "AMPLE:N",
+  "alias": "앰플엔",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "AMUSE",
+  "alias": "어뮤즈",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ANUA",
+  "alias": "아누아",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ATHE",
+  "alias": "아떼",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BANILA CO",
+  "alias": "바닐라코",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BENEFIT",
+  "alias": "베네피트",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BEYOND",
+  "alias": "비욘드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIO-OIL",
+  "alias": "바이오오일",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIO-OIL",
+  "alias": "바이오-오일",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIODERMA",
+  "alias": "바이오더마",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIOHEAL BOH",
+  "alias": "바이오힐보",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIOHEAL BOH",
+  "alias": "바이오힐 보",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BIORE",
+  "alias": "비오레",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BLISTEX",
+  "alias": "블리스텍스",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BOM",
+  "alias": "비오엠",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "BURT'S BEES",
+  "alias": "버츠비",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CANMAKE",
+  "alias": "캔메이크",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CAREZONE",
+  "alias": "케어존",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CELL FUSION C",
+  "alias": "셀퓨전씨",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CETAPHIL",
+  "alias": "세타필",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CLIO",
+  "alias": "클리오",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CNP",
+  "alias": "차앤박",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CODE GLOKOLOR",
+  "alias": "코드글로컬러",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "COLORGRAM",
+  "alias": "컬러그램",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "CURECODE",
+  "alias": "큐어코드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DEAR.A",
+  "alias": "디어에이",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DEWYTREE",
+  "alias": "듀이트리",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DOMINAS",
+  "alias": "도미나스",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DR.G",
+  "alias": "닥터지",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DR.JART+",
+  "alias": "닥터자르트",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DROP BE COLORS",
+  "alias": "드롭비컬러즈",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "DROP BE COLORS",
+  "alias": "드롭비 컬러즈",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ERBORIAN",
+  "alias": "에르보리앙",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ESTEE LAUDER",
+  "alias": "에스티로더",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ESTEE LAUDER",
+  "alias": "에스티 로더",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ETUDE",
+  "alias": "에뛰드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "EXCERAPY",
+  "alias": "엑쎄라피",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "GOODAL",
+  "alias": "구달",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "GREEN FINGER",
+  "alias": "그린핑거",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "HERA",
+  "alias": "헤라",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ILLIYOON",
+  "alias": "일리윤",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ISOI",
+  "alias": "아이소이",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "JUNGSAEMMOOL",
+  "alias": "정샘물",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "KAHI",
+  "alias": "가히",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "KATE",
+  "alias": "케이트",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "KIMJEONGMOON ALOE",
+  "alias": "김정문알로에",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "LA ROCHE-POSAY",
+  "alias": "라로슈포제",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "LABCLE",
+  "alias": "랩클",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "LABOREVE",
+  "alias": "라보레브",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "LAKA",
+  "alias": "라카",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "LILYBYRED",
+  "alias": "릴리바이레드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "MAC",
+  "alias": "맥",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "MAMONDE",
+  "alias": "마몽드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "MEDIHEAL",
+  "alias": "메디힐",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "MERZY",
+  "alias": "머지",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "MINIER",
+  "alias": "미니어",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "NAMING",
+  "alias": "네이밍",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "NARS",
+  "alias": "나스",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "NUGRAY",
+  "alias": "누그레이",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "NUMBuzin",
+  "alias": "넘버즈인",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "NUXE",
+  "alias": "눅스",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "OIAD",
+  "alias": "오아드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "OPERA",
+  "alias": "오페라",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "PERIPERA",
+  "alias": "페리페라",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "PHYSIOGEL",
+  "alias": "피지오겔",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "PLANTNARA",
+  "alias": "식물나라",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "REJUVENIL",
+  "alias": "리쥬베닐",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "RISKY BEAUTY",
+  "alias": "리스키뷰티",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "RISKY BEAUTY",
+  "alias": "리스키 뷰티",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ROM&ND",
+  "alias": "롬앤",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ROUND LAB",
+  "alias": "라운드랩",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "SCINIC",
+  "alias": "싸이닉",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "SIABARRIER",
+  "alias": "시아베리어",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "TFIT",
+  "alias": "티핏",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "THEMEDIDR",
+  "alias": "더메디닥터",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "TOCOBO",
+  "alias": "토코보",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "TONYMOLY",
+  "alias": "토니모리",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "TORRIDEN",
+  "alias": "토리든",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "TOUCH IN SOL",
+  "alias": "터치인솔",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "UGLY LOVELY",
+  "alias": "어글리러블리",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "UGLY LOVELY",
+  "alias": "어글리 러블리",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "VASELINE",
+  "alias": "바세린",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "VDL",
+  "alias": "브이디엘",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "WELLAGE",
+  "alias": "웰라쥬",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "YOUNJAK",
+  "alias": "연작",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ },
+ {
+  "brand": "ZEROID",
+  "alias": "제로이드",
+  "verified_by": "claude",
+  "source": "음역 (2026-11-23, 사람 검토 전)"
+ }
+]

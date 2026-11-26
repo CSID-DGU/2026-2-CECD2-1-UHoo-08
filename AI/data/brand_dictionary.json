@@ -1,0 +1,10077 @@
+{
+ "version": "brand-dict-v1",
+ "count": 688,
+ "entries": [
+  {
+   "ko": "다이소",
+   "en": "DAISO",
+   "db_brand": null,
+   "glowpick_id": 840,
+   "seen": 1293,
+   "aliases": [
+    "다이소",
+    "DAISO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에뛰드",
+   "en": "ETUDE",
+   "db_brand": "ETUDE",
+   "glowpick_id": 160,
+   "seen": 775,
+   "aliases": [
+    "에뛰드",
+    "ETUDE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "롬앤",
+   "en": "rom\\u0026nd",
+   "db_brand": "ROM&ND",
+   "glowpick_id": 6019,
+   "seen": 448,
+   "aliases": [
+    "롬앤",
+    "rom\\u0026nd",
+    "ROM&ND",
+    "romu0026nd"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "이니스프리",
+   "en": "innisfree",
+   "db_brand": "INNISFREE",
+   "glowpick_id": 186,
+   "seen": 446,
+   "aliases": [
+    "이니스프리",
+    "innisfree",
+    "INNISFREE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "러쉬",
+   "en": "LUSH",
+   "db_brand": null,
+   "glowpick_id": 52,
+   "seen": 401,
+   "aliases": [
+    "러쉬",
+    "LUSH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "필리밀리",
+   "en": "fillimilli",
+   "db_brand": null,
+   "glowpick_id": 8708,
+   "seen": 395,
+   "aliases": [
+    "필리밀리",
+    "fillimilli"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "클리오",
+   "en": "CLIO",
+   "db_brand": "CLIO",
+   "glowpick_id": 223,
+   "seen": 367,
+   "aliases": [
+    "클리오",
+    "CLIO"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "태그",
+   "en": "TAG",
+   "db_brand": null,
+   "glowpick_id": 13822,
+   "seen": 349,
+   "aliases": [
+    "태그",
+    "TAG"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에스쁘아",
+   "en": "espoir",
+   "db_brand": "ESPOIR",
+   "glowpick_id": 162,
+   "seen": 344,
+   "aliases": [
+    "에스쁘아",
+    "espoir",
+    "ESPOIR"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "메디힐",
+   "en": "MEDIHEAL",
+   "db_brand": "MEDIHEAL",
+   "glowpick_id": 789,
+   "seen": 343,
+   "aliases": [
+    "메디힐",
+    "MEDIHEAL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "오렌즈",
+   "en": "OLENS",
+   "db_brand": null,
+   "glowpick_id": 5397,
+   "seen": 316,
+   "aliases": [
+    "오렌즈",
+    "OLENS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "페리페라",
+   "en": "peripera",
+   "db_brand": "PERIPERA",
+   "glowpick_id": 235,
+   "seen": 310,
+   "aliases": [
+    "페리페라",
+    "peripera",
+    "PERIPERA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "더샘",
+   "en": "THE SAEM",
+   "db_brand": "THE SAEM",
+   "glowpick_id": 33,
+   "seen": 309,
+   "aliases": [
+    "더샘",
+    "THE SAEM",
+    "THESAEM"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "에스트라",
+   "en": "AESTURA",
+   "db_brand": "AESTURA",
+   "glowpick_id": 619,
+   "seen": 290,
+   "aliases": [
+    "에스트라",
+    "AESTURA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "웨이크메이크",
+   "en": "wakemake",
+   "db_brand": "WAKEMAKE",
+   "glowpick_id": 2475,
+   "seen": 281,
+   "aliases": [
+    "웨이크메이크",
+    "wakemake",
+    "WAKEMAKE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "닥터지",
+   "en": "Dr.G",
+   "db_brand": "DR.G",
+   "glowpick_id": 478,
+   "seen": 273,
+   "aliases": [
+    "닥터지",
+    "Dr.G",
+    "DR.G",
+    "DrG"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "아토팜",
+   "en": "ATOPALM",
+   "db_brand": null,
+   "glowpick_id": 648,
+   "seen": 266,
+   "aliases": [
+    "아토팜",
+    "ATOPALM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "브링그린",
+   "en": "BRINGGREEN",
+   "db_brand": "BRING GREEN",
+   "glowpick_id": 7913,
+   "seen": 263,
+   "aliases": [
+    "브링그린",
+    "BRINGGREEN",
+    "BRING GREEN"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "홀리카홀리카",
+   "en": "HOLIKA HOLIKA",
+   "db_brand": null,
+   "glowpick_id": 248,
+   "seen": 254,
+   "aliases": [
+    "홀리카홀리카",
+    "HOLIKA HOLIKA",
+    "HOLIKAHOLIKA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라운드랩",
+   "en": "ROUND LAB",
+   "db_brand": "ROUND LAB",
+   "glowpick_id": 6094,
+   "seen": 238,
+   "aliases": [
+    "라운드랩",
+    "ROUND LAB",
+    "ROUNDLAB"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "바이오더마",
+   "en": "BIODERMA",
+   "db_brand": "BIODERMA",
+   "glowpick_id": 96,
+   "seen": 225,
+   "aliases": [
+    "바이오더마",
+    "BIODERMA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "마녀공장",
+   "en": "manyo",
+   "db_brand": "MA:NYO",
+   "glowpick_id": 308,
+   "seen": 224,
+   "aliases": [
+    "마녀공장",
+    "manyo",
+    "MA:NYO"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "투쿨포스쿨",
+   "en": "too cool for school",
+   "db_brand": null,
+   "glowpick_id": 230,
+   "seen": 219,
+   "aliases": [
+    "투쿨포스쿨",
+    "too cool for school",
+    "toocoolforschool"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미샤",
+   "en": "MISSHA",
+   "db_brand": null,
+   "glowpick_id": 86,
+   "seen": 213,
+   "aliases": [
+    "미샤",
+    "MISSHA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "삐아",
+   "en": "BBIA",
+   "db_brand": "BBIA",
+   "glowpick_id": 683,
+   "seen": 211,
+   "aliases": [
+    "삐아",
+    "BBIA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "바닐라코",
+   "en": "BANILA CO",
+   "db_brand": "BANILA CO",
+   "glowpick_id": 91,
+   "seen": 203,
+   "aliases": [
+    "바닐라코",
+    "BANILA CO",
+    "BANILACO"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "도브",
+   "en": "DOVE",
+   "db_brand": null,
+   "glowpick_id": 38,
+   "seen": 198,
+   "aliases": [
+    "도브",
+    "DOVE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "듀이트리",
+   "en": "DEWYTREE",
+   "db_brand": "DEWYTREE",
+   "glowpick_id": 710,
+   "seen": 196,
+   "aliases": [
+    "듀이트리",
+    "DEWYTREE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "비플레인",
+   "en": "BE PLAIN",
+   "db_brand": null,
+   "glowpick_id": 8710,
+   "seen": 196,
+   "aliases": [
+    "비플레인",
+    "BE PLAIN",
+    "BEPLAIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "토리든",
+   "en": "Torriden",
+   "db_brand": "TORRIDEN",
+   "glowpick_id": 5996,
+   "seen": 195,
+   "aliases": [
+    "토리든",
+    "Torriden",
+    "TORRIDEN"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "스킨푸드",
+   "en": "SKINFOOD",
+   "db_brand": "SKINFOOD",
+   "glowpick_id": 133,
+   "seen": 189,
+   "aliases": [
+    "스킨푸드",
+    "SKINFOOD"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "달바",
+   "en": "d'Alba",
+   "db_brand": null,
+   "glowpick_id": 5967,
+   "seen": 181,
+   "aliases": [
+    "달바",
+    "d'Alba",
+    "dAlba"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아비브",
+   "en": "Abib",
+   "db_brand": "ABIB",
+   "glowpick_id": 6137,
+   "seen": 179,
+   "aliases": [
+    "아비브",
+    "Abib",
+    "ABIB"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "VT COSMETICS",
+   "en": "브이티 코스메틱",
+   "db_brand": "VT COSMETICS",
+   "glowpick_id": 6652,
+   "seen": 176,
+   "aliases": [
+    "VT COSMETICS",
+    "브이티 코스메틱",
+    "VT",
+    "브이티"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "일리윤",
+   "en": "ILLIYOON",
+   "db_brand": "ILLIYOON",
+   "glowpick_id": 324,
+   "seen": 174,
+   "aliases": [
+    "일리윤",
+    "ILLIYOON"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "어바웃톤",
+   "en": "ABOUT TONE",
+   "db_brand": "ABOUT TONE",
+   "glowpick_id": 12314,
+   "seen": 173,
+   "aliases": [
+    "어바웃톤",
+    "ABOUT TONE",
+    "ABOUTTONE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "더페이스샵",
+   "en": "THE FACE SHOP",
+   "db_brand": null,
+   "glowpick_id": 34,
+   "seen": 171,
+   "aliases": [
+    "더페이스샵",
+    "THE FACE SHOP",
+    "THEFACESHOP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "다슈",
+   "en": "DASHU",
+   "db_brand": null,
+   "glowpick_id": 835,
+   "seen": 170,
+   "aliases": [
+    "다슈",
+    "DASHU"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메이크프렘",
+   "en": "makeprem",
+   "db_brand": null,
+   "glowpick_id": 5514,
+   "seen": 166,
+   "aliases": [
+    "메이크프렘",
+    "makeprem"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "디올",
+   "en": "DIOR",
+   "db_brand": "DIOR",
+   "glowpick_id": 43,
+   "seen": 163,
+   "aliases": [
+    "디올",
+    "DIOR"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "라네즈",
+   "en": "LANEIGE",
+   "db_brand": "LANEIGE",
+   "glowpick_id": 47,
+   "seen": 162,
+   "aliases": [
+    "라네즈",
+    "LANEIGE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "더마팩토리",
+   "en": "DERMA FACTORY",
+   "db_brand": null,
+   "glowpick_id": 12008,
+   "seen": 160,
+   "aliases": [
+    "더마팩토리",
+    "DERMA FACTORY",
+    "DERMAFACTORY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메디큐브",
+   "en": "medicube",
+   "db_brand": "MEDICUBE",
+   "glowpick_id": 5887,
+   "seen": 160,
+   "aliases": [
+    "메디큐브",
+    "medicube",
+    "MEDICUBE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "토니모리",
+   "en": "TONYMOLY",
+   "db_brand": "TONYMOLY",
+   "glowpick_id": 229,
+   "seen": 159,
+   "aliases": [
+    "토니모리",
+    "TONYMOLY"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "존슨즈",
+   "en": "Johnsons",
+   "db_brand": null,
+   "glowpick_id": 893,
+   "seen": 157,
+   "aliases": [
+    "존슨즈",
+    "Johnsons"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "맥",
+   "en": "MAC",
+   "db_brand": "MAC",
+   "glowpick_id": 78,
+   "seen": 156,
+   "aliases": [
+    "맥",
+    "MAC"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "바세린",
+   "en": "Vaseline",
+   "db_brand": "VASELINE",
+   "glowpick_id": 95,
+   "seen": 156,
+   "aliases": [
+    "바세린",
+    "Vaseline",
+    "VASELINE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "식물나라",
+   "en": "SHINGMULNARA",
+   "db_brand": "PLANTNARA",
+   "glowpick_id": 264,
+   "seen": 155,
+   "aliases": [
+    "식물나라",
+    "SHINGMULNARA",
+    "PLANTNARA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "넘버즈인",
+   "en": "numbuzin",
+   "db_brand": "NUMBuzin",
+   "glowpick_id": 9229,
+   "seen": 155,
+   "aliases": [
+    "넘버즈인",
+    "numbuzin",
+    "NUMBuzin"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "키스미",
+   "en": "KISS ME",
+   "db_brand": null,
+   "glowpick_id": 226,
+   "seen": 154,
+   "aliases": [
+    "키스미",
+    "KISS ME",
+    "KISSME"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "VDL",
+   "en": "브이디엘",
+   "db_brand": "VDL",
+   "glowpick_id": 11,
+   "seen": 153,
+   "aliases": [
+    "VDL",
+    "브이디엘"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "헤라",
+   "en": "HERA",
+   "db_brand": "HERA",
+   "glowpick_id": 247,
+   "seen": 150,
+   "aliases": [
+    "헤라",
+    "HERA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "마몽드",
+   "en": "Mamonde",
+   "db_brand": "MAMONDE",
+   "glowpick_id": 72,
+   "seen": 149,
+   "aliases": [
+    "마몽드",
+    "Mamonde",
+    "MAMONDE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "셀퓨전씨",
+   "en": "Cell Fusion C",
+   "db_brand": "CELL FUSION C",
+   "glowpick_id": 862,
+   "seen": 148,
+   "aliases": [
+    "셀퓨전씨",
+    "Cell Fusion C",
+    "CELL FUSION C",
+    "CellFusionC"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "미쟝센",
+   "en": "miseenscene",
+   "db_brand": null,
+   "glowpick_id": 88,
+   "seen": 147,
+   "aliases": [
+    "미쟝센",
+    "miseenscene"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아로마티카",
+   "en": "AROMATICA",
+   "db_brand": null,
+   "glowpick_id": 341,
+   "seen": 144,
+   "aliases": [
+    "아로마티카",
+    "AROMATICA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "온그리디언츠",
+   "en": "ongredients",
+   "db_brand": null,
+   "glowpick_id": 11466,
+   "seen": 143,
+   "aliases": [
+    "온그리디언츠",
+    "ongredients"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "컬러그램",
+   "en": "colorgram",
+   "db_brand": "COLORGRAM",
+   "glowpick_id": 9606,
+   "seen": 141,
+   "aliases": [
+    "컬러그램",
+    "colorgram",
+    "COLORGRAM"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "아누아",
+   "en": "ANUA",
+   "db_brand": "ANUA",
+   "glowpick_id": 9167,
+   "seen": 141,
+   "aliases": [
+    "아누아",
+    "ANUA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "한율",
+   "en": "HANYUL",
+   "db_brand": null,
+   "glowpick_id": 244,
+   "seen": 139,
+   "aliases": [
+    "한율",
+    "HANYUL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메디필",
+   "en": "MEDIPEEL",
+   "db_brand": null,
+   "glowpick_id": 1376,
+   "seen": 138,
+   "aliases": [
+    "메디필",
+    "MEDIPEEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "네이밍",
+   "en": "NAMING",
+   "db_brand": "NAMING",
+   "glowpick_id": 9220,
+   "seen": 137,
+   "aliases": [
+    "네이밍",
+    "NAMING"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "본셉",
+   "en": "BONCEPT",
+   "db_brand": null,
+   "glowpick_id": 14064,
+   "seen": 134,
+   "aliases": [
+    "본셉",
+    "BONCEPT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "입큰",
+   "en": "IPKN",
+   "db_brand": null,
+   "glowpick_id": 190,
+   "seen": 133,
+   "aliases": [
+    "입큰",
+    "IPKN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스트라이덱스",
+   "en": "STRIDEX",
+   "db_brand": null,
+   "glowpick_id": 4576,
+   "seen": 127,
+   "aliases": [
+    "스트라이덱스",
+    "STRIDEX"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시드물",
+   "en": "SIDMOOL",
+   "db_brand": null,
+   "glowpick_id": 528,
+   "seen": 125,
+   "aliases": [
+    "시드물",
+    "SIDMOOL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "퓌",
+   "en": "fwee",
+   "db_brand": "FWEE",
+   "glowpick_id": 11811,
+   "seen": 125,
+   "aliases": [
+    "퓌",
+    "fwee",
+    "FWEE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "구달",
+   "en": "goodal",
+   "db_brand": "GOODAL",
+   "glowpick_id": 16,
+   "seen": 120,
+   "aliases": [
+    "구달",
+    "goodal",
+    "GOODAL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "샤넬",
+   "en": "CHANEL",
+   "db_brand": null,
+   "glowpick_id": 122,
+   "seen": 117,
+   "aliases": [
+    "샤넬",
+    "CHANEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "온더바디",
+   "en": "ON THE BODY",
+   "db_brand": null,
+   "glowpick_id": 676,
+   "seen": 117,
+   "aliases": [
+    "온더바디",
+    "ON THE BODY",
+    "ONTHEBODY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "토코보",
+   "en": "TOCOBO",
+   "db_brand": "TOCOBO",
+   "glowpick_id": 12332,
+   "seen": 116,
+   "aliases": [
+    "토코보",
+    "TOCOBO"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "스튜디오17",
+   "en": "Studio17",
+   "db_brand": null,
+   "glowpick_id": 12849,
+   "seen": 116,
+   "aliases": [
+    "스튜디오17",
+    "Studio17"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비레디",
+   "en": "B.READY",
+   "db_brand": null,
+   "glowpick_id": 9750,
+   "seen": 115,
+   "aliases": [
+    "비레디",
+    "B.READY",
+    "BREADY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "케라시스",
+   "en": "Kerasys",
+   "db_brand": null,
+   "glowpick_id": 210,
+   "seen": 114,
+   "aliases": [
+    "케라시스",
+    "Kerasys"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "데이지크",
+   "en": "dasique",
+   "db_brand": null,
+   "glowpick_id": 10016,
+   "seen": 113,
+   "aliases": [
+    "데이지크",
+    "dasique"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코스알엑스",
+   "en": "COSRX",
+   "db_brand": "COSRX",
+   "glowpick_id": 1041,
+   "seen": 111,
+   "aliases": [
+    "코스알엑스",
+    "COSRX"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "루나",
+   "en": "LUNA",
+   "db_brand": "LUNA",
+   "glowpick_id": 440,
+   "seen": 110,
+   "aliases": [
+    "루나",
+    "LUNA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "에스네이처",
+   "en": "SNATURE",
+   "db_brand": "ES NATURE",
+   "glowpick_id": 1664,
+   "seen": 109,
+   "aliases": [
+    "에스네이처",
+    "SNATURE",
+    "ES NATURE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "올리브영",
+   "en": "OLIVE YOUNG",
+   "db_brand": null,
+   "glowpick_id": 178,
+   "seen": 109,
+   "aliases": [
+    "올리브영",
+    "OLIVE YOUNG",
+    "OLIVEYOUNG"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "정샘물",
+   "en": "JUNGSAEMMOOL",
+   "db_brand": "JUNGSAEMMOOL",
+   "glowpick_id": 3637,
+   "seen": 107,
+   "aliases": [
+    "정샘물",
+    "JUNGSAEMMOOL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "더랩 바이 블랑두",
+   "en": "THE LAB by blanc doux",
+   "db_brand": null,
+   "glowpick_id": 9856,
+   "seen": 104,
+   "aliases": [
+    "더랩 바이 블랑두",
+    "THE LAB by blanc doux",
+    "THELABbyblancdoux"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "니베아",
+   "en": "NIVEA",
+   "db_brand": null,
+   "glowpick_id": 289,
+   "seen": 102,
+   "aliases": [
+    "니베아",
+    "NIVEA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "피카소",
+   "en": "Piccasso",
+   "db_brand": null,
+   "glowpick_id": 239,
+   "seen": 102,
+   "aliases": [
+    "피카소",
+    "Piccasso"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어노브",
+   "en": "UNOVE",
+   "db_brand": null,
+   "glowpick_id": 11994,
+   "seen": 101,
+   "aliases": [
+    "어노브",
+    "UNOVE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "보나메두사",
+   "en": "bonamedusa",
+   "db_brand": null,
+   "glowpick_id": 1455,
+   "seen": 99,
+   "aliases": [
+    "보나메두사",
+    "bonamedusa"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이소이",
+   "en": "isoi",
+   "db_brand": "ISOI",
+   "glowpick_id": 397,
+   "seen": 99,
+   "aliases": [
+    "아이소이",
+    "isoi",
+    "ISOI"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "아리얼",
+   "en": "AriuL",
+   "db_brand": null,
+   "glowpick_id": 786,
+   "seen": 98,
+   "aliases": [
+    "아리얼",
+    "AriuL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라로슈포제",
+   "en": "LA ROCHE-POSAY",
+   "db_brand": "LA ROCHE-POSAY",
+   "glowpick_id": 48,
+   "seen": 97,
+   "aliases": [
+    "라로슈포제",
+    "LA ROCHE-POSAY",
+    "LAROCHEPOSAY"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "파넬",
+   "en": "Parnell",
+   "db_brand": null,
+   "glowpick_id": 9732,
+   "seen": 97,
+   "aliases": [
+    "파넬",
+    "Parnell"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프리메라",
+   "en": "primera",
+   "db_brand": null,
+   "glowpick_id": 238,
+   "seen": 97,
+   "aliases": [
+    "프리메라",
+    "primera"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아베다",
+   "en": "AVEDA",
+   "db_brand": null,
+   "glowpick_id": 148,
+   "seen": 97,
+   "aliases": [
+    "아베다",
+    "AVEDA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "빌리프",
+   "en": "belif",
+   "db_brand": null,
+   "glowpick_id": 120,
+   "seen": 96,
+   "aliases": [
+    "빌리프",
+    "belif"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어뮤즈",
+   "en": "AMUSE",
+   "db_brand": "AMUSE",
+   "glowpick_id": 8061,
+   "seen": 96,
+   "aliases": [
+    "어뮤즈",
+    "AMUSE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "뮤드",
+   "en": "mude",
+   "db_brand": null,
+   "glowpick_id": 10770,
+   "seen": 96,
+   "aliases": [
+    "뮤드",
+    "mude"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헤어플러스",
+   "en": "HAIR+",
+   "db_brand": null,
+   "glowpick_id": 472,
+   "seen": 95,
+   "aliases": [
+    "헤어플러스",
+    "HAIR+",
+    "HAIR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "웰라쥬",
+   "en": "WELLAGE",
+   "db_brand": "WELLAGE",
+   "glowpick_id": 3121,
+   "seen": 94,
+   "aliases": [
+    "웰라쥬",
+    "WELLAGE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "낫포유",
+   "en": "NOT4U",
+   "db_brand": null,
+   "glowpick_id": 6733,
+   "seen": 94,
+   "aliases": [
+    "낫포유",
+    "NOT4U"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "일소",
+   "en": "ilso",
+   "db_brand": null,
+   "glowpick_id": 11762,
+   "seen": 94,
+   "aliases": [
+    "일소",
+    "ilso"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더바디샵",
+   "en": "THE BODY SHOP",
+   "db_brand": null,
+   "glowpick_id": 31,
+   "seen": 93,
+   "aliases": [
+    "더바디샵",
+    "THE BODY SHOP",
+    "THEBODYSHOP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "린제이",
+   "en": "LINDSAY",
+   "db_brand": null,
+   "glowpick_id": 545,
+   "seen": 92,
+   "aliases": [
+    "린제이",
+    "LINDSAY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "쏘내추럴",
+   "en": "so natural",
+   "db_brand": "SO NATURAL",
+   "glowpick_id": 142,
+   "seen": 91,
+   "aliases": [
+    "쏘내추럴",
+    "so natural",
+    "SO NATURAL",
+    "SO.NATURAL",
+    "소내추럴",
+    "sonatural"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "피지오겔",
+   "en": "PHYSIOGEL",
+   "db_brand": "PHYSIOGEL",
+   "glowpick_id": 413,
+   "seen": 91,
+   "aliases": [
+    "피지오겔",
+    "PHYSIOGEL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "CNP",
+   "en": "씨앤피",
+   "db_brand": "CNP",
+   "glowpick_id": 200,
+   "seen": 91,
+   "aliases": [
+    "CNP",
+    "씨앤피",
+    "차앤박"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "딥티크",
+   "en": "Diptyque",
+   "db_brand": null,
+   "glowpick_id": 288,
+   "seen": 90,
+   "aliases": [
+    "딥티크",
+    "Diptyque"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "쉬크",
+   "en": "Schick",
+   "db_brand": null,
+   "glowpick_id": 4398,
+   "seen": 90,
+   "aliases": [
+    "쉬크",
+    "Schick"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에르보리앙",
+   "en": "erborian",
+   "db_brand": "ERBORIAN",
+   "glowpick_id": 3205,
+   "seen": 90,
+   "aliases": [
+    "에르보리앙",
+    "erborian",
+    "ERBORIAN"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "믹순",
+   "en": "mixsoon",
+   "db_brand": null,
+   "glowpick_id": 10792,
+   "seen": 89,
+   "aliases": [
+    "믹순",
+    "mixsoon"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헤드앤숄더",
+   "en": "head\\u0026shoulders",
+   "db_brand": null,
+   "glowpick_id": 743,
+   "seen": 88,
+   "aliases": [
+    "헤드앤숄더",
+    "head\\u0026shoulders",
+    "headu0026shoulders"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "다비치렌즈",
+   "en": "DAVICH LENS",
+   "db_brand": null,
+   "glowpick_id": 6215,
+   "seen": 87,
+   "aliases": [
+    "다비치렌즈",
+    "DAVICH LENS",
+    "DAVICHLENS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아떼",
+   "en": "athé",
+   "db_brand": "ATHE",
+   "glowpick_id": 9993,
+   "seen": 86,
+   "aliases": [
+    "아떼",
+    "athé",
+    "ATHE",
+    "ath"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "김정문알로에",
+   "en": "KIMJEONGMOON",
+   "db_brand": "KIMJEONGMOON ALOE",
+   "glowpick_id": 1178,
+   "seen": 85,
+   "aliases": [
+    "김정문알로에",
+    "KIMJEONGMOON",
+    "KIMJEONGMOON ALOE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "그린핑거",
+   "en": "GREEN FINGER",
+   "db_brand": "GREEN FINGER",
+   "glowpick_id": 725,
+   "seen": 82,
+   "aliases": [
+    "그린핑거",
+    "GREEN FINGER",
+    "GREENFINGER"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "유리아쥬",
+   "en": "URIAGE",
+   "db_brand": "URIAGE",
+   "glowpick_id": 182,
+   "seen": 82,
+   "aliases": [
+    "유리아쥬",
+    "URIAGE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "스킨1004",
+   "en": "SKIN1004",
+   "db_brand": "SKIN1004",
+   "glowpick_id": 799,
+   "seen": 81,
+   "aliases": [
+    "스킨1004",
+    "SKIN1004"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "코스노리",
+   "en": "COSNORI",
+   "db_brand": null,
+   "glowpick_id": 6618,
+   "seen": 81,
+   "aliases": [
+    "코스노리",
+    "COSNORI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아벤느",
+   "en": "Avene",
+   "db_brand": null,
+   "glowpick_id": 149,
+   "seen": 78,
+   "aliases": [
+    "아벤느",
+    "Avene"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "설화수",
+   "en": "Sulwhasoo",
+   "db_brand": null,
+   "glowpick_id": 124,
+   "seen": 76,
+   "aliases": [
+    "설화수",
+    "Sulwhasoo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "자빈드서울",
+   "en": "JAVIN DE SEOUL",
+   "db_brand": null,
+   "glowpick_id": 8257,
+   "seen": 75,
+   "aliases": [
+    "자빈드서울",
+    "JAVIN DE SEOUL",
+    "JAVINDESEOUL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헉슬리",
+   "en": "Huxley",
+   "db_brand": null,
+   "glowpick_id": 4021,
+   "seen": 75,
+   "aliases": [
+    "헉슬리",
+    "Huxley"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비욘드",
+   "en": "BEYOND",
+   "db_brand": "BEYOND",
+   "glowpick_id": 114,
+   "seen": 75,
+   "aliases": [
+    "비욘드",
+    "BEYOND"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "조말론",
+   "en": "JO MALONE",
+   "db_brand": null,
+   "glowpick_id": 282,
+   "seen": 75,
+   "aliases": [
+    "조말론",
+    "JO MALONE",
+    "JOMALONE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로레알파리",
+   "en": "LOREAL PARIS",
+   "db_brand": null,
+   "glowpick_id": 58,
+   "seen": 75,
+   "aliases": [
+    "로레알파리",
+    "LOREAL PARIS",
+    "LOREALPARIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "후시덤",
+   "en": "FUSIDERM",
+   "db_brand": null,
+   "glowpick_id": 15726,
+   "seen": 75,
+   "aliases": [
+    "후시덤",
+    "FUSIDERM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "힌스",
+   "en": "hince",
+   "db_brand": "HINCE",
+   "glowpick_id": 9022,
+   "seen": 75,
+   "aliases": [
+    "힌스",
+    "hince",
+    "HINCE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "그로우어스",
+   "en": "GROWUS",
+   "db_brand": null,
+   "glowpick_id": 10868,
+   "seen": 74,
+   "aliases": [
+    "그로우어스",
+    "GROWUS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "3CE",
+   "en": "쓰리씨이",
+   "db_brand": "3CE",
+   "glowpick_id": 143,
+   "seen": 74,
+   "aliases": [
+    "3CE",
+    "쓰리씨이"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "톤28",
+   "en": "toun28",
+   "db_brand": null,
+   "glowpick_id": 7287,
+   "seen": 74,
+   "aliases": [
+    "톤28",
+    "toun28"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "AHC",
+   "en": "에이에이치씨",
+   "db_brand": "AHC",
+   "glowpick_id": 532,
+   "seen": 74,
+   "aliases": [
+    "AHC",
+    "에이에이치씨"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "이솝",
+   "en": "Aesop",
+   "db_brand": null,
+   "glowpick_id": 536,
+   "seen": 74,
+   "aliases": [
+    "이솝",
+    "Aesop"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "멈칫",
+   "en": "MUMCHIT",
+   "db_brand": null,
+   "glowpick_id": 6052,
+   "seen": 74,
+   "aliases": [
+    "멈칫",
+    "MUMCHIT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디판타지",
+   "en": "BODY FANTASIES",
+   "db_brand": null,
+   "glowpick_id": 461,
+   "seen": 74,
+   "aliases": [
+    "바디판타지",
+    "BODY FANTASIES",
+    "BODYFANTASIES"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이레도",
+   "en": "BYREDO",
+   "db_brand": null,
+   "glowpick_id": 590,
+   "seen": 73,
+   "aliases": [
+    "바이레도",
+    "BYREDO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나스",
+   "en": "NARS",
+   "db_brand": "NARS",
+   "glowpick_id": 20,
+   "seen": 73,
+   "aliases": [
+    "나스",
+    "NARS"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "하트퍼센트",
+   "en": "Heart Percent",
+   "db_brand": null,
+   "glowpick_id": 10216,
+   "seen": 72,
+   "aliases": [
+    "하트퍼센트",
+    "Heart Percent",
+    "HeartPercent"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "얼터너티브스테레오",
+   "en": "alternative stereo",
+   "db_brand": "ALTERNATIVE STEREO",
+   "glowpick_id": 12174,
+   "seen": 72,
+   "aliases": [
+    "얼터너티브스테레오",
+    "alternative stereo",
+    "ALTERNATIVE STEREO",
+    "얼터너티브 스테레오",
+    "alternativestereo"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "나우푸드",
+   "en": "NOW Foods",
+   "db_brand": null,
+   "glowpick_id": 861,
+   "seen": 72,
+   "aliases": [
+    "나우푸드",
+    "NOW Foods",
+    "NOWFoods"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "츠바키",
+   "en": "TSUBAKI",
+   "db_brand": null,
+   "glowpick_id": 556,
+   "seen": 72,
+   "aliases": [
+    "츠바키",
+    "TSUBAKI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "히야",
+   "en": "HYAAH",
+   "db_brand": null,
+   "glowpick_id": 9867,
+   "seen": 72,
+   "aliases": [
+    "히야",
+    "HYAAH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이탈뷰티",
+   "en": "VITALBEAUTIE",
+   "db_brand": null,
+   "glowpick_id": 317,
+   "seen": 71,
+   "aliases": [
+    "바이탈뷰티",
+    "VITALBEAUTIE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어퓨",
+   "en": "Apieu",
+   "db_brand": null,
+   "glowpick_id": 159,
+   "seen": 70,
+   "aliases": [
+    "어퓨",
+    "Apieu"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "투에이엔",
+   "en": "2aN",
+   "db_brand": "2AN",
+   "glowpick_id": 9182,
+   "seen": 70,
+   "aliases": [
+    "투에이엔",
+    "2aN",
+    "2AN"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "디어에이",
+   "en": "Dear.A",
+   "db_brand": "DEAR.A",
+   "glowpick_id": 13411,
+   "seen": 70,
+   "aliases": [
+    "디어에이",
+    "Dear.A",
+    "DEAR.A",
+    "DearA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "해피바스",
+   "en": "HAPPY BATH",
+   "db_brand": null,
+   "glowpick_id": 246,
+   "seen": 70,
+   "aliases": [
+    "해피바스",
+    "HAPPY BATH",
+    "HAPPYBATH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나르카",
+   "en": "narka",
+   "db_brand": null,
+   "glowpick_id": 13637,
+   "seen": 70,
+   "aliases": [
+    "나르카",
+    "narka"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "드롭비 컬러즈",
+   "en": "DROPBE COLORS",
+   "db_brand": "DROP BE COLORS",
+   "glowpick_id": 13818,
+   "seen": 70,
+   "aliases": [
+    "드롭비 컬러즈",
+    "DROPBE COLORS",
+    "DROP BE COLORS",
+    "드롭비컬러즈",
+    "DROPBECOLORS"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "주미소",
+   "en": "JUMISO",
+   "db_brand": null,
+   "glowpick_id": 9727,
+   "seen": 69,
+   "aliases": [
+    "주미소",
+    "JUMISO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "보다나",
+   "en": "VODANA",
+   "db_brand": null,
+   "glowpick_id": 1456,
+   "seen": 69,
+   "aliases": [
+    "보다나",
+    "VODANA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "릴리바이레드",
+   "en": "lilybyred",
+   "db_brand": "LILYBYRED",
+   "glowpick_id": 6866,
+   "seen": 69,
+   "aliases": [
+    "릴리바이레드",
+    "lilybyred",
+    "LILYBYRED"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "팬틴",
+   "en": "PANTENE",
+   "db_brand": null,
+   "glowpick_id": 428,
+   "seen": 68,
+   "aliases": [
+    "팬틴",
+    "PANTENE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "입생로랑 뷰티",
+   "en": "YSL Beauty",
+   "db_brand": "YSL",
+   "glowpick_id": 189,
+   "seen": 67,
+   "aliases": [
+    "입생로랑 뷰티",
+    "YSL Beauty",
+    "YSL",
+    "yslbeauty",
+    "입생로랑",
+    "YSLBeauty"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "아이오페",
+   "en": "IOPE",
+   "db_brand": null,
+   "glowpick_id": 152,
+   "seen": 66,
+   "aliases": [
+    "아이오페",
+    "IOPE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "려",
+   "en": "Ryo",
+   "db_brand": null,
+   "glowpick_id": 451,
+   "seen": 66,
+   "aliases": [
+    "려",
+    "Ryo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "투크",
+   "en": "tooq",
+   "db_brand": null,
+   "glowpick_id": 12151,
+   "seen": 65,
+   "aliases": [
+    "투크",
+    "tooq"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모레모",
+   "en": "moremo",
+   "db_brand": null,
+   "glowpick_id": 5542,
+   "seen": 65,
+   "aliases": [
+    "모레모",
+    "moremo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "머지",
+   "en": "merzy",
+   "db_brand": "MERZY",
+   "glowpick_id": 6368,
+   "seen": 63,
+   "aliases": [
+    "머지",
+    "merzy",
+    "MERZY"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "파티온",
+   "en": "FATION",
+   "db_brand": null,
+   "glowpick_id": 9821,
+   "seen": 63,
+   "aliases": [
+    "파티온",
+    "FATION"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "네이처리퍼블릭",
+   "en": "NATURE REPUBLIC",
+   "db_brand": null,
+   "glowpick_id": 22,
+   "seen": 62,
+   "aliases": [
+    "네이처리퍼블릭",
+    "NATURE REPUBLIC",
+    "NATUREREPUBLIC"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "연작",
+   "en": "YUNJAC",
+   "db_brand": "YOUNJAK",
+   "glowpick_id": 8672,
+   "seen": 62,
+   "aliases": [
+    "연작",
+    "YUNJAC",
+    "YOUNJAK"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "셀리맥스",
+   "en": "celimax",
+   "db_brand": "CELIMAX",
+   "glowpick_id": 7564,
+   "seen": 62,
+   "aliases": [
+    "셀리맥스",
+    "celimax",
+    "CELIMAX"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "궁중비책",
+   "en": "GOONGBE",
+   "db_brand": null,
+   "glowpick_id": 1024,
+   "seen": 61,
+   "aliases": [
+    "궁중비책",
+    "GOONGBE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "누즈",
+   "en": "nuse",
+   "db_brand": "NUSE",
+   "glowpick_id": 13559,
+   "seen": 61,
+   "aliases": [
+    "누즈",
+    "nuse",
+    "NUSE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "쿤달",
+   "en": "KUNDAL",
+   "db_brand": null,
+   "glowpick_id": 6109,
+   "seen": 60,
+   "aliases": [
+    "쿤달",
+    "KUNDAL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "투슬래시포",
+   "en": "TWO SLASH FOUR",
+   "db_brand": null,
+   "glowpick_id": 13292,
+   "seen": 59,
+   "aliases": [
+    "투슬래시포",
+    "TWO SLASH FOUR",
+    "TWOSLASHFOUR",
+    "twoslashfour"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "씨케이디",
+   "en": "CKD",
+   "db_brand": null,
+   "glowpick_id": 11673,
+   "seen": 59,
+   "aliases": [
+    "씨케이디",
+    "CKD"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "캔메이크",
+   "en": "CANMAKE",
+   "db_brand": "CANMAKE",
+   "glowpick_id": 208,
+   "seen": 58,
+   "aliases": [
+    "캔메이크",
+    "CANMAKE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "잇츠스킨",
+   "en": "It'S SKIN",
+   "db_brand": null,
+   "glowpick_id": 191,
+   "seen": 58,
+   "aliases": [
+    "잇츠스킨",
+    "It'S SKIN",
+    "ItSSKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "락토핏",
+   "en": "LACTO FIT",
+   "db_brand": null,
+   "glowpick_id": 10264,
+   "seen": 58,
+   "aliases": [
+    "락토핏",
+    "LACTO FIT",
+    "LACTOFIT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "알콘",
+   "en": "Alcon",
+   "db_brand": null,
+   "glowpick_id": 5395,
+   "seen": 58,
+   "aliases": [
+    "알콘",
+    "Alcon"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "피노",
+   "en": "fino",
+   "db_brand": null,
+   "glowpick_id": 13417,
+   "seen": 58,
+   "aliases": [
+    "피노",
+    "fino"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아멜리",
+   "en": "Ameli",
+   "db_brand": null,
+   "glowpick_id": 146,
+   "seen": 58,
+   "aliases": [
+    "아멜리",
+    "Ameli"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에이지투웨니스",
+   "en": "AGE 20's",
+   "db_brand": "AGE20S",
+   "glowpick_id": 896,
+   "seen": 58,
+   "aliases": [
+    "에이지투웨니스",
+    "AGE 20's",
+    "AGE20S",
+    "AGE20'S",
+    "AGE20s"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "아워글래스",
+   "en": "Hourglass",
+   "db_brand": null,
+   "glowpick_id": 2802,
+   "seen": 57,
+   "aliases": [
+    "아워글래스",
+    "Hourglass"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "파파레서피",
+   "en": "papa recipe",
+   "db_brand": null,
+   "glowpick_id": 515,
+   "seen": 57,
+   "aliases": [
+    "파파레서피",
+    "papa recipe",
+    "paparecipe"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스팀베이스",
+   "en": "STEAMBASE",
+   "db_brand": null,
+   "glowpick_id": 8743,
+   "seen": 56,
+   "aliases": [
+    "스팀베이스",
+    "STEAMBASE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "딘토",
+   "en": "Dinto",
+   "db_brand": "DINTO",
+   "glowpick_id": 11620,
+   "seen": 56,
+   "aliases": [
+    "딘토",
+    "Dinto",
+    "DINTO"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "엘라스틴",
+   "en": "ELASTINE",
+   "db_brand": null,
+   "glowpick_id": 167,
+   "seen": 56,
+   "aliases": [
+    "엘라스틴",
+    "ELASTINE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "렌시스",
+   "en": "LENSSIS",
+   "db_brand": null,
+   "glowpick_id": 7701,
+   "seen": 56,
+   "aliases": [
+    "렌시스",
+    "LENSSIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "노노어",
+   "en": "nonoer",
+   "db_brand": null,
+   "glowpick_id": 13989,
+   "seen": 55,
+   "aliases": [
+    "노노어",
+    "nonoer"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비바이바닐라",
+   "en": "B by BANILA",
+   "db_brand": null,
+   "glowpick_id": 7405,
+   "seen": 55,
+   "aliases": [
+    "비바이바닐라",
+    "B by BANILA",
+    "BbyBANILA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터자르트",
+   "en": "Dr.Jart",
+   "db_brand": "DR.JART+",
+   "glowpick_id": 29,
+   "seen": 55,
+   "aliases": [
+    "닥터자르트",
+    "Dr.Jart",
+    "DR.JART+",
+    "DrJart"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "지베르니",
+   "en": "GIVERNY",
+   "db_brand": null,
+   "glowpick_id": 535,
+   "seen": 55,
+   "aliases": [
+    "지베르니",
+    "GIVERNY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마담래쉬",
+   "en": "Madame Lash",
+   "db_brand": null,
+   "glowpick_id": 15017,
+   "seen": 55,
+   "aliases": [
+    "마담래쉬",
+    "Madame Lash",
+    "MadameLash"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라카",
+   "en": "Laka",
+   "db_brand": "LAKA",
+   "glowpick_id": 8178,
+   "seen": 55,
+   "aliases": [
+    "라카",
+    "Laka",
+    "LAKA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "바이오힐 보",
+   "en": "BIOHEAL BOH",
+   "db_brand": "BIOHEAL BOH",
+   "glowpick_id": 11583,
+   "seen": 54,
+   "aliases": [
+    "바이오힐 보",
+    "BIOHEAL BOH",
+    "바이오힐보",
+    "BIOHEALBOH"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "휩드",
+   "en": "whipped",
+   "db_brand": null,
+   "glowpick_id": 12535,
+   "seen": 54,
+   "aliases": [
+    "휩드",
+    "whipped"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라엘",
+   "en": "Rael",
+   "db_brand": null,
+   "glowpick_id": 8244,
+   "seen": 53,
+   "aliases": [
+    "라엘",
+    "Rael"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "케라스타즈",
+   "en": "KERASTASE",
+   "db_brand": null,
+   "glowpick_id": 209,
+   "seen": 53,
+   "aliases": [
+    "케라스타즈",
+    "KERASTASE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아로셀",
+   "en": "AROCELL",
+   "db_brand": null,
+   "glowpick_id": 10461,
+   "seen": 53,
+   "aliases": [
+    "아로셀",
+    "AROCELL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "힐링버드",
+   "en": "Healing Bird",
+   "db_brand": null,
+   "glowpick_id": 6954,
+   "seen": 52,
+   "aliases": [
+    "힐링버드",
+    "Healing Bird",
+    "HealingBird"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터포헤어",
+   "en": "Dr.FORHAIR",
+   "db_brand": null,
+   "glowpick_id": 1987,
+   "seen": 52,
+   "aliases": [
+    "닥터포헤어",
+    "Dr.FORHAIR",
+    "DrFORHAIR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라보에이치",
+   "en": "LABO-H",
+   "db_brand": null,
+   "glowpick_id": 10176,
+   "seen": 52,
+   "aliases": [
+    "라보에이치",
+    "LABO-H",
+    "LABOH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비오레",
+   "en": "Biore",
+   "db_brand": "BIORE",
+   "glowpick_id": 554,
+   "seen": 51,
+   "aliases": [
+    "비오레",
+    "Biore",
+    "BIORE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "록시땅",
+   "en": "LOCCITANE",
+   "db_brand": null,
+   "glowpick_id": 60,
+   "seen": 51,
+   "aliases": [
+    "록시땅",
+    "LOCCITANE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더마토리",
+   "en": "DERMATORY",
+   "db_brand": null,
+   "glowpick_id": 7258,
+   "seen": 51,
+   "aliases": [
+    "더마토리",
+    "DERMATORY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스너글",
+   "en": "Snuggle",
+   "db_brand": null,
+   "glowpick_id": 9915,
+   "seen": 51,
+   "aliases": [
+    "스너글",
+    "Snuggle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "유어네일",
+   "en": "YOUR NAIL",
+   "db_brand": null,
+   "glowpick_id": 12859,
+   "seen": 51,
+   "aliases": [
+    "유어네일",
+    "YOUR NAIL",
+    "YOURNAIL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아임프롬",
+   "en": "I'm from",
+   "db_brand": null,
+   "glowpick_id": 1605,
+   "seen": 51,
+   "aliases": [
+    "아임프롬",
+    "I'm from",
+    "Imfrom"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터엘시아",
+   "en": "Dr.Althea",
+   "db_brand": "DR.ELSIA",
+   "glowpick_id": 5161,
+   "seen": 50,
+   "aliases": [
+    "닥터엘시아",
+    "Dr.Althea",
+    "DR.ELSIA",
+    "DrAlthea"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "마미케어",
+   "en": "mommy care",
+   "db_brand": null,
+   "glowpick_id": 13830,
+   "seen": 50,
+   "aliases": [
+    "마미케어",
+    "mommy care",
+    "mommycare"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로라메르시에",
+   "en": "LAURA MERCIER",
+   "db_brand": null,
+   "glowpick_id": 57,
+   "seen": 50,
+   "aliases": [
+    "로라메르시에",
+    "LAURA MERCIER",
+    "LAURAMERCIER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "숨37˚",
+   "en": "sum37˚",
+   "db_brand": null,
+   "glowpick_id": 128,
+   "seen": 50,
+   "aliases": [
+    "숨37˚",
+    "sum37˚",
+    "sum37"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "싸이닉",
+   "en": "SCINIC",
+   "db_brand": "SCINIC",
+   "glowpick_id": 141,
+   "seen": 49,
+   "aliases": [
+    "싸이닉",
+    "SCINIC"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "디어달리아",
+   "en": "DEARDAHLIA",
+   "db_brand": null,
+   "glowpick_id": 7319,
+   "seen": 49,
+   "aliases": [
+    "디어달리아",
+    "DEARDAHLIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "워니스초이스",
+   "en": "WONNIES CHOICE",
+   "db_brand": null,
+   "glowpick_id": 15317,
+   "seen": 49,
+   "aliases": [
+    "워니스초이스",
+    "WONNIES CHOICE",
+    "WONNIESCHOICE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라곰",
+   "en": "LAGOM",
+   "db_brand": null,
+   "glowpick_id": 2835,
+   "seen": 48,
+   "aliases": [
+    "라곰",
+    "LAGOM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "원씽",
+   "en": "ONE THING",
+   "db_brand": null,
+   "glowpick_id": 9270,
+   "seen": 47,
+   "aliases": [
+    "원씽",
+    "ONE THING",
+    "ONETHING"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이즈앤트리",
+   "en": "IsNtree",
+   "db_brand": "ISNtree",
+   "glowpick_id": 847,
+   "seen": 47,
+   "aliases": [
+    "이즈앤트리",
+    "IsNtree",
+    "ISNtree"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "약손명가 헬스케어",
+   "en": "Yakson Healthcare",
+   "db_brand": null,
+   "glowpick_id": 6240,
+   "seen": 47,
+   "aliases": [
+    "약손명가 헬스케어",
+    "Yakson Healthcare",
+    "YaksonHealthcare"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "보로탈코",
+   "en": "BOROTALCO",
+   "db_brand": null,
+   "glowpick_id": 11689,
+   "seen": 47,
+   "aliases": [
+    "보로탈코",
+    "BOROTALCO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "반디",
+   "en": "BANDI",
+   "db_brand": null,
+   "glowpick_id": 97,
+   "seen": 47,
+   "aliases": [
+    "반디",
+    "BANDI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오프라 코스메틱",
+   "en": "OFRA",
+   "db_brand": null,
+   "glowpick_id": 4435,
+   "seen": 46,
+   "aliases": [
+    "오프라 코스메틱",
+    "OFRA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "크리니크",
+   "en": "CLINIQUE",
+   "db_brand": null,
+   "glowpick_id": 217,
+   "seen": 46,
+   "aliases": [
+    "크리니크",
+    "CLINIQUE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "제로이드",
+   "en": "ZEROID",
+   "db_brand": "ZEROID",
+   "glowpick_id": 828,
+   "seen": 46,
+   "aliases": [
+    "제로이드",
+    "ZEROID"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "메노킨",
+   "en": "MENOKIN",
+   "db_brand": null,
+   "glowpick_id": 10846,
+   "seen": 46,
+   "aliases": [
+    "메노킨",
+    "MENOKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "줌 바이 정샘물",
+   "en": "ZOOM BY JUNG SEAM MOOL",
+   "db_brand": null,
+   "glowpick_id": 15078,
+   "seen": 46,
+   "aliases": [
+    "줌 바이 정샘물",
+    "ZOOM BY JUNG SEAM MOOL",
+    "ZOOMBYJUNGSEAMMOOL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "달리프",
+   "en": "DALEAF",
+   "db_brand": null,
+   "glowpick_id": 8432,
+   "seen": 45,
+   "aliases": [
+    "달리프",
+    "DALEAF"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "팁토우",
+   "en": "tip toe",
+   "db_brand": null,
+   "glowpick_id": 13398,
+   "seen": 45,
+   "aliases": [
+    "팁토우",
+    "tip toe",
+    "tiptoe"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "티핏",
+   "en": "tfit",
+   "db_brand": "TFIT",
+   "glowpick_id": 10718,
+   "seen": 45,
+   "aliases": [
+    "티핏",
+    "tfit",
+    "TFIT"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "프릴루드 딘토",
+   "en": "Prelude Dinto",
+   "db_brand": null,
+   "glowpick_id": 14484,
+   "seen": 45,
+   "aliases": [
+    "프릴루드 딘토",
+    "Prelude Dinto",
+    "PreludeDinto"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바비브라운",
+   "en": "BOBBI BROWN",
+   "db_brand": null,
+   "glowpick_id": 93,
+   "seen": 45,
+   "aliases": [
+    "바비브라운",
+    "BOBBI BROWN",
+    "BOBBIBROWN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "엘리자베스아덴",
+   "en": "Elizabeth Arden",
+   "db_brand": null,
+   "glowpick_id": 168,
+   "seen": 44,
+   "aliases": [
+    "엘리자베스아덴",
+    "Elizabeth Arden",
+    "ElizabethArden"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더마비",
+   "en": "DermaB",
+   "db_brand": null,
+   "glowpick_id": 689,
+   "seen": 44,
+   "aliases": [
+    "더마비",
+    "DermaB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "논픽션",
+   "en": "NONFICTION",
+   "db_brand": null,
+   "glowpick_id": 10472,
+   "seen": 44,
+   "aliases": [
+    "논픽션",
+    "NONFICTION"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "체이싱래빗",
+   "en": "CHASIN' RABBITS",
+   "db_brand": null,
+   "glowpick_id": 10988,
+   "seen": 43,
+   "aliases": [
+    "체이싱래빗",
+    "CHASIN' RABBITS",
+    "CHASINRABBITS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헤트라스",
+   "en": "hetras",
+   "db_brand": null,
+   "glowpick_id": 13488,
+   "seen": 42,
+   "aliases": [
+    "헤트라스",
+    "hetras"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "디 오디너리",
+   "en": "The Ordinary",
+   "db_brand": null,
+   "glowpick_id": 6851,
+   "seen": 42,
+   "aliases": [
+    "디 오디너리",
+    "The Ordinary",
+    "TheOrdinary"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마데카21",
+   "en": "Madeca21",
+   "db_brand": null,
+   "glowpick_id": 8270,
+   "seen": 42,
+   "aliases": [
+    "마데카21",
+    "Madeca21"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "토르홉",
+   "en": "Torhop",
+   "db_brand": null,
+   "glowpick_id": 12337,
+   "seen": 41,
+   "aliases": [
+    "토르홉",
+    "Torhop"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리얼베리어",
+   "en": "Real Barrier",
+   "db_brand": null,
+   "glowpick_id": 7400,
+   "seen": 41,
+   "aliases": [
+    "리얼베리어",
+    "Real Barrier",
+    "RealBarrier"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터벨머",
+   "en": "Dr.Belmeur",
+   "db_brand": null,
+   "glowpick_id": 8553,
+   "seen": 40,
+   "aliases": [
+    "닥터벨머",
+    "Dr.Belmeur",
+    "DrBelmeur"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이옴 액티베이트",
+   "en": "BIOME ACTIVATE",
+   "db_brand": null,
+   "glowpick_id": 12943,
+   "seen": 39,
+   "aliases": [
+    "바이옴 액티베이트",
+    "BIOME ACTIVATE",
+    "BIOMEACTIVATE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "디웨더",
+   "en": "DWeather",
+   "db_brand": null,
+   "glowpick_id": 14973,
+   "seen": 39,
+   "aliases": [
+    "디웨더",
+    "DWeather"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이디얼 포 맨",
+   "en": "ideal FOR MEN",
+   "db_brand": null,
+   "glowpick_id": 7358,
+   "seen": 39,
+   "aliases": [
+    "아이디얼 포 맨",
+    "ideal FOR MEN",
+    "idealFORMEN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모로칸오일",
+   "en": "MOROCCANOIL",
+   "db_brand": null,
+   "glowpick_id": 83,
+   "seen": 39,
+   "aliases": [
+    "모로칸오일",
+    "MOROCCANOIL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라우쉬",
+   "en": "RAUSCH",
+   "db_brand": null,
+   "glowpick_id": 1292,
+   "seen": 39,
+   "aliases": [
+    "라우쉬",
+    "RAUSCH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "베네피트",
+   "en": "benefit",
+   "db_brand": "BENEFIT",
+   "glowpick_id": 100,
+   "seen": 39,
+   "aliases": [
+    "베네피트",
+    "benefit",
+    "BENEFIT"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "디어클레어스",
+   "en": "dear, klairs",
+   "db_brand": null,
+   "glowpick_id": 827,
+   "seen": 38,
+   "aliases": [
+    "디어클레어스",
+    "dear, klairs",
+    "dearklairs"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "트리헛",
+   "en": "TREE HUT",
+   "db_brand": null,
+   "glowpick_id": 1089,
+   "seen": 38,
+   "aliases": [
+    "트리헛",
+    "TREE HUT",
+    "TREEHUT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이오던스",
+   "en": "Biodance",
+   "db_brand": null,
+   "glowpick_id": 12303,
+   "seen": 38,
+   "aliases": [
+    "바이오던스",
+    "Biodance"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더툴랩",
+   "en": "THE TOOL LAB",
+   "db_brand": null,
+   "glowpick_id": 3993,
+   "seen": 38,
+   "aliases": [
+    "더툴랩",
+    "THE TOOL LAB",
+    "THETOOLLAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "블리스텍스",
+   "en": "Blistex",
+   "db_brand": "BLISTEX",
+   "glowpick_id": 3113,
+   "seen": 38,
+   "aliases": [
+    "블리스텍스",
+    "Blistex",
+    "BLISTEX"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "이브로쉐",
+   "en": "YVES ROCHER",
+   "db_brand": null,
+   "glowpick_id": 533,
+   "seen": 37,
+   "aliases": [
+    "이브로쉐",
+    "YVES ROCHER",
+    "YVESROCHER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "센카",
+   "en": "SENKA",
+   "db_brand": null,
+   "glowpick_id": 667,
+   "seen": 37,
+   "aliases": [
+    "센카",
+    "SENKA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "버츠비",
+   "en": "BURTS BEES",
+   "db_brand": "BURT'S BEES",
+   "glowpick_id": 99,
+   "seen": 37,
+   "aliases": [
+    "버츠비",
+    "BURTS BEES",
+    "BURT'S BEES",
+    "BURTSBEES"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "로레알 프로페셔널 파리",
+   "en": "LOREAL PROFESSIONNEL PARIS",
+   "db_brand": null,
+   "glowpick_id": 4809,
+   "seen": 37,
+   "aliases": [
+    "로레알 프로페셔널 파리",
+    "LOREAL PROFESSIONNEL PARIS",
+    "LOREALPROFESSIONNELPARIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "해서린",
+   "en": "HATHERINE",
+   "db_brand": null,
+   "glowpick_id": 8225,
+   "seen": 37,
+   "aliases": [
+    "해서린",
+    "HATHERINE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "수이사이",
+   "en": "suisai",
+   "db_brand": null,
+   "glowpick_id": 7831,
+   "seen": 37,
+   "aliases": [
+    "수이사이",
+    "suisai"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "조선미녀",
+   "en": "Beauty Of Joseon",
+   "db_brand": "BEAUTY OF JOSEON",
+   "glowpick_id": 6064,
+   "seen": 36,
+   "aliases": [
+    "조선미녀",
+    "Beauty Of Joseon",
+    "BEAUTY OF JOSEON",
+    "BeautyOfJoseon"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "닥터아토",
+   "en": "Dr.ato",
+   "db_brand": null,
+   "glowpick_id": 929,
+   "seen": 36,
+   "aliases": [
+    "닥터아토",
+    "Dr.ato",
+    "Drato"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "다니엘 트루스",
+   "en": "Daniel's Truth",
+   "db_brand": null,
+   "glowpick_id": 12461,
+   "seen": 36,
+   "aliases": [
+    "다니엘 트루스",
+    "Daniel's Truth",
+    "DanielsTruth"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "질경이",
+   "en": "JILGYUNGYI",
+   "db_brand": null,
+   "glowpick_id": 956,
+   "seen": 36,
+   "aliases": [
+    "질경이",
+    "JILGYUNGYI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "위드샨",
+   "en": "withshyan",
+   "db_brand": null,
+   "glowpick_id": 304,
+   "seen": 36,
+   "aliases": [
+    "위드샨",
+    "withshyan"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "루미르",
+   "en": "LUMMIR",
+   "db_brand": null,
+   "glowpick_id": 14112,
+   "seen": 36,
+   "aliases": [
+    "루미르",
+    "LUMMIR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프롬리에",
+   "en": "fromrier",
+   "db_brand": null,
+   "glowpick_id": 13094,
+   "seen": 35,
+   "aliases": [
+    "프롬리에",
+    "fromrier"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "세타필",
+   "en": "Cetaphil",
+   "db_brand": "CETAPHIL",
+   "glowpick_id": 526,
+   "seen": 35,
+   "aliases": [
+    "세타필",
+    "Cetaphil",
+    "CETAPHIL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "탬버린즈",
+   "en": "tamburins",
+   "db_brand": null,
+   "glowpick_id": 7703,
+   "seen": 35,
+   "aliases": [
+    "탬버린즈",
+    "tamburins"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "클로란",
+   "en": "KLORANE",
+   "db_brand": null,
+   "glowpick_id": 5105,
+   "seen": 35,
+   "aliases": [
+    "클로란",
+    "KLORANE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "톰포드 뷰티",
+   "en": "TOM FORD BEAUTY",
+   "db_brand": null,
+   "glowpick_id": 364,
+   "seen": 35,
+   "aliases": [
+    "톰포드 뷰티",
+    "TOM FORD BEAUTY",
+    "TOMFORDBEAUTY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어반디케이",
+   "en": "URBAN DECAY",
+   "db_brand": null,
+   "glowpick_id": 1109,
+   "seen": 35,
+   "aliases": [
+    "어반디케이",
+    "URBAN DECAY",
+    "URBANDECAY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "실크테라피",
+   "en": "SILK THERAPY",
+   "db_brand": null,
+   "glowpick_id": 140,
+   "seen": 34,
+   "aliases": [
+    "실크테라피",
+    "SILK THERAPY",
+    "SILKTHERAPY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디네이처",
+   "en": "body natur",
+   "db_brand": null,
+   "glowpick_id": 427,
+   "seen": 34,
+   "aliases": [
+    "바디네이처",
+    "body natur",
+    "bodynatur"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "화이트래빗",
+   "en": "WHITE RABBIT",
+   "db_brand": null,
+   "glowpick_id": 249,
+   "seen": 34,
+   "aliases": [
+    "화이트래빗",
+    "WHITE RABBIT",
+    "WHITERABBIT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메이크업포에버",
+   "en": "MAKE UP FOR EVER",
+   "db_brand": null,
+   "glowpick_id": 81,
+   "seen": 34,
+   "aliases": [
+    "메이크업포에버",
+    "MAKE UP FOR EVER",
+    "MAKEUPFOREVER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "덴프스",
+   "en": "Denps",
+   "db_brand": null,
+   "glowpick_id": 10449,
+   "seen": 33,
+   "aliases": [
+    "덴프스",
+    "Denps"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라운드어라운드",
+   "en": "ROUNDAROUND",
+   "db_brand": null,
+   "glowpick_id": 3561,
+   "seen": 33,
+   "aliases": [
+    "라운드어라운드",
+    "ROUNDAROUND"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "불가리",
+   "en": "BVLGARI",
+   "db_brand": null,
+   "glowpick_id": 103,
+   "seen": 33,
+   "aliases": [
+    "불가리",
+    "BVLGARI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아모스프로페셔널",
+   "en": "amos PROFESSIONAL",
+   "db_brand": null,
+   "glowpick_id": 589,
+   "seen": 33,
+   "aliases": [
+    "아모스프로페셔널",
+    "amos PROFESSIONAL",
+    "amosPROFESSIONAL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비디비치",
+   "en": "VIDIVICI",
+   "db_brand": null,
+   "glowpick_id": 110,
+   "seen": 33,
+   "aliases": [
+    "비디비치",
+    "VIDIVICI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더후",
+   "en": "The Whoo",
+   "db_brand": null,
+   "glowpick_id": 414,
+   "seen": 32,
+   "aliases": [
+    "더후",
+    "The Whoo",
+    "TheWhoo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코르씨",
+   "en": "KORSI",
+   "db_brand": null,
+   "glowpick_id": 14892,
+   "seen": 32,
+   "aliases": [
+    "코르씨",
+    "KORSI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메종 마르지엘라",
+   "en": "Maison Margiela",
+   "db_brand": null,
+   "glowpick_id": 4544,
+   "seen": 32,
+   "aliases": [
+    "메종 마르지엘라",
+    "Maison Margiela",
+    "MaisonMargiela"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "풀리",
+   "en": "FULLY",
+   "db_brand": null,
+   "glowpick_id": 12573,
+   "seen": 32,
+   "aliases": [
+    "풀리",
+    "FULLY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로벡틴",
+   "en": "ROVECTIN",
+   "db_brand": null,
+   "glowpick_id": 654,
+   "seen": 32,
+   "aliases": [
+    "로벡틴",
+    "ROVECTIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시루콧토",
+   "en": "Silcot",
+   "db_brand": null,
+   "glowpick_id": 2109,
+   "seen": 32,
+   "aliases": [
+    "시루콧토",
+    "Silcot"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더봄",
+   "en": "thebom",
+   "db_brand": null,
+   "glowpick_id": 14522,
+   "seen": 32,
+   "aliases": [
+    "더봄",
+    "thebom"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "무지개맨션",
+   "en": "Muzigae Mansion",
+   "db_brand": null,
+   "glowpick_id": 12611,
+   "seen": 31,
+   "aliases": [
+    "무지개맨션",
+    "Muzigae Mansion",
+    "MuzigaeMansion"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에스티 로더",
+   "en": "ESTEE LAUDER",
+   "db_brand": "ESTEE LAUDER",
+   "glowpick_id": 163,
+   "seen": 31,
+   "aliases": [
+    "에스티 로더",
+    "ESTEE LAUDER",
+    "에스티로더",
+    "ESTEELAUDER"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "LG 프라엘",
+   "en": "LG Pra.L",
+   "db_brand": null,
+   "glowpick_id": 7551,
+   "seen": 31,
+   "aliases": [
+    "LG 프라엘",
+    "LG Pra.L",
+    "LGPraL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바슈롬",
+   "en": "BAUSCH LOMB",
+   "db_brand": null,
+   "glowpick_id": 5389,
+   "seen": 31,
+   "aliases": [
+    "바슈롬",
+    "BAUSCH LOMB",
+    "BAUSCHLOMB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "페리오",
+   "en": "PERIOE",
+   "db_brand": null,
+   "glowpick_id": 10393,
+   "seen": 31,
+   "aliases": [
+    "페리오",
+    "PERIOE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아렌시아",
+   "en": "ARENCIA",
+   "db_brand": null,
+   "glowpick_id": 10968,
+   "seen": 31,
+   "aliases": [
+    "아렌시아",
+    "ARENCIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에딧비",
+   "en": "EDIT B",
+   "db_brand": "EDITB",
+   "glowpick_id": 11827,
+   "seen": 31,
+   "aliases": [
+    "에딧비",
+    "EDIT B",
+    "EDITB"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "와이즐리",
+   "en": "wisely",
+   "db_brand": null,
+   "glowpick_id": 9574,
+   "seen": 30,
+   "aliases": [
+    "와이즐리",
+    "wisely"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "동구밭",
+   "en": "donggubat",
+   "db_brand": null,
+   "glowpick_id": 6358,
+   "seen": 30,
+   "aliases": [
+    "동구밭",
+    "donggubat"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "클라랑스",
+   "en": "CLARINS",
+   "db_brand": null,
+   "glowpick_id": 221,
+   "seen": 30,
+   "aliases": [
+    "클라랑스",
+    "CLARINS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "벤튼",
+   "en": "Benton",
+   "db_brand": null,
+   "glowpick_id": 1451,
+   "seen": 30,
+   "aliases": [
+    "벤튼",
+    "Benton"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "해달씨",
+   "en": "HAEDAL'S",
+   "db_brand": null,
+   "glowpick_id": 15127,
+   "seen": 30,
+   "aliases": [
+    "해달씨",
+    "HAEDAL'S",
+    "HAEDALS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "페이스팩토리",
+   "en": "FACE FACTORY",
+   "db_brand": null,
+   "glowpick_id": 9477,
+   "seen": 30,
+   "aliases": [
+    "페이스팩토리",
+    "FACE FACTORY",
+    "FACEFACTORY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "세잔느",
+   "en": "CEZANNE",
+   "db_brand": null,
+   "glowpick_id": 4953,
+   "seen": 30,
+   "aliases": [
+    "세잔느",
+    "CEZANNE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마죠리카 마죠르카",
+   "en": "MAJOLICA MAJORCA",
+   "db_brand": null,
+   "glowpick_id": 75,
+   "seen": 30,
+   "aliases": [
+    "마죠리카 마죠르카",
+    "MAJOLICA MAJORCA",
+    "MAJOLICAMAJORCA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "버버리",
+   "en": "BURBERRY",
+   "db_brand": null,
+   "glowpick_id": 98,
+   "seen": 29,
+   "aliases": [
+    "버버리",
+    "BURBERRY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "톤핏선",
+   "en": "TONFITSUN",
+   "db_brand": null,
+   "glowpick_id": 13215,
+   "seen": 29,
+   "aliases": [
+    "톤핏선",
+    "TONFITSUN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어퓨 더퓨어",
+   "en": "the pure Apieu",
+   "db_brand": null,
+   "glowpick_id": 14983,
+   "seen": 28,
+   "aliases": [
+    "어퓨 더퓨어",
+    "the pure Apieu",
+    "thepureApieu"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "투에딧",
+   "en": "twoedit",
+   "db_brand": null,
+   "glowpick_id": 14362,
+   "seen": 28,
+   "aliases": [
+    "투에딧",
+    "twoedit"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이레시피",
+   "en": "irecipe",
+   "db_brand": null,
+   "glowpick_id": 9694,
+   "seen": 27,
+   "aliases": [
+    "아이레시피",
+    "irecipe"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "밀바랩",
+   "en": "Milba Lab",
+   "db_brand": null,
+   "glowpick_id": 14614,
+   "seen": 27,
+   "aliases": [
+    "밀바랩",
+    "Milba Lab",
+    "MilbaLab"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "덴티스테",
+   "en": "DENTISTE",
+   "db_brand": null,
+   "glowpick_id": 10326,
+   "seen": 27,
+   "aliases": [
+    "덴티스테",
+    "DENTISTE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마르시끄",
+   "en": "Marshique",
+   "db_brand": null,
+   "glowpick_id": 7765,
+   "seen": 27,
+   "aliases": [
+    "마르시끄",
+    "Marshique"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비페스타",
+   "en": "Bifesta",
+   "db_brand": null,
+   "glowpick_id": 119,
+   "seen": 27,
+   "aliases": [
+    "비페스타",
+    "Bifesta"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터그루트",
+   "en": "Dr. Groot",
+   "db_brand": null,
+   "glowpick_id": 6832,
+   "seen": 26,
+   "aliases": [
+    "닥터그루트",
+    "Dr. Groot",
+    "DrGroot"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메모",
+   "en": "MEMO",
+   "db_brand": null,
+   "glowpick_id": 3325,
+   "seen": 26,
+   "aliases": [
+    "메모",
+    "MEMO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비오투름",
+   "en": "BIOTURM",
+   "db_brand": null,
+   "glowpick_id": 1477,
+   "seen": 26,
+   "aliases": [
+    "비오투름",
+    "BIOTURM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "브레이",
+   "en": "BRAYE",
+   "db_brand": null,
+   "glowpick_id": 14029,
+   "seen": 26,
+   "aliases": [
+    "브레이",
+    "BRAYE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "겔랑",
+   "en": "GUERLAIN",
+   "db_brand": null,
+   "glowpick_id": 13,
+   "seen": 25,
+   "aliases": [
+    "겔랑",
+    "GUERLAIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아임미미",
+   "en": "I'M MEME",
+   "db_brand": null,
+   "glowpick_id": 868,
+   "seen": 25,
+   "aliases": [
+    "아임미미",
+    "I'M MEME",
+    "IMMEME"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "런드리유",
+   "en": "laundryou",
+   "db_brand": null,
+   "glowpick_id": 11467,
+   "seen": 25,
+   "aliases": [
+    "런드리유",
+    "laundryou"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "산타마리아노벨라",
+   "en": "Santa Maria Novella",
+   "db_brand": null,
+   "glowpick_id": 121,
+   "seen": 25,
+   "aliases": [
+    "산타마리아노벨라",
+    "Santa Maria Novella",
+    "SantaMariaNovella"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "유아른",
+   "en": "ureun",
+   "db_brand": null,
+   "glowpick_id": 12289,
+   "seen": 25,
+   "aliases": [
+    "유아른",
+    "ureun"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "웰빙헬스팜",
+   "en": "well-being health pharm",
+   "db_brand": null,
+   "glowpick_id": 7017,
+   "seen": 25,
+   "aliases": [
+    "웰빙헬스팜",
+    "well-being health pharm",
+    "wellbeinghealthpharm"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "한스킨",
+   "en": "Hanskin",
+   "db_brand": null,
+   "glowpick_id": 243,
+   "seen": 25,
+   "aliases": [
+    "한스킨",
+    "Hanskin"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "글린트 바이 비디보브",
+   "en": "Glint by VDIVOV",
+   "db_brand": null,
+   "glowpick_id": 10911,
+   "seen": 25,
+   "aliases": [
+    "글린트 바이 비디보브",
+    "Glint by VDIVOV",
+    "GlintbyVDIVOV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아큐브",
+   "en": "ACUVUE",
+   "db_brand": null,
+   "glowpick_id": 5833,
+   "seen": 24,
+   "aliases": [
+    "아큐브",
+    "ACUVUE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바솔",
+   "en": "vasol",
+   "db_brand": null,
+   "glowpick_id": 10683,
+   "seen": 24,
+   "aliases": [
+    "바솔",
+    "vasol"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "버블 딜리버리",
+   "en": "Bubble Delivery",
+   "db_brand": null,
+   "glowpick_id": 13143,
+   "seen": 24,
+   "aliases": [
+    "버블 딜리버리",
+    "Bubble Delivery",
+    "BubbleDelivery"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나인위시스",
+   "en": "9wishes",
+   "db_brand": null,
+   "glowpick_id": 443,
+   "seen": 24,
+   "aliases": [
+    "나인위시스",
+    "9wishes"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "땡큐파머",
+   "en": "THANK YOU FARMER",
+   "db_brand": null,
+   "glowpick_id": 4125,
+   "seen": 24,
+   "aliases": [
+    "땡큐파머",
+    "THANK YOU FARMER",
+    "THANKYOUFARMER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "다자연",
+   "en": "all NATURAL",
+   "db_brand": null,
+   "glowpick_id": 8133,
+   "seen": 24,
+   "aliases": [
+    "다자연",
+    "all NATURAL",
+    "allNATURAL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "화홍엠",
+   "en": "HWAHONG M",
+   "db_brand": null,
+   "glowpick_id": 9172,
+   "seen": 24,
+   "aliases": [
+    "화홍엠",
+    "HWAHONG M",
+    "HWAHONGM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "글맆",
+   "en": "glyf",
+   "db_brand": null,
+   "glowpick_id": 13987,
+   "seen": 24,
+   "aliases": [
+    "글맆",
+    "glyf"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라라클라라",
+   "en": "LARA CLARA",
+   "db_brand": null,
+   "glowpick_id": 13288,
+   "seen": 23,
+   "aliases": [
+    "라라클라라",
+    "LARA CLARA",
+    "LARACLARA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "원오세븐",
+   "en": "107 oneoseven",
+   "db_brand": null,
+   "glowpick_id": 4496,
+   "seen": 23,
+   "aliases": [
+    "원오세븐",
+    "107 oneoseven",
+    "107oneoseven"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코코도르",
+   "en": "cocodor",
+   "db_brand": null,
+   "glowpick_id": 6795,
+   "seen": 23,
+   "aliases": [
+    "코코도르",
+    "cocodor"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "뉴트로지나",
+   "en": "Neutrogena",
+   "db_brand": null,
+   "glowpick_id": 24,
+   "seen": 23,
+   "aliases": [
+    "뉴트로지나",
+    "Neutrogena"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "유이크",
+   "en": "UIQ",
+   "db_brand": null,
+   "glowpick_id": 11586,
+   "seen": 23,
+   "aliases": [
+    "유이크",
+    "UIQ"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메디앤서",
+   "en": "MediAnswer",
+   "db_brand": null,
+   "glowpick_id": 7830,
+   "seen": 23,
+   "aliases": [
+    "메디앤서",
+    "MediAnswer"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "폴라초이스",
+   "en": "PAULA'S CHOICE",
+   "db_brand": null,
+   "glowpick_id": 236,
+   "seen": 23,
+   "aliases": [
+    "폴라초이스",
+    "PAULA'S CHOICE",
+    "PAULASCHOICE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로우라이즈",
+   "en": "Lowlize",
+   "db_brand": null,
+   "glowpick_id": 15004,
+   "seen": 22,
+   "aliases": [
+    "로우라이즈",
+    "Lowlize"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터방기원",
+   "en": "DR.BANGGIWON",
+   "db_brand": null,
+   "glowpick_id": 7809,
+   "seen": 22,
+   "aliases": [
+    "닥터방기원",
+    "DR.BANGGIWON",
+    "DRBANGGIWON"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아페리레",
+   "en": "Aperire",
+   "db_brand": null,
+   "glowpick_id": 5539,
+   "seen": 22,
+   "aliases": [
+    "아페리레",
+    "Aperire"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아쿠아 디 파르마",
+   "en": "ACQUA DI PARMA",
+   "db_brand": null,
+   "glowpick_id": 431,
+   "seen": 22,
+   "aliases": [
+    "아쿠아 디 파르마",
+    "ACQUA DI PARMA",
+    "ACQUADIPARMA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "플랙커스",
+   "en": "Plackers",
+   "db_brand": null,
+   "glowpick_id": 10409,
+   "seen": 22,
+   "aliases": [
+    "플랙커스",
+    "Plackers"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "탱글엔젤",
+   "en": "Tangle ANGEL",
+   "db_brand": null,
+   "glowpick_id": 3813,
+   "seen": 22,
+   "aliases": [
+    "탱글엔젤",
+    "Tangle ANGEL",
+    "TangleANGEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "레이비",
+   "en": "Leivy",
+   "db_brand": null,
+   "glowpick_id": 10789,
+   "seen": 22,
+   "aliases": [
+    "레이비",
+    "Leivy"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터브로너스",
+   "en": "DR.BRONNER'S",
+   "db_brand": null,
+   "glowpick_id": 27,
+   "seen": 22,
+   "aliases": [
+    "닥터브로너스",
+    "DR.BRONNER'S",
+    "DRBRONNERS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "폰즈",
+   "en": "POND'S",
+   "db_brand": null,
+   "glowpick_id": 901,
+   "seen": 22,
+   "aliases": [
+    "폰즈",
+    "POND'S",
+    "PONDS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프레시안",
+   "en": "freshian",
+   "db_brand": null,
+   "glowpick_id": 12790,
+   "seen": 22,
+   "aliases": [
+    "프레시안",
+    "freshian"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "지방시 뷰티",
+   "en": "Givenchy Beauty",
+   "db_brand": null,
+   "glowpick_id": 817,
+   "seen": 22,
+   "aliases": [
+    "지방시 뷰티",
+    "Givenchy Beauty",
+    "GivenchyBeauty"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리더스코스메틱",
+   "en": "LEADERS",
+   "db_brand": null,
+   "glowpick_id": 1337,
+   "seen": 22,
+   "aliases": [
+    "리더스코스메틱",
+    "LEADERS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스킨앤랩",
+   "en": "SKIN\\u0026LAB",
+   "db_brand": null,
+   "glowpick_id": 624,
+   "seen": 21,
+   "aliases": [
+    "스킨앤랩",
+    "SKIN\\u0026LAB",
+    "SKINu0026LAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스틸라",
+   "en": "stila",
+   "db_brand": null,
+   "glowpick_id": 135,
+   "seen": 21,
+   "aliases": [
+    "스틸라",
+    "stila"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "유세린",
+   "en": "Eucerin",
+   "db_brand": null,
+   "glowpick_id": 323,
+   "seen": 21,
+   "aliases": [
+    "유세린",
+    "Eucerin"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비달사순",
+   "en": "VS SASSOON",
+   "db_brand": null,
+   "glowpick_id": 283,
+   "seen": 21,
+   "aliases": [
+    "비달사순",
+    "VS SASSOON",
+    "VSSASSOON"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "탱글티저",
+   "en": "TANGLE TEEZER",
+   "db_brand": null,
+   "glowpick_id": 2045,
+   "seen": 21,
+   "aliases": [
+    "탱글티저",
+    "TANGLE TEEZER",
+    "TANGLETEEZER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "박준뷰티랩",
+   "en": "PARKJUN BEAUTY LAB",
+   "db_brand": null,
+   "glowpick_id": 6256,
+   "seen": 21,
+   "aliases": [
+    "박준뷰티랩",
+    "PARKJUN BEAUTY LAB",
+    "PARKJUNBEAUTYLAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에이오유",
+   "en": "AOU",
+   "db_brand": "AOU",
+   "glowpick_id": 13042,
+   "seen": 21,
+   "aliases": [
+    "에이오유",
+    "AOU"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "에이프릴스킨",
+   "en": "APRILSKIN",
+   "db_brand": null,
+   "glowpick_id": 794,
+   "seen": 21,
+   "aliases": [
+    "에이프릴스킨",
+    "APRILSKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이레놀",
+   "en": "I-LENOL",
+   "db_brand": null,
+   "glowpick_id": 13889,
+   "seen": 20,
+   "aliases": [
+    "아이레놀",
+    "I-LENOL",
+    "ILENOL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터바이오",
+   "en": "Dr.Bio",
+   "db_brand": null,
+   "glowpick_id": 8978,
+   "seen": 20,
+   "aliases": [
+    "닥터바이오",
+    "Dr.Bio",
+    "DrBio"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "커리쉴",
+   "en": "CURLY SHYLL",
+   "db_brand": null,
+   "glowpick_id": 8204,
+   "seen": 19,
+   "aliases": [
+    "커리쉴",
+    "CURLY SHYLL",
+    "CURLYSHYLL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "펜할리곤스",
+   "en": "PENHALIGON'S",
+   "db_brand": null,
+   "glowpick_id": 258,
+   "seen": 19,
+   "aliases": [
+    "펜할리곤스",
+    "PENHALIGON'S",
+    "PENHALIGONS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "포레스트스토리",
+   "en": "Forest Story",
+   "db_brand": null,
+   "glowpick_id": 5554,
+   "seen": 19,
+   "aliases": [
+    "포레스트스토리",
+    "Forest Story",
+    "ForestStory"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이브랩",
+   "en": "ViveLab",
+   "db_brand": null,
+   "glowpick_id": 10316,
+   "seen": 19,
+   "aliases": [
+    "바이브랩",
+    "ViveLab"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "꼬달리",
+   "en": "CAUDALIE",
+   "db_brand": null,
+   "glowpick_id": 18,
+   "seen": 19,
+   "aliases": [
+    "꼬달리",
+    "CAUDALIE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에센허브",
+   "en": "essenHERB",
+   "db_brand": null,
+   "glowpick_id": 927,
+   "seen": 19,
+   "aliases": [
+    "에센허브",
+    "essenHERB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리얼 테크닉스",
+   "en": "REAL TECHNIQUES",
+   "db_brand": null,
+   "glowpick_id": 1026,
+   "seen": 19,
+   "aliases": [
+    "리얼 테크닉스",
+    "REAL TECHNIQUES",
+    "REALTECHNIQUES"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "텐드스킨",
+   "en": "TEND SKIN",
+   "db_brand": null,
+   "glowpick_id": 959,
+   "seen": 18,
+   "aliases": [
+    "텐드스킨",
+    "TEND SKIN",
+    "TENDSKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "플리프",
+   "en": "FLEEF",
+   "db_brand": null,
+   "glowpick_id": 11514,
+   "seen": 18,
+   "aliases": [
+    "플리프",
+    "FLEEF"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "야다",
+   "en": "YADAH",
+   "db_brand": null,
+   "glowpick_id": 781,
+   "seen": 18,
+   "aliases": [
+    "야다",
+    "YADAH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나르시소 로드리게즈",
+   "en": "narciso rodriguez",
+   "db_brand": null,
+   "glowpick_id": 673,
+   "seen": 18,
+   "aliases": [
+    "나르시소 로드리게즈",
+    "narciso rodriguez",
+    "narcisorodriguez"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리노이아",
+   "en": "RE:NOIA",
+   "db_brand": null,
+   "glowpick_id": 14120,
+   "seen": 18,
+   "aliases": [
+    "리노이아",
+    "RE:NOIA",
+    "RENOIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마이녹셀",
+   "en": "MINOXELL",
+   "db_brand": null,
+   "glowpick_id": 12216,
+   "seen": 18,
+   "aliases": [
+    "마이녹셀",
+    "MINOXELL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메이블린 뉴욕",
+   "en": "MAYBELLINE NEWYORK",
+   "db_brand": null,
+   "glowpick_id": 80,
+   "seen": 18,
+   "aliases": [
+    "메이블린 뉴욕",
+    "MAYBELLINE NEWYORK",
+    "MAYBELLINENEWYORK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "소울",
+   "en": "XOUL",
+   "db_brand": null,
+   "glowpick_id": 7739,
+   "seen": 18,
+   "aliases": [
+    "소울",
+    "XOUL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "심플리웍스",
+   "en": "simplyworks",
+   "db_brand": null,
+   "glowpick_id": 10804,
+   "seen": 18,
+   "aliases": [
+    "심플리웍스",
+    "simplyworks"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비판톨",
+   "en": "Bepanthol",
+   "db_brand": null,
+   "glowpick_id": 467,
+   "seen": 17,
+   "aliases": [
+    "비판톨",
+    "Bepanthol"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "렌블링",
+   "en": "LENBLING",
+   "db_brand": null,
+   "glowpick_id": 14386,
+   "seen": 17,
+   "aliases": [
+    "렌블링",
+    "LENBLING"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "벨먼",
+   "en": "VEILMENT",
+   "db_brand": null,
+   "glowpick_id": 6276,
+   "seen": 17,
+   "aliases": [
+    "벨먼",
+    "VEILMENT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "밀크터치",
+   "en": "Milk Touch",
+   "db_brand": null,
+   "glowpick_id": 9341,
+   "seen": 17,
+   "aliases": [
+    "밀크터치",
+    "Milk Touch",
+    "MilkTouch"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "쥬스 투 클렌즈",
+   "en": "JUICE TO CLEANSE",
+   "db_brand": null,
+   "glowpick_id": 9682,
+   "seen": 17,
+   "aliases": [
+    "쥬스 투 클렌즈",
+    "JUICE TO CLEANSE",
+    "JUICETOCLEANSE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "유리피부",
+   "en": "YURIPIBU",
+   "db_brand": null,
+   "glowpick_id": 844,
+   "seen": 17,
+   "aliases": [
+    "유리피부",
+    "YURIPIBU"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이마트",
+   "en": "emart",
+   "db_brand": null,
+   "glowpick_id": 2631,
+   "seen": 17,
+   "aliases": [
+    "이마트",
+    "emart"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코세",
+   "en": "KOSE",
+   "db_brand": null,
+   "glowpick_id": 638,
+   "seen": 17,
+   "aliases": [
+    "코세",
+    "KOSE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "플루",
+   "en": "plu",
+   "db_brand": null,
+   "glowpick_id": 1057,
+   "seen": 16,
+   "aliases": [
+    "플루",
+    "plu"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아크네스",
+   "en": "Acnes",
+   "db_brand": null,
+   "glowpick_id": 1609,
+   "seen": 16,
+   "aliases": [
+    "아크네스",
+    "Acnes"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "YNM",
+   "en": "와이엔엠",
+   "db_brand": null,
+   "glowpick_id": 9408,
+   "seen": 16,
+   "aliases": [
+    "YNM",
+    "와이엔엠"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더마펌",
+   "en": "DERMAFIRM",
+   "db_brand": null,
+   "glowpick_id": 2553,
+   "seen": 16,
+   "aliases": [
+    "더마펌",
+    "DERMAFIRM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "끌로에",
+   "en": "CHLOE",
+   "db_brand": null,
+   "glowpick_id": 493,
+   "seen": 16,
+   "aliases": [
+    "끌로에",
+    "CHLOE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "조르지오아르마니",
+   "en": "GIORGIO ARMANI",
+   "db_brand": null,
+   "glowpick_id": 194,
+   "seen": 16,
+   "aliases": [
+    "조르지오아르마니",
+    "GIORGIO ARMANI",
+    "GIORGIOARMANI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헤드스파7",
+   "en": "HEADSPA7",
+   "db_brand": null,
+   "glowpick_id": 9360,
+   "seen": 16,
+   "aliases": [
+    "헤드스파7",
+    "HEADSPA7"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "하야시",
+   "en": "HAYASHI",
+   "db_brand": null,
+   "glowpick_id": 837,
+   "seen": 16,
+   "aliases": [
+    "하야시",
+    "HAYASHI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "살롱집",
+   "en": "Salon.Zip",
+   "db_brand": null,
+   "glowpick_id": 11888,
+   "seen": 16,
+   "aliases": [
+    "살롱집",
+    "Salon.Zip",
+    "SalonZip"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미친스킨",
+   "en": "crazy skin",
+   "db_brand": null,
+   "glowpick_id": 7268,
+   "seen": 16,
+   "aliases": [
+    "미친스킨",
+    "crazy skin",
+    "crazyskin"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오휘",
+   "en": "O HUI",
+   "db_brand": null,
+   "glowpick_id": 176,
+   "seen": 16,
+   "aliases": [
+    "오휘",
+    "O HUI",
+    "OHUI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "성분에디터",
+   "en": "SUNGBOON EDITOR",
+   "db_brand": null,
+   "glowpick_id": 5489,
+   "seen": 16,
+   "aliases": [
+    "성분에디터",
+    "SUNGBOON EDITOR",
+    "SUNGBOONEDITOR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "텐더가든",
+   "en": "Tender garden",
+   "db_brand": null,
+   "glowpick_id": 12854,
+   "seen": 16,
+   "aliases": [
+    "텐더가든",
+    "Tender garden",
+    "Tendergarden"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "무하브",
+   "en": "Muhav",
+   "db_brand": null,
+   "glowpick_id": 13986,
+   "seen": 16,
+   "aliases": [
+    "무하브",
+    "Muhav"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에크멀",
+   "en": "EQUMAL",
+   "db_brand": null,
+   "glowpick_id": 9853,
+   "seen": 16,
+   "aliases": [
+    "에크멀",
+    "EQUMAL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "깜빡",
+   "en": "ccambbak",
+   "db_brand": null,
+   "glowpick_id": 11575,
+   "seen": 16,
+   "aliases": [
+    "깜빡",
+    "ccambbak"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "어글리 러블리",
+   "en": "UGLY LOVELY",
+   "db_brand": "UGLY LOVELY",
+   "glowpick_id": 13798,
+   "seen": 16,
+   "aliases": [
+    "어글리 러블리",
+    "UGLY LOVELY",
+    "어글리러블리",
+    "UGLYLOVELY"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "바이오코어",
+   "en": "BYOCORE",
+   "db_brand": null,
+   "glowpick_id": 13463,
+   "seen": 15,
+   "aliases": [
+    "바이오코어",
+    "BYOCORE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미궁365",
+   "en": "MiGung365",
+   "db_brand": null,
+   "glowpick_id": 12103,
+   "seen": 15,
+   "aliases": [
+    "미궁365",
+    "MiGung365"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로에",
+   "en": "LOE",
+   "db_brand": null,
+   "glowpick_id": 11977,
+   "seen": 15,
+   "aliases": [
+    "로에",
+    "LOE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로에베",
+   "en": "LOEWE",
+   "db_brand": null,
+   "glowpick_id": 9855,
+   "seen": 15,
+   "aliases": [
+    "로에베",
+    "LOEWE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "제니퍼로페즈뷰티",
+   "en": "Jennifer Lopez Beauty",
+   "db_brand": null,
+   "glowpick_id": 495,
+   "seen": 15,
+   "aliases": [
+    "제니퍼로페즈뷰티",
+    "Jennifer Lopez Beauty",
+    "JenniferLopezBeauty"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "존바바토스",
+   "en": "john varvatos",
+   "db_brand": null,
+   "glowpick_id": 502,
+   "seen": 15,
+   "aliases": [
+    "존바바토스",
+    "john varvatos",
+    "johnvarvatos"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "쿠퍼비전",
+   "en": "CopperVision",
+   "db_brand": null,
+   "glowpick_id": 9355,
+   "seen": 15,
+   "aliases": [
+    "쿠퍼비전",
+    "CopperVision"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "티타드",
+   "en": "TITAD",
+   "db_brand": null,
+   "glowpick_id": 11954,
+   "seen": 15,
+   "aliases": [
+    "티타드",
+    "TITAD"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바티스트",
+   "en": "Batiste",
+   "db_brand": null,
+   "glowpick_id": 758,
+   "seen": 15,
+   "aliases": [
+    "바티스트",
+    "Batiste"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "네오젠",
+   "en": "NEOGEN DERMALOGY",
+   "db_brand": null,
+   "glowpick_id": 538,
+   "seen": 15,
+   "aliases": [
+    "네오젠",
+    "NEOGEN DERMALOGY",
+    "NEOGENDERMALOGY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "펠드아포테케",
+   "en": "Feld apotheke",
+   "db_brand": null,
+   "glowpick_id": 9957,
+   "seen": 15,
+   "aliases": [
+    "펠드아포테케",
+    "Feld apotheke",
+    "Feldapotheke"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "르브와",
+   "en": "Revoir",
+   "db_brand": null,
+   "glowpick_id": 7611,
+   "seen": 15,
+   "aliases": [
+    "르브와",
+    "Revoir"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "치카이치코",
+   "en": "CHICA Y CHICO",
+   "db_brand": null,
+   "glowpick_id": 738,
+   "seen": 15,
+   "aliases": [
+    "치카이치코",
+    "CHICA Y CHICO",
+    "CHICAYCHICO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "젬소",
+   "en": "GEMSHO",
+   "db_brand": null,
+   "glowpick_id": 11913,
+   "seen": 15,
+   "aliases": [
+    "젬소",
+    "GEMSHO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오드타입",
+   "en": "Oddtype",
+   "db_brand": "ODDTYPE",
+   "glowpick_id": 13449,
+   "seen": 15,
+   "aliases": [
+    "오드타입",
+    "Oddtype",
+    "ODDTYPE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "글로우",
+   "en": "glow",
+   "db_brand": null,
+   "glowpick_id": 13534,
+   "seen": 15,
+   "aliases": [
+    "글로우",
+    "glow"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "도미나스",
+   "en": null,
+   "db_brand": "DOMINAS",
+   "glowpick_id": 10145,
+   "seen": 14,
+   "aliases": [
+    "도미나스",
+    "DOMINAS"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "드림웍스",
+   "en": "DREAMWORKS",
+   "db_brand": null,
+   "glowpick_id": 5888,
+   "seen": 14,
+   "aliases": [
+    "드림웍스",
+    "DREAMWORKS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "셀로닉스",
+   "en": "CELLONIX",
+   "db_brand": null,
+   "glowpick_id": 11736,
+   "seen": 14,
+   "aliases": [
+    "셀로닉스",
+    "CELLONIX"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "니드인",
+   "en": "NEEDIN",
+   "db_brand": null,
+   "glowpick_id": 11440,
+   "seen": 14,
+   "aliases": [
+    "니드인",
+    "NEEDIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "루아페",
+   "en": "LUAFEE",
+   "db_brand": null,
+   "glowpick_id": 12027,
+   "seen": 14,
+   "aliases": [
+    "루아페",
+    "LUAFEE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "구딸 파리",
+   "en": "GOUTAL PARIS",
+   "db_brand": null,
+   "glowpick_id": 144,
+   "seen": 14,
+   "aliases": [
+    "구딸 파리",
+    "GOUTAL PARIS",
+    "GOUTALPARIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더프트앤도프트",
+   "en": "DUFT\\u0026DOFT",
+   "db_brand": null,
+   "glowpick_id": 1023,
+   "seen": 14,
+   "aliases": [
+    "더프트앤도프트",
+    "DUFT\\u0026DOFT",
+    "DUFTu0026DOFT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스카이보틀",
+   "en": "skybottle",
+   "db_brand": null,
+   "glowpick_id": 10035,
+   "seen": 14,
+   "aliases": [
+    "스카이보틀",
+    "skybottle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시세이도 프로페셔널",
+   "en": "SHISHEIDO PROFESSIONAL",
+   "db_brand": null,
+   "glowpick_id": 5521,
+   "seen": 14,
+   "aliases": [
+    "시세이도 프로페셔널",
+    "SHISHEIDO PROFESSIONAL",
+    "SHISHEIDOPROFESSIONAL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "트리셀",
+   "en": "treecell",
+   "db_brand": null,
+   "glowpick_id": 12223,
+   "seen": 14,
+   "aliases": [
+    "트리셀",
+    "treecell"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나드",
+   "en": "NARD",
+   "db_brand": null,
+   "glowpick_id": 10149,
+   "seen": 14,
+   "aliases": [
+    "나드",
+    "NARD"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "눅스",
+   "en": "NUXE",
+   "db_brand": "NUXE",
+   "glowpick_id": 23,
+   "seen": 14,
+   "aliases": [
+    "눅스",
+    "NUXE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "투페이스드",
+   "en": "Too Faced",
+   "db_brand": null,
+   "glowpick_id": 2013,
+   "seen": 14,
+   "aliases": [
+    "투페이스드",
+    "Too Faced",
+    "TooFaced"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "꾸셀",
+   "en": "Courcelles",
+   "db_brand": null,
+   "glowpick_id": 845,
+   "seen": 14,
+   "aliases": [
+    "꾸셀",
+    "Courcelles"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리스키 뷰티",
+   "en": "RISKY BEAUTY",
+   "db_brand": "RISKY BEAUTY",
+   "glowpick_id": 14248,
+   "seen": 14,
+   "aliases": [
+    "리스키 뷰티",
+    "RISKY BEAUTY",
+    "리스키뷰티",
+    "RISKYBEAUTY"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "케이트",
+   "en": "KATE",
+   "db_brand": "KATE",
+   "glowpick_id": 399,
+   "seen": 14,
+   "aliases": [
+    "케이트",
+    "KATE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "블랑네이처",
+   "en": "Blanc nature",
+   "db_brand": null,
+   "glowpick_id": 8440,
+   "seen": 14,
+   "aliases": [
+    "블랑네이처",
+    "Blanc nature",
+    "Blancnature"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리쥬베닐",
+   "en": "Re-juvenil",
+   "db_brand": "REJUVENIL",
+   "glowpick_id": 14915,
+   "seen": 14,
+   "aliases": [
+    "리쥬베닐",
+    "Re-juvenil",
+    "REJUVENIL",
+    "Rejuvenil"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "리덴스",
+   "en": "Redence",
+   "db_brand": "REDENCE",
+   "glowpick_id": 13782,
+   "seen": 14,
+   "aliases": [
+    "리덴스",
+    "Redence",
+    "REDENCE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "에이솔루션",
+   "en": "a.solution",
+   "db_brand": null,
+   "glowpick_id": 2052,
+   "seen": 14,
+   "aliases": [
+    "에이솔루션",
+    "a.solution",
+    "asolution"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에어린",
+   "en": "AERIN",
+   "db_brand": null,
+   "glowpick_id": 5867,
+   "seen": 13,
+   "aliases": [
+    "에어린",
+    "AERIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "티타니아",
+   "en": "TITANIA",
+   "db_brand": null,
+   "glowpick_id": 557,
+   "seen": 13,
+   "aliases": [
+    "티타니아",
+    "TITANIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아브카",
+   "en": "AVCA",
+   "db_brand": null,
+   "glowpick_id": 12874,
+   "seen": 13,
+   "aliases": [
+    "아브카",
+    "AVCA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프레쉬",
+   "en": "fresh",
+   "db_brand": null,
+   "glowpick_id": 237,
+   "seen": 13,
+   "aliases": [
+    "프레쉬",
+    "fresh"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "블랑디바",
+   "en": "BLANC DIVA",
+   "db_brand": null,
+   "glowpick_id": 9583,
+   "seen": 13,
+   "aliases": [
+    "블랑디바",
+    "BLANC DIVA",
+    "BLANCDIVA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "랩잇",
+   "en": "Lab.it",
+   "db_brand": null,
+   "glowpick_id": 13974,
+   "seen": 13,
+   "aliases": [
+    "랩잇",
+    "Lab.it",
+    "Labit"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "르넥트",
+   "en": "le'nect",
+   "db_brand": null,
+   "glowpick_id": 12496,
+   "seen": 13,
+   "aliases": [
+    "르넥트",
+    "le'nect",
+    "lenect"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "RMK",
+   "en": "알엠케이",
+   "db_brand": null,
+   "glowpick_id": 8,
+   "seen": 13,
+   "aliases": [
+    "RMK",
+    "알엠케이"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "트윙클팝",
+   "en": "TWINKLE POP",
+   "db_brand": null,
+   "glowpick_id": 10028,
+   "seen": 13,
+   "aliases": [
+    "트윙클팝",
+    "TWINKLE POP",
+    "TWINKLEPOP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "터치인솔",
+   "en": "touch in SOL",
+   "db_brand": "TOUCH IN SOL",
+   "glowpick_id": 464,
+   "seen": 13,
+   "aliases": [
+    "터치인솔",
+    "touch in SOL",
+    "TOUCH IN SOL",
+    "touchinSOL"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "포백",
+   "en": "poback",
+   "db_brand": null,
+   "glowpick_id": 15410,
+   "seen": 13,
+   "aliases": [
+    "포백",
+    "poback"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리필드",
+   "en": "Refilled",
+   "db_brand": null,
+   "glowpick_id": 13433,
+   "seen": 12,
+   "aliases": [
+    "리필드",
+    "Refilled"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코랄헤이즈",
+   "en": "CORALHAZE",
+   "db_brand": null,
+   "glowpick_id": 12300,
+   "seen": 12,
+   "aliases": [
+    "코랄헤이즈",
+    "CORALHAZE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아임쏘리포마이스킨",
+   "en": "I'm SORRY For MY SKIN",
+   "db_brand": null,
+   "glowpick_id": 2088,
+   "seen": 12,
+   "aliases": [
+    "아임쏘리포마이스킨",
+    "I'm SORRY For MY SKIN",
+    "ImSORRYForMYSKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "드시모네",
+   "en": "DeSimone",
+   "db_brand": null,
+   "glowpick_id": 10265,
+   "seen": 12,
+   "aliases": [
+    "드시모네",
+    "DeSimone"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로츠",
+   "en": "Lotts",
+   "db_brand": null,
+   "glowpick_id": 5515,
+   "seen": 12,
+   "aliases": [
+    "로츠",
+    "Lotts"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "테라피션",
+   "en": "THERAPYTION",
+   "db_brand": null,
+   "glowpick_id": 4561,
+   "seen": 12,
+   "aliases": [
+    "테라피션",
+    "THERAPYTION"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "루테카",
+   "en": "ROOTECA",
+   "db_brand": null,
+   "glowpick_id": 14743,
+   "seen": 12,
+   "aliases": [
+    "루테카",
+    "ROOTECA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이오가",
+   "en": "BIORGA",
+   "db_brand": null,
+   "glowpick_id": 3753,
+   "seen": 12,
+   "aliases": [
+    "바이오가",
+    "BIORGA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디브",
+   "en": "VADEV",
+   "db_brand": null,
+   "glowpick_id": 13230,
+   "seen": 12,
+   "aliases": [
+    "바디브",
+    "VADEV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아비노",
+   "en": "Aveeno",
+   "db_brand": null,
+   "glowpick_id": 150,
+   "seen": 12,
+   "aliases": [
+    "아비노",
+    "Aveeno"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "러블리씨씨",
+   "en": "LOVELYCC",
+   "db_brand": null,
+   "glowpick_id": 14117,
+   "seen": 12,
+   "aliases": [
+    "러블리씨씨",
+    "LOVELYCC"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "데저트에센스",
+   "en": "DESERT ESSENCE",
+   "db_brand": null,
+   "glowpick_id": 1258,
+   "seen": 12,
+   "aliases": [
+    "데저트에센스",
+    "DESERT ESSENCE",
+    "DESERTESSENCE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "레이어랩",
+   "en": "LAYER LAB",
+   "db_brand": null,
+   "glowpick_id": 14235,
+   "seen": 12,
+   "aliases": [
+    "레이어랩",
+    "LAYER LAB",
+    "LAYERLAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "맥스클리닉",
+   "en": "MAXCLINIC",
+   "db_brand": null,
+   "glowpick_id": 783,
+   "seen": 12,
+   "aliases": [
+    "맥스클리닉",
+    "MAXCLINIC"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아나스타샤 베버리힐즈",
+   "en": "Anastasia Beverly Hills",
+   "db_brand": null,
+   "glowpick_id": 2457,
+   "seen": 12,
+   "aliases": [
+    "아나스타샤 베버리힐즈",
+    "Anastasia Beverly Hills",
+    "AnastasiaBeverlyHills"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비에어리",
+   "en": "be airy",
+   "db_brand": null,
+   "glowpick_id": 15522,
+   "seen": 12,
+   "aliases": [
+    "비에어리",
+    "be airy",
+    "beairy"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "네츄럴샤인",
+   "en": "Natural Shine",
+   "db_brand": null,
+   "glowpick_id": 864,
+   "seen": 12,
+   "aliases": [
+    "네츄럴샤인",
+    "Natural Shine",
+    "NaturalShine"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "샤프란케어",
+   "en": "Saffron Care",
+   "db_brand": null,
+   "glowpick_id": 5013,
+   "seen": 11,
+   "aliases": [
+    "샤프란케어",
+    "Saffron Care",
+    "SaffronCare"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "생활공작소",
+   "en": null,
+   "db_brand": null,
+   "glowpick_id": 8311,
+   "seen": 11,
+   "aliases": [
+    "생활공작소"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "무백",
+   "en": "MOO100",
+   "db_brand": null,
+   "glowpick_id": 9532,
+   "seen": 11,
+   "aliases": [
+    "무백",
+    "MOO100"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오릭스",
+   "en": "Oriox",
+   "db_brand": null,
+   "glowpick_id": 5510,
+   "seen": 11,
+   "aliases": [
+    "오릭스",
+    "Oriox"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시프트",
+   "en": "SHIFT",
+   "db_brand": null,
+   "glowpick_id": 10404,
+   "seen": 11,
+   "aliases": [
+    "시프트",
+    "SHIFT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아넷사",
+   "en": "ANESSA",
+   "db_brand": null,
+   "glowpick_id": 668,
+   "seen": 11,
+   "aliases": [
+    "아넷사",
+    "ANESSA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마끼아쥬",
+   "en": "Maquillage",
+   "db_brand": null,
+   "glowpick_id": 14737,
+   "seen": 11,
+   "aliases": [
+    "마끼아쥬",
+    "Maquillage"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "주디돌",
+   "en": "JUDYDOLL",
+   "db_brand": null,
+   "glowpick_id": 14175,
+   "seen": 11,
+   "aliases": [
+    "주디돌",
+    "JUDYDOLL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "데자뷰",
+   "en": "dejavu",
+   "db_brand": null,
+   "glowpick_id": 37,
+   "seen": 11,
+   "aliases": [
+    "데자뷰",
+    "dejavu"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프로에잇",
+   "en": "PROEIGHT",
+   "db_brand": null,
+   "glowpick_id": 13581,
+   "seen": 11,
+   "aliases": [
+    "프로에잇",
+    "PROEIGHT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이글립스",
+   "en": "EGLIPS",
+   "db_brand": "EGLIPS",
+   "glowpick_id": 279,
+   "seen": 10,
+   "aliases": [
+    "이글립스",
+    "EGLIPS"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "어네이즈",
+   "en": "ANAZE",
+   "db_brand": null,
+   "glowpick_id": 10250,
+   "seen": 10,
+   "aliases": [
+    "어네이즈",
+    "ANAZE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "안달로우 내추럴스",
+   "en": "ANDALOU NATURALS",
+   "db_brand": null,
+   "glowpick_id": 3473,
+   "seen": 10,
+   "aliases": [
+    "안달로우 내추럴스",
+    "ANDALOU NATURALS",
+    "ANDALOUNATURALS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "그래비티",
+   "en": "grabity",
+   "db_brand": null,
+   "glowpick_id": 14581,
+   "seen": 10,
+   "aliases": [
+    "그래비티",
+    "grabity"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "원데이즈유",
+   "en": "One day's you",
+   "db_brand": null,
+   "glowpick_id": 9255,
+   "seen": 10,
+   "aliases": [
+    "원데이즈유",
+    "One day's you",
+    "Onedaysyou"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "도도레이블",
+   "en": "DODO LABEL",
+   "db_brand": null,
+   "glowpick_id": 7013,
+   "seen": 10,
+   "aliases": [
+    "도도레이블",
+    "DODO LABEL",
+    "DODOLABEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "펠리칸솝",
+   "en": "Pelican Soap",
+   "db_brand": null,
+   "glowpick_id": 14697,
+   "seen": 10,
+   "aliases": [
+    "펠리칸솝",
+    "Pelican Soap",
+    "PelicanSoap"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아트릭스",
+   "en": "atrix",
+   "db_brand": null,
+   "glowpick_id": 768,
+   "seen": 10,
+   "aliases": [
+    "아트릭스",
+    "atrix"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더마퀸",
+   "en": "themaqueen",
+   "db_brand": null,
+   "glowpick_id": 7197,
+   "seen": 10,
+   "aliases": [
+    "더마퀸",
+    "themaqueen"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "데코르테",
+   "en": "DECORTE",
+   "db_brand": "DECORTE",
+   "glowpick_id": 214,
+   "seen": 10,
+   "aliases": [
+    "데코르테",
+    "DECORTE",
+    "코스메데코르테"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "비프루브",
+   "en": "VPROVE",
+   "db_brand": null,
+   "glowpick_id": 6162,
+   "seen": 10,
+   "aliases": [
+    "비프루브",
+    "VPROVE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "샤르드",
+   "en": "CHARDE",
+   "db_brand": null,
+   "glowpick_id": 10102,
+   "seen": 10,
+   "aliases": [
+    "샤르드",
+    "CHARDE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "은율",
+   "en": "EUNYUL",
+   "db_brand": null,
+   "glowpick_id": 2130,
+   "seen": 10,
+   "aliases": [
+    "은율",
+    "EUNYUL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "트루스오브뷰티",
+   "en": "Truth Of Beauty",
+   "db_brand": null,
+   "glowpick_id": 13775,
+   "seen": 10,
+   "aliases": [
+    "트루스오브뷰티",
+    "Truth Of Beauty",
+    "TruthOfBeauty"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "파이브바이브",
+   "en": "FIVE VIBE",
+   "db_brand": null,
+   "glowpick_id": 11473,
+   "seen": 10,
+   "aliases": [
+    "파이브바이브",
+    "FIVE VIBE",
+    "FIVEVIBE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "안나수이",
+   "en": "ANNA SUI",
+   "db_brand": null,
+   "glowpick_id": 155,
+   "seen": 10,
+   "aliases": [
+    "안나수이",
+    "ANNA SUI",
+    "ANNASUI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이돈띵쏘",
+   "en": "IDONTHINKSO",
+   "db_brand": null,
+   "glowpick_id": 3085,
+   "seen": 10,
+   "aliases": [
+    "아이돈띵쏘",
+    "IDONTHINKSO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터디퍼런트",
+   "en": "Dr.Different",
+   "db_brand": null,
+   "glowpick_id": 9102,
+   "seen": 10,
+   "aliases": [
+    "닥터디퍼런트",
+    "Dr.Different",
+    "DrDifferent"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시코르",
+   "en": "CHICOR",
+   "db_brand": null,
+   "glowpick_id": 8059,
+   "seen": 10,
+   "aliases": [
+    "시코르",
+    "CHICOR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "피브",
+   "en": "FEEV",
+   "db_brand": null,
+   "glowpick_id": 11015,
+   "seen": 10,
+   "aliases": [
+    "피브",
+    "FEEV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이유어",
+   "en": "ByUR",
+   "db_brand": null,
+   "glowpick_id": 12417,
+   "seen": 10,
+   "aliases": [
+    "바이유어",
+    "ByUR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "온디레브",
+   "en": "ONDIREV",
+   "db_brand": null,
+   "glowpick_id": 15939,
+   "seen": 10,
+   "aliases": [
+    "온디레브",
+    "ONDIREV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비긴스바이정샘물",
+   "en": "BeginS",
+   "db_brand": null,
+   "glowpick_id": 11816,
+   "seen": 10,
+   "aliases": [
+    "비긴스바이정샘물",
+    "BeginS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "제이준",
+   "en": "JAYJUN",
+   "db_brand": null,
+   "glowpick_id": 5488,
+   "seen": 10,
+   "aliases": [
+    "제이준",
+    "JAYJUN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "휴미",
+   "en": "huemi",
+   "db_brand": null,
+   "glowpick_id": 14718,
+   "seen": 9,
+   "aliases": [
+    "휴미",
+    "huemi"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "플라워노즈",
+   "en": "Flower Knows",
+   "db_brand": null,
+   "glowpick_id": 13929,
+   "seen": 9,
+   "aliases": [
+    "플라워노즈",
+    "Flower Knows",
+    "FlowerKnows"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오어스",
+   "en": "O'earth",
+   "db_brand": null,
+   "glowpick_id": 13040,
+   "seen": 9,
+   "aliases": [
+    "오어스",
+    "O'earth",
+    "Oearth"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "베타딘",
+   "en": null,
+   "db_brand": null,
+   "glowpick_id": 8326,
+   "seen": 9,
+   "aliases": [
+    "베타딘"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "반코르",
+   "en": "vancor",
+   "db_brand": null,
+   "glowpick_id": 5709,
+   "seen": 9,
+   "aliases": [
+    "반코르",
+    "vancor"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "썸머스이브",
+   "en": "summer's eve",
+   "db_brand": null,
+   "glowpick_id": 555,
+   "seen": 9,
+   "aliases": [
+    "썸머스이브",
+    "summer's eve",
+    "summerseve"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "동아제약",
+   "en": null,
+   "db_brand": null,
+   "glowpick_id": 5560,
+   "seen": 9,
+   "aliases": [
+    "동아제약"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모어댄에잇",
+   "en": "Morethan8",
+   "db_brand": null,
+   "glowpick_id": 12293,
+   "seen": 9,
+   "aliases": [
+    "모어댄에잇",
+    "Morethan8"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "청미정",
+   "en": "CHUNG MI JUNG",
+   "db_brand": null,
+   "glowpick_id": 1813,
+   "seen": 9,
+   "aliases": [
+    "청미정",
+    "CHUNG MI JUNG",
+    "CHUNGMIJUNG"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이아우어",
+   "en": "by our",
+   "db_brand": null,
+   "glowpick_id": 11556,
+   "seen": 9,
+   "aliases": [
+    "바이아우어",
+    "by our",
+    "byour"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아크로패스",
+   "en": "acropass",
+   "db_brand": null,
+   "glowpick_id": 6281,
+   "seen": 9,
+   "aliases": [
+    "아크로패스",
+    "acropass"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "NDP",
+   "en": "내추럴더마 프로젝트",
+   "db_brand": null,
+   "glowpick_id": 8723,
+   "seen": 9,
+   "aliases": [
+    "NDP",
+    "내추럴더마 프로젝트"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "피몽쉐",
+   "en": "Phymongshe",
+   "db_brand": null,
+   "glowpick_id": 653,
+   "seen": 9,
+   "aliases": [
+    "피몽쉐",
+    "Phymongshe"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "더말로지카",
+   "en": "dermalogica",
+   "db_brand": null,
+   "glowpick_id": 774,
+   "seen": 9,
+   "aliases": [
+    "더말로지카",
+    "dermalogica"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "슈에무라",
+   "en": "shu uemura",
+   "db_brand": null,
+   "glowpick_id": 130,
+   "seen": 9,
+   "aliases": [
+    "슈에무라",
+    "shu uemura",
+    "shuuemura"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스타라이크",
+   "en": "starlike",
+   "db_brand": null,
+   "glowpick_id": 14434,
+   "seen": 9,
+   "aliases": [
+    "스타라이크",
+    "starlike"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "필로티카",
+   "en": "PILOTICA",
+   "db_brand": null,
+   "glowpick_id": 12389,
+   "seen": 9,
+   "aliases": [
+    "필로티카",
+    "PILOTICA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "샵벨르",
+   "en": "#Belle",
+   "db_brand": null,
+   "glowpick_id": 7869,
+   "seen": 9,
+   "aliases": [
+    "샵벨르",
+    "#Belle",
+    "Belle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "하다라보",
+   "en": "HadaLabo",
+   "db_brand": null,
+   "glowpick_id": 636,
+   "seen": 9,
+   "aliases": [
+    "하다라보",
+    "HadaLabo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에이치",
+   "en": "A.chi",
+   "db_brand": null,
+   "glowpick_id": 13835,
+   "seen": 8,
+   "aliases": [
+    "에이치",
+    "A.chi",
+    "Achi"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메디포포",
+   "en": "MEDIPAWPAW",
+   "db_brand": null,
+   "glowpick_id": 7778,
+   "seen": 8,
+   "aliases": [
+    "메디포포",
+    "MEDIPAWPAW"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "베라모어",
+   "en": "VERAMORE",
+   "db_brand": "VERAMORE",
+   "glowpick_id": 12879,
+   "seen": 8,
+   "aliases": [
+    "베라모어",
+    "VERAMORE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "닥터블레딕",
+   "en": "Dr. BLEDIK",
+   "db_brand": null,
+   "glowpick_id": 9455,
+   "seen": 8,
+   "aliases": [
+    "닥터블레딕",
+    "Dr. BLEDIK",
+    "DrBLEDIK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "뷰앤디",
+   "en": "BEAUND",
+   "db_brand": null,
+   "glowpick_id": 13336,
+   "seen": 8,
+   "aliases": [
+    "뷰앤디",
+    "BEAUND"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "블루크로스",
+   "en": "BLUE CROSS",
+   "db_brand": null,
+   "glowpick_id": 12837,
+   "seen": 8,
+   "aliases": [
+    "블루크로스",
+    "BLUE CROSS",
+    "BLUECROSS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "웻브러쉬",
+   "en": "Wet Brush",
+   "db_brand": null,
+   "glowpick_id": 2029,
+   "seen": 8,
+   "aliases": [
+    "웻브러쉬",
+    "Wet Brush",
+    "WetBrush"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모에타",
+   "en": "moeta",
+   "db_brand": null,
+   "glowpick_id": 3585,
+   "seen": 8,
+   "aliases": [
+    "모에타",
+    "moeta"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아도르",
+   "en": "Lador",
+   "db_brand": null,
+   "glowpick_id": 1582,
+   "seen": 8,
+   "aliases": [
+    "아도르",
+    "Lador"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라이아",
+   "en": "RIAH",
+   "db_brand": null,
+   "glowpick_id": 12821,
+   "seen": 8,
+   "aliases": [
+    "라이아",
+    "RIAH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에르노브",
+   "en": "HerNov",
+   "db_brand": null,
+   "glowpick_id": 13557,
+   "seen": 8,
+   "aliases": [
+    "에르노브",
+    "HerNov"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "고루트",
+   "en": "GOROOT",
+   "db_brand": null,
+   "glowpick_id": 15647,
+   "seen": 8,
+   "aliases": [
+    "고루트",
+    "GOROOT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "댄트롤",
+   "en": "dantrol",
+   "db_brand": null,
+   "glowpick_id": 1244,
+   "seen": 8,
+   "aliases": [
+    "댄트롤",
+    "dantrol"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "헤막",
+   "en": "Hemak",
+   "db_brand": null,
+   "glowpick_id": 11593,
+   "seen": 8,
+   "aliases": [
+    "헤막",
+    "Hemak"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미에나",
+   "en": "miena",
+   "db_brand": null,
+   "glowpick_id": 13643,
+   "seen": 8,
+   "aliases": [
+    "미에나",
+    "miena"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "글로스앤글로우",
+   "en": "gloss\\u0026glow",
+   "db_brand": null,
+   "glowpick_id": 12249,
+   "seen": 8,
+   "aliases": [
+    "글로스앤글로우",
+    "gloss\\u0026glow",
+    "glossu0026glow"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "그래믹스",
+   "en": "GRAMIX",
+   "db_brand": null,
+   "glowpick_id": 13464,
+   "seen": 8,
+   "aliases": [
+    "그래믹스",
+    "GRAMIX"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "펜티뷰티",
+   "en": "FENTY BEAUTY",
+   "db_brand": null,
+   "glowpick_id": 7380,
+   "seen": 8,
+   "aliases": [
+    "펜티뷰티",
+    "FENTY BEAUTY",
+    "FENTYBEAUTY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "칼앤한스",
+   "en": "Karl\\u0026Hans",
+   "db_brand": null,
+   "glowpick_id": 12394,
+   "seen": 8,
+   "aliases": [
+    "칼앤한스",
+    "Karl\\u0026Hans",
+    "Karlu0026Hans"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "솔테라피",
+   "en": "salTherapy",
+   "db_brand": null,
+   "glowpick_id": 8704,
+   "seen": 8,
+   "aliases": [
+    "솔테라피",
+    "salTherapy"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "지아자",
+   "en": "Ziaja",
+   "db_brand": null,
+   "glowpick_id": 916,
+   "seen": 8,
+   "aliases": [
+    "지아자",
+    "Ziaja"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "엠디스픽",
+   "en": "MD'S PICK",
+   "db_brand": null,
+   "glowpick_id": 5976,
+   "seen": 8,
+   "aliases": [
+    "엠디스픽",
+    "MD'S PICK",
+    "MDSPICK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오킵스",
+   "en": "Okeeffes",
+   "db_brand": null,
+   "glowpick_id": 7496,
+   "seen": 8,
+   "aliases": [
+    "오킵스",
+    "Okeeffes"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "엘로엘",
+   "en": "ELROEL",
+   "db_brand": null,
+   "glowpick_id": 708,
+   "seen": 8,
+   "aliases": [
+    "엘로엘",
+    "ELROEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "얼라이브랩",
+   "en": "ALIVE LAB",
+   "db_brand": null,
+   "glowpick_id": 3729,
+   "seen": 8,
+   "aliases": [
+    "얼라이브랩",
+    "ALIVE LAB",
+    "ALIVELAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "핑크원더",
+   "en": "PINKWONDER",
+   "db_brand": null,
+   "glowpick_id": 7935,
+   "seen": 8,
+   "aliases": [
+    "핑크원더",
+    "PINKWONDER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "백아율",
+   "en": "Baegayul",
+   "db_brand": null,
+   "glowpick_id": 7344,
+   "seen": 8,
+   "aliases": [
+    "백아율",
+    "Baegayul"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "제나벨",
+   "en": "Genabelle",
+   "db_brand": null,
+   "glowpick_id": 8868,
+   "seen": 8,
+   "aliases": [
+    "제나벨",
+    "Genabelle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "수랏",
+   "en": "surratt",
+   "db_brand": null,
+   "glowpick_id": 7051,
+   "seen": 8,
+   "aliases": [
+    "수랏",
+    "surratt"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비앙코",
+   "en": "BIANCO",
+   "db_brand": null,
+   "glowpick_id": 13302,
+   "seen": 8,
+   "aliases": [
+    "비앙코",
+    "BIANCO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "클레아닉",
+   "en": "CLEANIC",
+   "db_brand": null,
+   "glowpick_id": 4761,
+   "seen": 8,
+   "aliases": [
+    "클레아닉",
+    "CLEANIC"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "자주",
+   "en": "JAJU",
+   "db_brand": null,
+   "glowpick_id": 2035,
+   "seen": 8,
+   "aliases": [
+    "자주",
+    "JAJU"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디버든프로젝트",
+   "en": "BODYBURDEN PROJECT",
+   "db_brand": null,
+   "glowpick_id": 9471,
+   "seen": 8,
+   "aliases": [
+    "바디버든프로젝트",
+    "BODYBURDEN PROJECT",
+    "BODYBURDENPROJECT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "태오앤더",
+   "en": "teo and the",
+   "db_brand": null,
+   "glowpick_id": 13972,
+   "seen": 8,
+   "aliases": [
+    "태오앤더",
+    "teo and the",
+    "teoandthe"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "키핀터치",
+   "en": "Keep in Touch",
+   "db_brand": null,
+   "glowpick_id": 2274,
+   "seen": 8,
+   "aliases": [
+    "키핀터치",
+    "Keep in Touch",
+    "KeepinTouch"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라부르켓",
+   "en": "LA BRUKET",
+   "db_brand": null,
+   "glowpick_id": 7010,
+   "seen": 8,
+   "aliases": [
+    "라부르켓",
+    "LA BRUKET",
+    "LABRUKET"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "하밍",
+   "en": "haming",
+   "db_brand": null,
+   "glowpick_id": 13959,
+   "seen": 8,
+   "aliases": [
+    "하밍",
+    "haming"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "노우어스",
+   "en": "nouus",
+   "db_brand": null,
+   "glowpick_id": 15188,
+   "seen": 8,
+   "aliases": [
+    "노우어스",
+    "nouus"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "끌레드뽀 보떼",
+   "en": "Cle de Peau Beaute",
+   "db_brand": null,
+   "glowpick_id": 19,
+   "seen": 8,
+   "aliases": [
+    "끌레드뽀 보떼",
+    "Cle de Peau Beaute",
+    "CledePeauBeaute"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이오오일",
+   "en": "Bio Oil",
+   "db_brand": "BIO-OIL",
+   "glowpick_id": 518,
+   "seen": 8,
+   "aliases": [
+    "바이오오일",
+    "Bio Oil",
+    "BIO-OIL",
+    "바이오-오일",
+    "BioOil"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "에쿠와",
+   "en": "AEQUWA",
+   "db_brand": "AEQUWA",
+   "glowpick_id": 15316,
+   "seen": 8,
+   "aliases": [
+    "에쿠와",
+    "AEQUWA"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "TS",
+   "en": "티에스",
+   "db_brand": null,
+   "glowpick_id": 3793,
+   "seen": 7,
+   "aliases": [
+    "TS",
+    "티에스"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "엘레나",
+   "en": "ELENA",
+   "db_brand": null,
+   "glowpick_id": 13867,
+   "seen": 7,
+   "aliases": [
+    "엘레나",
+    "ELENA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "덴티 본조르노",
+   "en": "DENTI BUONGIORNO",
+   "db_brand": null,
+   "glowpick_id": 11256,
+   "seen": 7,
+   "aliases": [
+    "덴티 본조르노",
+    "DENTI BUONGIORNO",
+    "DENTIBUONGIORNO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "언파코스메틱",
+   "en": "unpa",
+   "db_brand": null,
+   "glowpick_id": 6396,
+   "seen": 7,
+   "aliases": [
+    "언파코스메틱",
+    "unpa"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "졸렌",
+   "en": "JOLEN",
+   "db_brand": null,
+   "glowpick_id": 6982,
+   "seen": 7,
+   "aliases": [
+    "졸렌",
+    "JOLEN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "밀본",
+   "en": "MILBON",
+   "db_brand": null,
+   "glowpick_id": 5446,
+   "seen": 7,
+   "aliases": [
+    "밀본",
+    "MILBON"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디멍",
+   "en": "BODYMONT",
+   "db_brand": null,
+   "glowpick_id": 15008,
+   "seen": 7,
+   "aliases": [
+    "바디멍",
+    "BODYMONT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스킨부탁",
+   "en": "SKiNBUTAK",
+   "db_brand": null,
+   "glowpick_id": 9474,
+   "seen": 7,
+   "aliases": [
+    "스킨부탁",
+    "SKiNBUTAK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바디럽",
+   "en": "BODYLUV",
+   "db_brand": null,
+   "glowpick_id": 7681,
+   "seen": 7,
+   "aliases": [
+    "바디럽",
+    "BODYLUV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "럭스",
+   "en": "LUX",
+   "db_brand": null,
+   "glowpick_id": 11604,
+   "seen": 7,
+   "aliases": [
+    "럭스",
+    "LUX"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "시사오",
+   "en": "SISAO",
+   "db_brand": null,
+   "glowpick_id": 13487,
+   "seen": 7,
+   "aliases": [
+    "시사오",
+    "SISAO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "노우라이",
+   "en": "NOLie",
+   "db_brand": null,
+   "glowpick_id": 13323,
+   "seen": 7,
+   "aliases": [
+    "노우라이",
+    "NOLie"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미차이",
+   "en": "MECHAI",
+   "db_brand": null,
+   "glowpick_id": 13779,
+   "seen": 7,
+   "aliases": [
+    "미차이",
+    "MECHAI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "네슈라",
+   "en": "NESURA",
+   "db_brand": null,
+   "glowpick_id": 894,
+   "seen": 7,
+   "aliases": [
+    "네슈라",
+    "NESURA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바루랩",
+   "en": "BARULAB",
+   "db_brand": null,
+   "glowpick_id": 7235,
+   "seen": 7,
+   "aliases": [
+    "바루랩",
+    "BARULAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "신데렐라스토리",
+   "en": "CINDERELLA STORY",
+   "db_brand": null,
+   "glowpick_id": 823,
+   "seen": 7,
+   "aliases": [
+    "신데렐라스토리",
+    "CINDERELLA STORY",
+    "CINDERELLASTORY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "언리시아",
+   "en": "UNLEASHIA",
+   "db_brand": null,
+   "glowpick_id": 9118,
+   "seen": 7,
+   "aliases": [
+    "언리시아",
+    "UNLEASHIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "멜릭서",
+   "en": "melixir",
+   "db_brand": null,
+   "glowpick_id": 9739,
+   "seen": 7,
+   "aliases": [
+    "멜릭서",
+    "melixir"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바이애콤",
+   "en": "BY ECOM",
+   "db_brand": null,
+   "glowpick_id": 7628,
+   "seen": 7,
+   "aliases": [
+    "바이애콤",
+    "BY ECOM",
+    "BYECOM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터탱글",
+   "en": "Dr.Tengle",
+   "db_brand": null,
+   "glowpick_id": 13063,
+   "seen": 6,
+   "aliases": [
+    "닥터탱글",
+    "Dr.Tengle",
+    "DrTengle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로로벨",
+   "en": "ROROBELL",
+   "db_brand": null,
+   "glowpick_id": 9015,
+   "seen": 6,
+   "aliases": [
+    "로로벨",
+    "ROROBELL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마비스",
+   "en": "MARVIS",
+   "db_brand": null,
+   "glowpick_id": 10325,
+   "seen": 6,
+   "aliases": [
+    "마비스",
+    "MARVIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "촉촉젤스",
+   "en": "CHOK CHOK GELLS",
+   "db_brand": null,
+   "glowpick_id": 8932,
+   "seen": 6,
+   "aliases": [
+    "촉촉젤스",
+    "CHOK CHOK GELLS",
+    "CHOKCHOKGELLS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "허바신",
+   "en": "Herbacin",
+   "db_brand": null,
+   "glowpick_id": 353,
+   "seen": 6,
+   "aliases": [
+    "허바신",
+    "Herbacin"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "앤아더스토리즈",
+   "en": "\\u0026 other stories",
+   "db_brand": null,
+   "glowpick_id": 4229,
+   "seen": 6,
+   "aliases": [
+    "앤아더스토리즈",
+    "\\u0026 other stories",
+    "u0026otherstories"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비오템",
+   "en": "BIOTHERM",
+   "db_brand": null,
+   "glowpick_id": 112,
+   "seen": 6,
+   "aliases": [
+    "비오템",
+    "BIOTHERM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "듀이셀",
+   "en": "DEWY CEL",
+   "db_brand": null,
+   "glowpick_id": 6071,
+   "seen": 6,
+   "aliases": [
+    "듀이셀",
+    "DEWY CEL",
+    "DEWYCEL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에피누보",
+   "en": "epinouveau",
+   "db_brand": null,
+   "glowpick_id": 14338,
+   "seen": 6,
+   "aliases": [
+    "에피누보",
+    "epinouveau"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "톡투유",
+   "en": "talktou",
+   "db_brand": null,
+   "glowpick_id": 13213,
+   "seen": 6,
+   "aliases": [
+    "톡투유",
+    "talktou"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오소프",
+   "en": "OHSOPH",
+   "db_brand": null,
+   "glowpick_id": 14650,
+   "seen": 6,
+   "aliases": [
+    "오소프",
+    "OHSOPH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로드스킨",
+   "en": "rhode",
+   "db_brand": null,
+   "glowpick_id": 14166,
+   "seen": 6,
+   "aliases": [
+    "로드스킨",
+    "rhode"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리바이탈래쉬",
+   "en": "RevitaLash",
+   "db_brand": null,
+   "glowpick_id": 5428,
+   "seen": 6,
+   "aliases": [
+    "리바이탈래쉬",
+    "RevitaLash"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "세컨디자인",
+   "en": "2NDESIGN",
+   "db_brand": null,
+   "glowpick_id": 8613,
+   "seen": 6,
+   "aliases": [
+    "세컨디자인",
+    "2NDESIGN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이듀케어",
+   "en": "I DEW CARE",
+   "db_brand": null,
+   "glowpick_id": 10567,
+   "seen": 6,
+   "aliases": [
+    "아이듀케어",
+    "I DEW CARE",
+    "IDEWCARE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라 메르",
+   "en": "LA MER",
+   "db_brand": null,
+   "glowpick_id": 45,
+   "seen": 6,
+   "aliases": [
+    "라 메르",
+    "LA MER",
+    "LAMER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오모로비짜",
+   "en": "Omorovicza",
+   "db_brand": null,
+   "glowpick_id": 734,
+   "seen": 6,
+   "aliases": [
+    "오모로비짜",
+    "Omorovicza"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "피에이치하비",
+   "en": "Ph. Hubby",
+   "db_brand": null,
+   "glowpick_id": 11801,
+   "seen": 5,
+   "aliases": [
+    "피에이치하비",
+    "Ph. Hubby",
+    "PhHubby"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모레모 케라틴",
+   "en": "moremo keratin",
+   "db_brand": null,
+   "glowpick_id": 14305,
+   "seen": 5,
+   "aliases": [
+    "모레모 케라틴",
+    "moremo keratin",
+    "moremokeratin"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라입",
+   "en": "RAIP",
+   "db_brand": null,
+   "glowpick_id": 3149,
+   "seen": 5,
+   "aliases": [
+    "라입",
+    "RAIP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이든 미네랄",
+   "en": "IDUN MINERALS",
+   "db_brand": null,
+   "glowpick_id": 11964,
+   "seen": 5,
+   "aliases": [
+    "이든 미네랄",
+    "IDUN MINERALS",
+    "IDUNMINERALS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "지오마",
+   "en": "GEOMAR",
+   "db_brand": null,
+   "glowpick_id": 390,
+   "seen": 5,
+   "aliases": [
+    "지오마",
+    "GEOMAR"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "온호프",
+   "en": "onhope",
+   "db_brand": null,
+   "glowpick_id": 12006,
+   "seen": 5,
+   "aliases": [
+    "온호프",
+    "onhope"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "셀라피",
+   "en": "Cellapy",
+   "db_brand": null,
+   "glowpick_id": 1098,
+   "seen": 5,
+   "aliases": [
+    "셀라피",
+    "Cellapy"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "필로소피",
+   "en": "Philosophy",
+   "db_brand": null,
+   "glowpick_id": 297,
+   "seen": 5,
+   "aliases": [
+    "필로소피",
+    "Philosophy"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "베베루나",
+   "en": "BEBELUNA",
+   "db_brand": null,
+   "glowpick_id": 8670,
+   "seen": 5,
+   "aliases": [
+    "베베루나",
+    "BEBELUNA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "랩클",
+   "en": "LABCLE",
+   "db_brand": "LABCLE",
+   "glowpick_id": 11738,
+   "seen": 5,
+   "aliases": [
+    "랩클",
+    "LABCLE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "케어존",
+   "en": "CAREZONE",
+   "db_brand": "CAREZONE",
+   "glowpick_id": 417,
+   "seen": 5,
+   "aliases": [
+    "케어존",
+    "CAREZONE"
+   ],
+   "sources": [
+    "glowpick",
+    "db"
+   ]
+  },
+  {
+   "ko": "비프로젝트",
+   "en": "B Project",
+   "db_brand": null,
+   "glowpick_id": 11873,
+   "seen": 5,
+   "aliases": [
+    "비프로젝트",
+    "B Project",
+    "BProject"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "매드피치",
+   "en": "MAD PEACH",
+   "db_brand": null,
+   "glowpick_id": 13368,
+   "seen": 5,
+   "aliases": [
+    "매드피치",
+    "MAD PEACH",
+    "MADPEACH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "레브쌍",
+   "en": "REVECEN",
+   "db_brand": null,
+   "glowpick_id": 2965,
+   "seen": 5,
+   "aliases": [
+    "레브쌍",
+    "REVECEN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "캐트리스",
+   "en": "CATRICE",
+   "db_brand": null,
+   "glowpick_id": 292,
+   "seen": 5,
+   "aliases": [
+    "캐트리스",
+    "CATRICE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이더앤",
+   "en": "EITHER\\u0026",
+   "db_brand": null,
+   "glowpick_id": 14573,
+   "seen": 5,
+   "aliases": [
+    "이더앤",
+    "EITHER\\u0026",
+    "EITHERu0026"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "JCK 메이크업 브러쉬",
+   "en": "JCK",
+   "db_brand": null,
+   "glowpick_id": 5530,
+   "seen": 5,
+   "aliases": [
+    "JCK 메이크업 브러쉬",
+    "JCK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프로에잇청담",
+   "en": "PRO 8 CHEONGDAM",
+   "db_brand": null,
+   "glowpick_id": 2583,
+   "seen": 5,
+   "aliases": [
+    "프로에잇청담",
+    "PRO 8 CHEONGDAM",
+    "PRO8CHEONGDAM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "잉가",
+   "en": "INGA",
+   "db_brand": null,
+   "glowpick_id": 4889,
+   "seen": 5,
+   "aliases": [
+    "잉가",
+    "INGA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "클럽코스메틱",
+   "en": "CLUB Cosmetics",
+   "db_brand": null,
+   "glowpick_id": 7534,
+   "seen": 5,
+   "aliases": [
+    "클럽코스메틱",
+    "CLUB Cosmetics",
+    "CLUBCosmetics"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "그라운드플랜",
+   "en": "GROUND PLAN",
+   "db_brand": null,
+   "glowpick_id": 1168,
+   "seen": 5,
+   "aliases": [
+    "그라운드플랜",
+    "GROUND PLAN",
+    "GROUNDPLAN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로즈프로젝트",
+   "en": "ROSE PROJECT",
+   "db_brand": null,
+   "glowpick_id": 12262,
+   "seen": 4,
+   "aliases": [
+    "로즈프로젝트",
+    "ROSE PROJECT",
+    "ROSEPROJECT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바른",
+   "en": "BARUN",
+   "db_brand": null,
+   "glowpick_id": 12009,
+   "seen": 4,
+   "aliases": [
+    "바른",
+    "BARUN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리브엠",
+   "en": "Reve:am",
+   "db_brand": null,
+   "glowpick_id": 13423,
+   "seen": 4,
+   "aliases": [
+    "리브엠",
+    "Reve:am",
+    "Reveam"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "아이베베",
+   "en": "ibaebae",
+   "db_brand": null,
+   "glowpick_id": 6808,
+   "seen": 4,
+   "aliases": [
+    "아이베베",
+    "ibaebae"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "칸투",
+   "en": "cantu",
+   "db_brand": null,
+   "glowpick_id": 12960,
+   "seen": 4,
+   "aliases": [
+    "칸투",
+    "cantu"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "다노클리닉",
+   "en": "DANO CLINIC",
+   "db_brand": null,
+   "glowpick_id": 7719,
+   "seen": 4,
+   "aliases": [
+    "다노클리닉",
+    "DANO CLINIC",
+    "DANOCLINIC"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "내주",
+   "en": "Nejoo",
+   "db_brand": null,
+   "glowpick_id": 13906,
+   "seen": 4,
+   "aliases": [
+    "내주",
+    "Nejoo"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미엘프로페셔널",
+   "en": "mielle",
+   "db_brand": null,
+   "glowpick_id": 8189,
+   "seen": 4,
+   "aliases": [
+    "미엘프로페셔널",
+    "mielle"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "지오바니",
+   "en": "Giovanni",
+   "db_brand": null,
+   "glowpick_id": 677,
+   "seen": 4,
+   "aliases": [
+    "지오바니",
+    "Giovanni"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "나푸키아",
+   "en": "NAPUKIA",
+   "db_brand": null,
+   "glowpick_id": 6969,
+   "seen": 4,
+   "aliases": [
+    "나푸키아",
+    "NAPUKIA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라온컴퍼니",
+   "en": "RAON CAMPANY",
+   "db_brand": null,
+   "glowpick_id": 2484,
+   "seen": 4,
+   "aliases": [
+    "라온컴퍼니",
+    "RAON CAMPANY",
+    "RAONCAMPANY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "루토닉스",
+   "en": "ROOTONIX",
+   "db_brand": null,
+   "glowpick_id": 11216,
+   "seen": 4,
+   "aliases": [
+    "루토닉스",
+    "ROOTONIX"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "썬실크",
+   "en": "SUNSILK",
+   "db_brand": null,
+   "glowpick_id": 6206,
+   "seen": 4,
+   "aliases": [
+    "썬실크",
+    "SUNSILK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "로더렛",
+   "en": "L'ODEURLETTE",
+   "db_brand": null,
+   "glowpick_id": 13713,
+   "seen": 4,
+   "aliases": [
+    "로더렛",
+    "L'ODEURLETTE",
+    "LODEURLETTE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "바난겐",
+   "en": "BARNANGEN",
+   "db_brand": null,
+   "glowpick_id": 9281,
+   "seen": 4,
+   "aliases": [
+    "바난겐",
+    "BARNANGEN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "비클리닉스",
+   "en": "b.clinicx",
+   "db_brand": null,
+   "glowpick_id": 14004,
+   "seen": 4,
+   "aliases": [
+    "비클리닉스",
+    "b.clinicx",
+    "bclinicx"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "힐로소피",
+   "en": "HEALOSOPHY",
+   "db_brand": null,
+   "glowpick_id": 12839,
+   "seen": 4,
+   "aliases": [
+    "힐로소피",
+    "HEALOSOPHY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "락토덤",
+   "en": "LACTO DERM",
+   "db_brand": null,
+   "glowpick_id": 11648,
+   "seen": 4,
+   "aliases": [
+    "락토덤",
+    "LACTO DERM",
+    "LACTODERM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "투데이이즈",
+   "en": "TODAY(IS)",
+   "db_brand": null,
+   "glowpick_id": 13728,
+   "seen": 4,
+   "aliases": [
+    "투데이이즈",
+    "TODAY(IS)",
+    "TODAYIS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "프레비츠",
+   "en": "FREBITS",
+   "db_brand": null,
+   "glowpick_id": 12686,
+   "seen": 4,
+   "aliases": [
+    "프레비츠",
+    "FREBITS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에스알비",
+   "en": "SRB",
+   "db_brand": null,
+   "glowpick_id": 9432,
+   "seen": 4,
+   "aliases": [
+    "에스알비",
+    "SRB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "크리스마",
+   "en": "CHRISMA",
+   "db_brand": null,
+   "glowpick_id": 1081,
+   "seen": 4,
+   "aliases": [
+    "크리스마",
+    "CHRISMA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "라포티셀",
+   "en": "LAPOTHICELL",
+   "db_brand": null,
+   "glowpick_id": 3429,
+   "seen": 4,
+   "aliases": [
+    "라포티셀",
+    "LAPOTHICELL"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이브롬",
+   "en": "EVELOM",
+   "db_brand": null,
+   "glowpick_id": 300,
+   "seen": 4,
+   "aliases": [
+    "이브롬",
+    "EVELOM"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "안씨브러쉬",
+   "en": "Ancci brush",
+   "db_brand": null,
+   "glowpick_id": 8911,
+   "seen": 4,
+   "aliases": [
+    "안씨브러쉬",
+    "Ancci brush",
+    "Anccibrush"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "꽃립",
+   "en": "KKOTLIP",
+   "db_brand": null,
+   "glowpick_id": 15209,
+   "seen": 4,
+   "aliases": [
+    "꽃립",
+    "KKOTLIP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "리플라이미",
+   "en": "reply:me",
+   "db_brand": null,
+   "glowpick_id": 14249,
+   "seen": 4,
+   "aliases": [
+    "리플라이미",
+    "reply:me",
+    "replyme"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "뷰티트릿",
+   "en": "Beauty Treats",
+   "db_brand": null,
+   "glowpick_id": 2403,
+   "seen": 4,
+   "aliases": [
+    "뷰티트릿",
+    "Beauty Treats",
+    "BeautyTreats"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "키르시블렌딩",
+   "en": "KIRSH BLENDING",
+   "db_brand": null,
+   "glowpick_id": 10101,
+   "seen": 4,
+   "aliases": [
+    "키르시블렌딩",
+    "KIRSH BLENDING",
+    "KIRSHBLENDING"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "보타니티",
+   "en": "BOTANITY",
+   "db_brand": null,
+   "glowpick_id": 8203,
+   "seen": 4,
+   "aliases": [
+    "보타니티",
+    "BOTANITY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "딘시 더글로우",
+   "en": "dinsee the glow",
+   "db_brand": null,
+   "glowpick_id": 15439,
+   "seen": 3,
+   "aliases": [
+    "딘시 더글로우",
+    "dinsee the glow",
+    "dinseetheglow"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "베비루미",
+   "en": "BABILUMI",
+   "db_brand": null,
+   "glowpick_id": 6786,
+   "seen": 3,
+   "aliases": [
+    "베비루미",
+    "BABILUMI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "디엠씨케이",
+   "en": "DMCK",
+   "db_brand": null,
+   "glowpick_id": 1131,
+   "seen": 3,
+   "aliases": [
+    "디엠씨케이",
+    "DMCK"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "메이준",
+   "en": "MAYJUNE",
+   "db_brand": null,
+   "glowpick_id": 7840,
+   "seen": 3,
+   "aliases": [
+    "메이준",
+    "MAYJUNE"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에스테티카",
+   "en": "ESTETICA",
+   "db_brand": null,
+   "glowpick_id": 832,
+   "seen": 3,
+   "aliases": [
+    "에스테티카",
+    "ESTETICA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "딥스",
+   "en": "Dibs",
+   "db_brand": null,
+   "glowpick_id": 11754,
+   "seen": 3,
+   "aliases": [
+    "딥스",
+    "Dibs"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "코츠비",
+   "en": "COTSBI",
+   "db_brand": null,
+   "glowpick_id": 9670,
+   "seen": 3,
+   "aliases": [
+    "코츠비",
+    "COTSBI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "웻앤와일드",
+   "en": "Wet n Wild",
+   "db_brand": null,
+   "glowpick_id": 663,
+   "seen": 3,
+   "aliases": [
+    "웻앤와일드",
+    "Wet n Wild",
+    "WetnWild"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "소크드하우스",
+   "en": "Soaked House",
+   "db_brand": null,
+   "glowpick_id": 15966,
+   "seen": 3,
+   "aliases": [
+    "소크드하우스",
+    "Soaked House",
+    "SoakedHouse"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "포잇",
+   "en": "FORIT",
+   "db_brand": null,
+   "glowpick_id": 9445,
+   "seen": 3,
+   "aliases": [
+    "포잇",
+    "FORIT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이아이오",
+   "en": "EIIO",
+   "db_brand": null,
+   "glowpick_id": 9400,
+   "seen": 3,
+   "aliases": [
+    "이아이오",
+    "EIIO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "에프플로우",
+   "en": "FFLOW",
+   "db_brand": null,
+   "glowpick_id": 8135,
+   "seen": 3,
+   "aliases": [
+    "에프플로우",
+    "FFLOW"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "오아이브",
+   "en": "OAIIV",
+   "db_brand": null,
+   "glowpick_id": 12109,
+   "seen": 3,
+   "aliases": [
+    "오아이브",
+    "OAIIV"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "미쯔요시",
+   "en": "MITSUYOSHI",
+   "db_brand": null,
+   "glowpick_id": 89,
+   "seen": 3,
+   "aliases": [
+    "미쯔요시",
+    "MITSUYOSHI"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "마스카컴퍼니",
+   "en": "MASKACOMPANY",
+   "db_brand": null,
+   "glowpick_id": 6975,
+   "seen": 3,
+   "aliases": [
+    "마스카컴퍼니",
+    "MASKACOMPANY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "샬롯 틸버리",
+   "en": "CharlotteTilbury",
+   "db_brand": null,
+   "glowpick_id": 2397,
+   "seen": 3,
+   "aliases": [
+    "샬롯 틸버리",
+    "CharlotteTilbury"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "킬릿",
+   "en": "killit",
+   "db_brand": null,
+   "glowpick_id": 14655,
+   "seen": 3,
+   "aliases": [
+    "킬릿",
+    "killit"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "후다뷰티",
+   "en": "HUDA BEAUTY",
+   "db_brand": null,
+   "glowpick_id": 7447,
+   "seen": 3,
+   "aliases": [
+    "후다뷰티",
+    "HUDA BEAUTY",
+    "HUDABEAUTY"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "알씨엠에이 메이크업",
+   "en": "RCMA MAKE UP",
+   "db_brand": null,
+   "glowpick_id": 14783,
+   "seen": 3,
+   "aliases": [
+    "알씨엠에이 메이크업",
+    "RCMA MAKE UP",
+    "RCMAMAKEUP"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모나코코",
+   "en": "MONACOCO",
+   "db_brand": null,
+   "glowpick_id": 12844,
+   "seen": 2,
+   "aliases": [
+    "모나코코",
+    "MONACOCO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "줄라이미",
+   "en": "JUL7ME",
+   "db_brand": null,
+   "glowpick_id": 9492,
+   "seen": 2,
+   "aliases": [
+    "줄라이미",
+    "JUL7ME"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "포비페이스",
+   "en": "4B:face",
+   "db_brand": null,
+   "glowpick_id": 13170,
+   "seen": 2,
+   "aliases": [
+    "포비페이스",
+    "4B:face",
+    "4Bface"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "배드스킨",
+   "en": "BADSKIN",
+   "db_brand": null,
+   "glowpick_id": 829,
+   "seen": 2,
+   "aliases": [
+    "배드스킨",
+    "BADSKIN"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "낫츠",
+   "en": "NOTS",
+   "db_brand": null,
+   "glowpick_id": 466,
+   "seen": 2,
+   "aliases": [
+    "낫츠",
+    "NOTS"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "수아이레",
+   "en": "SHUA IREH",
+   "db_brand": null,
+   "glowpick_id": 10480,
+   "seen": 1,
+   "aliases": [
+    "수아이레",
+    "SHUA IREH",
+    "SHUAIREH"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "스킨알엑스랩",
+   "en": "SKINRx LAB",
+   "db_brand": null,
+   "glowpick_id": 3781,
+   "seen": 1,
+   "aliases": [
+    "스킨알엑스랩",
+    "SKINRx LAB",
+    "SKINRxLAB"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "모멘센트",
+   "en": "momenscent",
+   "db_brand": null,
+   "glowpick_id": 13978,
+   "seen": 1,
+   "aliases": [
+    "모멘센트",
+    "momenscent"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "가르니에",
+   "en": "GARNIER",
+   "db_brand": null,
+   "glowpick_id": 4705,
+   "seen": 1,
+   "aliases": [
+    "가르니에",
+    "GARNIER"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "닥터그라프트",
+   "en": "Dr GRAFT",
+   "db_brand": null,
+   "glowpick_id": 11601,
+   "seen": 1,
+   "aliases": [
+    "닥터그라프트",
+    "Dr GRAFT",
+    "DrGRAFT"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "이뽀",
+   "en": "IBBO",
+   "db_brand": null,
+   "glowpick_id": 12567,
+   "seen": 1,
+   "aliases": [
+    "이뽀",
+    "IBBO"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "치노시오야",
+   "en": "CHINOSHIOYA",
+   "db_brand": null,
+   "glowpick_id": 778,
+   "seen": 1,
+   "aliases": [
+    "치노시오야",
+    "CHINOSHIOYA"
+   ],
+   "sources": [
+    "glowpick"
+   ]
+  },
+  {
+   "ko": "앰플엔",
+   "en": "AMPLE:N",
+   "db_brand": "AMPLE:N",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "AMPLE:N",
+    "앰플엔",
+    "AMPLEN"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "비오엠",
+   "en": "BOM",
+   "db_brand": "BOM",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "BOM",
+    "비오엠"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "코드글로컬러",
+   "en": "CODE GLOKOLOR",
+   "db_brand": "CODE GLOKOLOR",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "CODE GLOKOLOR",
+    "코드글로컬러",
+    "CODEGLOKOLOR"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "큐어코드",
+   "en": "CURECODE",
+   "db_brand": "CURECODE",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "CURECODE",
+    "큐어코드"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "엑쎄라피",
+   "en": "EXCERAPY",
+   "db_brand": "EXCERAPY",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "EXCERAPY",
+    "엑쎄라피"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "지피덤",
+   "en": "GPDERM",
+   "db_brand": "GPDERM",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "GPDERM",
+    "지피덤"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "하루하루원더",
+   "en": "HARUHARU WONDER",
+   "db_brand": "HARUHARU WONDER",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "HARUHARU WONDER",
+    "하루하루원더",
+    "HARUHARUWONDER"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "가히",
+   "en": "KAHI",
+   "db_brand": "KAHI",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "KAHI",
+    "가히"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "라보레브",
+   "en": "LABOREVE",
+   "db_brand": "LABOREVE",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "LABOREVE",
+    "라보레브"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "릴리이브",
+   "en": "LILYEVE",
+   "db_brand": "LILYEVE",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "LILYEVE",
+    "릴리이브"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "러브플레르",
+   "en": "LOVEFLEUR",
+   "db_brand": "LOVEFLEUR",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "LOVEFLEUR",
+    "러브플레르",
+    "러플",
+    "lovefleur",
+    "ONEBYPURE",
+    "원바이퓨어",
+    "onebypure"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "미니어",
+   "en": "MINIER",
+   "db_brand": "MINIER",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "MINIER",
+    "미니어"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "누그레이",
+   "en": "NUGRAY",
+   "db_brand": "NUGRAY",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "NUGRAY",
+    "누그레이"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "오아드",
+   "en": "OIAD",
+   "db_brand": "OIAD",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "OIAD",
+    "오아드"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "오페라",
+   "en": "OPERA",
+   "db_brand": "OPERA",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "OPERA",
+    "오페라"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "퍼셀",
+   "en": "PERCELL",
+   "db_brand": "PERCELL",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "PERCELL",
+    "퍼셀"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "센셀",
+   "en": "SENSEL",
+   "db_brand": "SENSEL",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "SENSEL",
+    "sensel_beauty",
+    "센셀",
+    "센슬"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "시세이도",
+   "en": "SHISEIDO",
+   "db_brand": "SHISEIDO",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "SHISEIDO",
+    "시세이도"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "시아베리어",
+   "en": "SIABARRIER",
+   "db_brand": "SIABARRIER",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "SIABARRIER",
+    "시아베리어"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "스킨수티컬즈",
+   "en": "SKINCEUTICALS",
+   "db_brand": "SKINCEUTICALS",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "SKINCEUTICALS",
+    "스킨수티컬즈"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "더메디닥터",
+   "en": "THEMEDIDR",
+   "db_brand": "THEMEDIDR",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "THEMEDIDR",
+    "더메디닥터"
+   ],
+   "sources": [
+    "db",
+    "translit"
+   ]
+  },
+  {
+   "ko": "티르티르",
+   "en": "TIRTIR",
+   "db_brand": "TIRTIR",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "TIRTIR",
+    "티르티르"
+   ],
+   "sources": [
+    "db"
+   ]
+  },
+  {
+   "ko": "원정요",
+   "en": "WONJUNGYO",
+   "db_brand": "WONJUNGYO",
+   "glowpick_id": null,
+   "seen": 0,
+   "aliases": [
+    "WONJUNGYO",
+    "Wonjungyo",
+    "원정요",
+    "wonjungyo hair",
+    "wonjungyohair",
+    "원정요 헤어",
+    "원정요헤어"
+   ],
+   "sources": [
+    "db"
+   ]
+  }
+ ]
+}

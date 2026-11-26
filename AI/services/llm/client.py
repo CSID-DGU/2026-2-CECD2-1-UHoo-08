@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, Optional
@@ -38,6 +39,7 @@ class LLMRole(str, Enum):
     COMPOSE = "compose"      # 추천 이유 문장
     VLM = "vlm"              # 사진 인식
     AD = "ad"                # 인스타 캡션 광고 판별 (1차 규칙이 못 정한 것)
+    MATCH = "match"          # 인스타 캡션 → 제품 언급 추출 · 후보 판정
 
 
 # 환경 변수를 비워 뒀을 때 쓰는 값. 지금 쓰고 있는 모델 그대로다.
@@ -47,6 +49,7 @@ _기본_모델 = {
     LLMRole.COMPOSE: lambda: settings.QWEN_TEXT_MODEL,
     LLMRole.VLM: lambda: settings.QWEN_VL_MODEL,
     LLMRole.AD: lambda: settings.QWEN_TEXT_MODEL,
+    LLMRole.MATCH: lambda: settings.QWEN_TEXT_MODEL,
 }
 
 _기본_주소 = {
@@ -72,6 +75,17 @@ class LLMClient:
     def __init__(self, model: str, base_url: str, api_key: str) -> None:
         self._client = OpenAI(api_key=api_key, base_url=base_url)
         self._model = model
+        # 누적 호출 수 · 토큰 수. 동시에 여러 스레드에서 더해지므로 잠근다
+        self.usage: Dict[str, int] = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
+        self._usage_lock = threading.Lock()
+
+    def _record_usage(self, usage: Any) -> None:
+        """호출마다 토큰 수를 더한다. 실험 스크립트가 비용을 기록할 때 읽는다."""
+        with self._usage_lock:
+            self.usage["calls"] += 1
+            if usage is not None:
+                self.usage["prompt_tokens"] += getattr(usage, "prompt_tokens", 0) or 0
+                self.usage["completion_tokens"] += getattr(usage, "completion_tokens", 0) or 0
 
     async def chat(
         self,
@@ -102,6 +116,7 @@ class LLMClient:
             if timeout is not None:
                 kwargs["timeout"] = timeout
             resp = self._client.chat.completions.create(**kwargs)
+            self._record_usage(getattr(resp, "usage", None))
             return resp.choices[0].message.content or ""
 
         return await asyncio.to_thread(_do_call)

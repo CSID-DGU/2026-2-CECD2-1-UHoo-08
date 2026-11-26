@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     LLM_AD_BASE_URL: str = ""
     LLM_AD_API_KEY: str = ""
 
+    LLM_MATCH_MODEL: str = ""
+    LLM_MATCH_BASE_URL: str = ""
+    LLM_MATCH_API_KEY: str = ""
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
