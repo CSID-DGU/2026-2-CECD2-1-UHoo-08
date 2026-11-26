@@ -37,7 +37,9 @@ export function RecommendationLoadingPage() {
         const data = validateAnalysisStatus(response.data);
         setNotice("");
         setProgress(data.progress == null ? null : Math.min(100, Math.max(0, data.progress)));
-        setActiveIndex(STEPS.findIndex(step => step.keys.includes(data.step ?? "")));
+        // 모르는 단계 이름이 오면 처음으로 되돌아가지 않고 지금 단계를 유지한다.
+        const index = STEPS.findIndex(step => step.keys.includes(data.step ?? ""));
+        if (index >= 0) setActiveIndex(index);
         setLabel(data.step || "추천을 준비하고 있어요");
         if (data.status === "COMPLETED") { navigate("/recommendation/result", { state: { jobId }, replace: true }); return; }
         if (data.status === "FAILED" || data.status === "NEEDS_CLARIFICATION") {
