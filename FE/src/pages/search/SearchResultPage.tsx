@@ -56,6 +56,7 @@ import { SearchTopBar } from "../../components/search/SearchTopBar";
 import { RelatedProductRow } from "../../components/search/RelatedProductRow";
 import { BundleResult } from "../../components/search/BundleResult";
 import { MOCK_UNREADY, isMockJob, mockBundleResult } from "../../mocks/unready";
+import { EvaluationReport } from "../../components/search/EvaluationReport";
 import { ProductLensSheet } from "../../components/search/ProductLensSheet";
 import { useProductLens } from "../../components/search/useProductLens";
 import { addRecentSearch, saveLastSearch } from "../../lib/localHistory";
@@ -826,6 +827,8 @@ function SearchResultContent() {
                 {RESULT_BASES.map((item, index) => (
                   <button
                     key={item.id}
+  // "이 제품 어때?"는 목록 대신 평가한 제품 하나의 보고서를 보여준다.
+  const evaluation = ready && result?.scenario === "S1_EVALUATE" && items.length > 0;
                     id={`basis-tab-${item.id}`}
                     type="button"
                     role="tab"
@@ -1052,7 +1055,20 @@ function SearchResultContent() {
                     </div>
                   );
                 })()}
-                {ready && items.length > 0 && (
+                {evaluation && (
+                  <EvaluationReport
+                    item={items[0]}
+                    onOpen={() =>
+                      openProduct({
+                        id: items[0].productId,
+                        name: items[0].name,
+                        brand: items[0].brand,
+                        imageUrl: items[0].imageUrl,
+                      })
+                    }
+                  />
+                )}
+                {ready && items.length > 0 && !evaluation && (
                   <>
                     <div className="mt-5 flex items-center justify-between gap-2">
                       <div>

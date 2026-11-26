@@ -1,9 +1,10 @@
-import { requestRecommendation, type RecommendationStatusResponse } from "../api/recommendationApi";
+import { type RecommendationStatusResponse } from "../api/recommendationApi";
+import { requestQuery } from "../api/recommendationQueryApi";
 import { getAccessToken } from "./auth";
 
 // Share job creation across repeated submissions and React effect replays.
 // Retain the job ID so retrying status never creates another AI job.
-const jobs = new Map<string, { createdAt: number; request: ReturnType<typeof requestRecommendation>; jobId?: string }>();
+const jobs = new Map<string, { createdAt: number; request: ReturnType<typeof requestQuery>; jobId?: string }>();
 
 export function forgetAnalysisJob(jobId: string) {
   for (const [key, job] of jobs) {
@@ -36,7 +37,9 @@ export function beginSearchAnalysis(query: string, productId: string) {
   for (const [id, job] of jobs) {
     if (Date.now() - job.createdAt >= 600_000) jobs.delete(id);
   }
-  const request = requestRecommendation(productId, "", "any").then(response => {
+  // 상품 기준 평가는 신형식(baseProductId)으로 요청한다. 결과에 점수 분해(score·weight)와
+  // 비슷한 사람들·대체 제품이 함께 와서 보고서에 세부 점수를 그릴 수 있다.
+  const request = requestQuery({ baseProductId: productId, basis: "SELF" }).then(response => {
     if (!response.data?.jobId) throw new Error("INVALID_JOB_RESPONSE");
     const job = jobs.get(key);
     if (job?.request === request) job.jobId = response.data.jobId;
