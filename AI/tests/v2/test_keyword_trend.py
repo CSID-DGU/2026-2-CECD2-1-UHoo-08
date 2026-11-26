@@ -32,6 +32,11 @@ def test_feature_json_as_string():
     assert product_keywords(p, D) == {"cica": "ingredient:병풀추출물"}
 
 
+def test_short_ascii_in_name_needs_word_boundary():
+    assert "acids" not in product_keywords(prod("x", "Alpha Arbutin Serum"), D)
+    assert product_keywords(prod("y", "PHA 클리어 토너"), D)["acids"] == "name:pha"
+
+
 def test_product_without_keywords():
     assert product_keywords({"product_id": "x", "name": "립스틱", "feature_json": None}, D) == {}
 

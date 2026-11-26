@@ -16,9 +16,10 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 
-from rules.keyword_extract import KeywordDictionary
+from rules.keyword_extract import Keyword, KeywordDictionary
 
 TOP_N = 10
 
@@ -58,6 +59,13 @@ def _values(v) -> set[str]:
     return {str(v)}
 
 
+def _in_name(name: str, form: str, kw: Keyword) -> bool:
+    """상품명에 표기가 있는가. 짧은 영문(word_forms)은 캡션처럼 단어 경계로 본다("alpha" ≠ pha)."""
+    if form in kw.word_forms:
+        return re.search(rf"(?<![a-z가-힣]){re.escape(form)}(?![a-z가-힣])", name) is not None
+    return form in name
+
+
 def product_keywords(product: dict, d: KeywordDictionary) -> dict[str, str]:
     """제품 → {keyword_id: 근거}. 근거는 ingredient:값 · concern:값 · name:표기 중 처음 걸린 것."""
     f = _features(product)
@@ -67,7 +75,7 @@ def product_keywords(product: dict, d: KeywordDictionary) -> dict[str, str]:
     for kw in d.keywords:
         hit = next((f"ingredient:{v}" for v in kw.product_ingredients if v in ingredients), None)
         hit = hit or next((f"concern:{v}" for v in kw.product_concerns if v in concerns), None)
-        hit = hit or next((f"name:{v}" for v in kw.product_name_forms if v in name), None)
+        hit = hit or next((f"name:{v}" for v in kw.product_name_forms if _in_name(name, v, kw)), None)
         if hit:
             out[kw.id] = hit
     return out
