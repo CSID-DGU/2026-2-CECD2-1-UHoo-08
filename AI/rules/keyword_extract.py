@@ -28,6 +28,8 @@ INGREDIENT = "ingredient"
 CONCERN = "concern"
 
 _MENTION = re.compile(r"@[\w.]+")
+# 근거로 남기는 줄 구간: 걸린 표기 앞뒤로 이만큼 자른다
+EVIDENCE_WINDOW = 60
 
 
 @dataclass(frozen=True)
@@ -87,17 +89,31 @@ def _word_re(form: str) -> re.Pattern:
     return re.compile(rf"(?<![a-z가-힣]){re.escape(form)}(?![a-z가-힣])")
 
 
-def find_form(text: str, kw: Keyword) -> str | None:
-    """text(소문자) 에서 kw 의 표기를 찾아 처음 걸린 표기를 돌려준다."""
+def _match(text: str, kw: Keyword) -> tuple[str, int] | None:
+    """(처음 걸린 표기, 그 위치). 제외어는 같은 길이의 공백으로 지워 위치가 원문과 맞게 한다."""
     for ex in kw.exclude:
-        text = text.replace(ex, " ")
+        text = text.replace(ex, " " * len(ex))
     for f in kw.forms:
         if f in kw.word_forms:
-            if _word_re(f).search(text):
-                return f
-        elif f in text:
-            return f
+            m = _word_re(f).search(text)
+            if m:
+                return f, m.start()
+        else:
+            i = text.find(f)
+            if i >= 0:
+                return f, i
     return None
+
+
+def find_form(text: str, kw: Keyword) -> str | None:
+    """text(소문자) 에서 kw 의 표기를 찾아 처음 걸린 표기를 돌려준다."""
+    m = _match(text, kw)
+    return m[0] if m else None
+
+
+def _evidence(line: str, form: str, at: int) -> str:
+    """근거로 남길 줄 구간. 걸린 표기가 반드시 들어가게 그 앞뒤 EVIDENCE_WINDOW 자를 자른다."""
+    return line[max(0, at - EVIDENCE_WINDOW):at + len(form) + EVIDENCE_WINDOW].strip()
 
 
 def _skip_line(line: str, words: tuple[str, ...]) -> bool:
@@ -118,8 +134,8 @@ def extract_keywords(caption: str | None, d: KeywordDictionary) -> list[KeywordH
     hits = []
     for kw in d.keywords:
         for ln in lines:
-            f = find_form(ln, kw)
-            if f:
-                hits.append(KeywordHit(kw.id, kw.group, f, ln.strip()[:120]))
+            m = _match(ln, kw)
+            if m:
+                hits.append(KeywordHit(kw.id, kw.group, m[0], _evidence(ln, *m)))
                 break
     return hits

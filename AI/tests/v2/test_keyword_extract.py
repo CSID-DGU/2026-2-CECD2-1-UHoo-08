@@ -25,6 +25,19 @@ def test_hit_carries_evidence():
     assert "판테놀" in h.line
 
 
+def test_evidence_contains_match_even_in_long_line():
+    cap = "가" * 300 + " 판테놀 크림 " + "나" * 300
+    h = extract_keywords(cap, D)[0]
+    assert h.form == "판테놀" and "판테놀" in h.line
+    assert len(h.line) <= len("판테놀") + 2 * 60
+
+
+def test_evidence_points_past_excluded_word():
+    # 제외어(시카고)를 지워도 위치가 어긋나지 않아, 멀리 있는 진짜 표기 구간을 근거로 남긴다
+    h = extract_keywords("시카고 여행 " + "가" * 200 + " 시카 크림", D)[0]
+    assert h.keyword_id == "cica" and h.line.endswith("시카 크림") and "시카고" not in h.line
+
+
 def test_aliases_map_to_one_keyword():
     assert ids("병풀 추출물 진짜 순해요") == ["cica"]
     assert ids("센텔라 앰플") == ["cica"]
