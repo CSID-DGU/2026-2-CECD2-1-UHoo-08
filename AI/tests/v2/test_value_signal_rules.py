@@ -10,6 +10,7 @@ from rules.value_signal import (
     budget_fit,
     discount_rate,
     discount_score,
+    explain_text,
     group_of,
     group_prices,
     preference,
@@ -29,6 +30,8 @@ B = p("B", 30000, 60000)
 MASTER = [p("c1", 12000), p("c2", 20000), A, B, p("c3", 45000)]
 GROUPS = group_prices(MASTER)
 
+
+# ── 요소 ──────────────────────────────────────────────────────────
 
 def test_budget_fit_separates_products_within_budget():
     assert budget_fit(10000, 30000) == pytest.approx(2 / 3)
@@ -95,7 +98,7 @@ def test_preference_from_weight():
     assert preference("높음") == DEFAULT_PREFERENCE
 
 
-
+# ── 산식 · 시나리오 ────────────────────────────────────────────────
 
 def test_mentor_example_flips_with_preference():
     price_first = (value_score(A, GROUPS, 30000, u=0.0).score, value_score(B, GROUPS, 30000, u=0.0).score)
@@ -167,7 +170,7 @@ def test_nothing_to_score_is_none():
     assert value_score(item, GROUPS, None).score is None
 
 
-
+# ── 결측: 현재 가격 점수가 없으면 할인율이 있어도 None ──────────────────
 
 def test_discount_alone_does_not_make_a_score():
     item = p("x", 5000, 10000, category="skincare", kind="앰플")      # 50% 할인 · 제품군 1개 · 예산 없음
@@ -198,6 +201,14 @@ def test_no_discount_with_price_basis_uses_price_only():
     assert value_score(item, GROUPS, 30000).score == value_score(item, GROUPS, 30000).price_score
 
 
+# ── 서비스 범위 ──────────────────────────────────────────────────
+
+@pytest.mark.parametrize("category, kind", [("eye", "아이라이너"), ("cheek", "블러셔"), (None, "선크림")])
+def test_out_of_scope_category_is_not_scored(category, kind):
+    item = p("x", 5000, 10000, category=category, kind=kind)
+    b = value_score(item, GROUPS, 30000)
+    assert b.score is None and b.reason_codes == ["OUT_OF_SCOPE"]
+    assert explain_text(item, 30000) is None
 
 
 def test_out_of_scope_products_are_not_peers():
@@ -221,3 +232,13 @@ def test_relative_price_does_not_depend_on_candidates():
 def test_over_budget_is_flagged_not_rewarded():
     b = value_score(p("x", 35000, 70000), GROUPS, 30000)
     assert b.budget_fit == 0.0 and "OVER_BUDGET" in b.reason_codes
+
+
+# ── 배지 문구 ─────────────────────────────────────────────────────
+
+def test_explain_text():
+    assert explain_text(A, None) == "정가보다 20% 저렴해요"     # 정규화 점수(40)가 아니라 실제 할인율
+    assert explain_text(p("x", 6000, 20000), None) == "정가보다 70% 저렴해요"
+    assert explain_text(p("x", 12000), 30000) == "예산보다 60% 저렴해요"
+    assert explain_text(p("x", 28000), 30000) is None
+    assert explain_text({"product_id": "x", "price": 20000}, None) is None

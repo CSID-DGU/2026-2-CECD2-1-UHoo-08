@@ -214,3 +214,22 @@ def value_score(product: dict, groups: dict[Group, dict[str, float]], budget: fl
         weights={"current_price": round(1 - alpha, 4), "discount": round(alpha, 4)},
         group=g, peer_count=peers, reason_codes=codes,
     )
+
+
+def explain_text(product: dict, budget: float | None) -> str | None:
+    """가성비 배지 문구. 상품 자체 정보(판매가 · 정가 · 예산)만으로 말할 수 있는 근거만 쓴다.
+
+    할인은 정규화 점수가 아니라 실제 할인율로 말한다. Compose 는 가성비 점수가 높은 상품에만
+    이 문구를 묻는다. 점수가 None 인 상품은 거기서 걸러진다.
+    """
+    if product.get("category") not in SCOPE_CATEGORIES:
+        return None
+    price = sale_price(product)
+    if price is None:
+        return None
+    d = discount_rate(price, product.get("original_price"))
+    if d is not None and d >= HIGH_DISCOUNT:
+        return f"정가보다 {round(d * 100)}% 저렴해요"
+    if budget and budget > 0 and price <= budget * (1 - UNDER_BUDGET):
+        return f"예산보다 {round((1 - price / budget) * 100)}% 저렴해요"
+    return None
