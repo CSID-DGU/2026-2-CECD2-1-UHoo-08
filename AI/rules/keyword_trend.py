@@ -71,3 +71,30 @@ def product_keywords(product: dict, d: KeywordDictionary) -> dict[str, str]:
         if hit:
             out[kw.id] = hit
     return out
+
+
+def keyword_points(ranks: list[KeywordRank]) -> dict[str, tuple[int, int]]:
+    """키워드 → (순위, 점수). 1위가 TOP_N 점, TOP_N 위가 1점. TOP_N 밖은 점수가 없다."""
+    return {r.keyword_id: (r.rank, TOP_N + 1 - r.rank) for r in ranks if 1 <= r.rank <= TOP_N}
+
+
+def product_scores(ranks: list[KeywordRank], products: list[dict], d: KeywordDictionary) -> list[ProductScore]:
+    """키워드 순위 → 제품 점수 (점수 내림차순, 동점은 product_id 순). 0점 제품은 뺀다."""
+    points = keyword_points(ranks)
+    by_kw = {r.keyword_id: r for r in ranks}
+    out = []
+    for p in products:
+        kws = [(k, via) for k, via in product_keywords(p, d).items() if k in points]
+        if not kws:
+            continue
+        kws.sort(key=lambda x: points[x[0]][0])
+        out.append(ProductScore(
+            product_id=p["product_id"],
+            score=sum(points[k][1] for k, _ in kws),
+            keywords=[{"keyword_id": k, "rank": points[k][0], "points": points[k][1], "via": via} for k, via in kws],
+            mention_count=sum(by_kw[k].mention_count for k, _ in kws),
+            ad_mention_count=sum(by_kw[k].ad_mention_count for k, _ in kws),
+            engagement=sum(by_kw[k].engagement for k, _ in kws),
+        ))
+    out.sort(key=lambda s: (-s.score, s.product_id))
+    return out
