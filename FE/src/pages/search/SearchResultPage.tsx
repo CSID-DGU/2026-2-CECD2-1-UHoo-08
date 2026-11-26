@@ -50,7 +50,7 @@ import {
   RefinementHistorySheet,
   type RefinementHistoryEntry,
 } from "../../components/recommendation/RefinementHistorySheet";
-import { SearchAnalysisLoading } from "../../components/search/SearchAnalysisLoading";
+import { AnalysisLoading, type AnalysisStep } from "../../components/recommendation/AnalysisLoading";
 import { SearchEntry } from "../../components/search/SearchEntry";
 import { SearchProductCard } from "../../components/search/SearchProductCard";
 import { SearchTopBar } from "../../components/search/SearchTopBar";
@@ -247,6 +247,9 @@ function SearchResultContent() {
   const [error, setError] = useState("");
   const [step, setStep] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
+  // 로딩 화면 문구와 단계 목록. 서버 상태 응답의 scenario·steps 를 그대로 쓴다.
+  const [statusScenario, setStatusScenario] = useState<string | null>(null);
+  const [statusSteps, setStatusSteps] = useState<AnalysisStep[] | null>(null);
   const [clarify, setClarify] = useState<{
     message: string;
     fields: ClarifyField[];
@@ -492,6 +495,8 @@ function SearchResultContent() {
         if (current !== version.current) return;
         const now = data.steps?.find((item) => item.state === "NOW");
         setStep(data.step ?? now?.label ?? "");
+        if (data.scenario) setStatusScenario(data.scenario);
+        setStatusSteps(Array.isArray(data.steps) ? data.steps : null);
         setProgress(typeof data.progress === "number" ? data.progress : null);
         if (data.status === "COMPLETED") {
           const response = await withDeadline(
@@ -568,6 +573,8 @@ function SearchResultContent() {
     setSheet(null);
     setStep("입력하신 요청을 이해하고 있어요");
     setProgress(null);
+    setStatusScenario(null);
+    setStatusSteps(null);
     setError("");
     if (switchBasis) {
       // 기준만 바꾼다. 지금 결과는 그대로 두고 작은 로딩만 띄운다.
@@ -697,6 +704,8 @@ function SearchResultContent() {
     setFeedbackSent({});
     setStep("조건을 더해 후보를 다시 찾고 있어요");
     setProgress(null);
+    setStatusScenario("S7_REFINE");
+    setStatusSteps(null);
     setPhase("loading");
     try {
       const { data } = await requestRefinement(jobId, {
@@ -957,8 +966,9 @@ function SearchResultContent() {
             )}
 
             {loading && (
-              <SearchAnalysisLoading
-                searching={false}
+              <AnalysisLoading
+                scenario={statusScenario}
+                steps={statusSteps}
                 step={step}
                 progress={progress}
               />
