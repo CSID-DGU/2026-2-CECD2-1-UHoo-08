@@ -1,7 +1,19 @@
 """광고 판별 정기 표본 검수의 뽑기·채점. DB 와 LLM 없이 돈다."""
 from collections import Counter
 
-from eval.run_ad_audit import dump_line, next_ids, score_records, stratified_sample
+import pytest
+
+import eval.run_ad_audit as audit
+from eval.run_ad_audit import (
+    build_pool,
+    dump_line,
+    finalize,
+    next_ids,
+    read_jsonl,
+    score_records,
+    stratified_sample,
+    write_jsonl,
+)
 
 
 def _post(i: int, stage: str, username: str) -> dict:
@@ -73,3 +85,84 @@ def test_여러_회차의_비율은_회차마다_한_번씩_더한다():
 def test_줄_구분_문자는_이스케이프해_한_줄로_쓴다():
     line = dump_line({"caption": "가 나"})
     assert " " not in line and line.splitlines() == [line]
+
+
+def _db_post(i: int, platform: str, caption: str = "캡션", stage: str = "RULE") -> dict:
+    return {"id": i, "platform_post_id": platform, "caption": caption, "username": "u", "stage_hint": stage}
+
+
+def _stage(p: dict) -> str:
+    return p["stage_hint"]
+
+
+def test_같은_platform_post_id_는_한_번만_후보에_넣는다():
+    posts = [_db_post(7, "p1"), _db_post(3, "p1"), _db_post(5, "p2")]
+    pool, population = build_pool(posts, _stage, set(), set())
+
+    assert sorted(p["id"] for p in pool) == [3, 5]
+    assert population == {"RULE": 2}
+
+
+def test_빈_캡션은_후보와_비율에서_뺀다():
+    pool, population = build_pool([_db_post(1, "p1", caption="  "), _db_post(2, "p2")], _stage, set(), set())
+    assert [p["id"] for p in pool] == [2] and population == {"RULE": 1}
+
+
+def test_비율은_이미_뽑힌_게시물을_빼기_전_기간_전체로_센다():
+    posts = [_db_post(1, "p1", stage="LLM"), _db_post(2, "p2", stage="LLM"), _db_post(3, "p3", stage="RULE")]
+    pool, population = build_pool(posts, _stage, seen_db={1}, seen_platform={"p2"})
+
+    assert [p["id"] for p in pool] == [3]
+    assert population == {"LLM": 2, "RULE": 1}
+
+
+def test_라벨링_중인_파일의_게시물도_다시_뽑지_않는다(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit, "GOLDEN_DIR", tmp_path / "golden")
+    (tmp_path / "golden").mkdir()
+    pending = tmp_path / "pending.jsonl"
+    write_jsonl(pending, [{"input": {"post_id": 11, "platform_post_id": "p11"}}])
+
+    assert audit._seen_post_ids() == (set(), set())
+    assert audit._seen_post_ids([pending]) == ({11}, {"p11"})
+
+
+def test_쓰기는_임시_파일을_남기지_않고_통째로_바꾼다(tmp_path):
+    path = tmp_path / "a.jsonl"
+    write_jsonl(path, [{"n": 1}])
+    write_jsonl(path, [{"n": 1}, {"n": 2}])
+
+    assert read_jsonl(path) == [{"n": 1}, {"n": 2}]
+    assert [p.name for p in tmp_path.iterdir()] == ["a.jsonl"]
+
+
+def test_쓰다_실패하면_이전_파일이_그대로_남는다(tmp_path):
+    path = tmp_path / "a.jsonl"
+    write_jsonl(path, [{"n": 1}])
+    with pytest.raises(TypeError):
+        write_jsonl(path, [{"n": object()}])
+
+    assert read_jsonl(path) == [{"n": 1}]
+    assert [p.name for p in tmp_path.iterdir()] == ["a.jsonl"]
+
+
+def test_빈_표본은_골든셋으로_옮기지_않는다(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit, "GOLDEN_DIR", tmp_path)
+    empty = tmp_path / "empty.jsonl"
+    empty.write_text("", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="검수할 게시물이 없다"):
+        finalize(empty)
+
+
+def test_sample_은_이미_있는_파일을_덮어쓰지_않는다(tmp_path, monkeypatch):
+    out = tmp_path / "audit.jsonl"
+    out.write_text('{"keep": true}\n', encoding="utf-8")
+
+    async def boom(*_):
+        raise AssertionError("DB 를 읽기 전에 멈춰야 한다")
+
+    monkeypatch.setattr(audit, "_sample", boom)
+    monkeypatch.setattr("sys.argv", ["run_ad_audit", "sample", "--out", str(out)])
+    with pytest.raises(SystemExit, match="이미 있다"):
+        audit.main()
+    assert out.read_text(encoding="utf-8") == '{"keep": true}\n'

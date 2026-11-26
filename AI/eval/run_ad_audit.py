@@ -15,9 +15,13 @@
 그냥 무작위로 뽑으면 2차로 가는 게시물이 열에 하나라 2차 수치를 낼 수 없다.
 전체 정확도는 그 기간의 1차·2차 비율로 가중해 계산한다.
 
-검수 파일의 split 은 test 다. 이 파일을 보고 규칙이나 프롬프트를 고치면 그
-회차는 더 이상 성능을 재는 데 쓰지 않는다. 고친 회차는 split 을 dev 로 바꾸고
-다음 회차로 잰다.
+검수 회차의 split 은 test 이고, 나중에 dev 로 바꾸지 않는다(eval/README.md 의 split
+규칙). 한 회차는 뽑을 때 쓰던 규칙 · 프롬프트 버전(audit.prediction.version)의 성능을
+잰 기록이다. 그 회차를 보고 규칙이나 프롬프트를 고쳤으면, 고친 버전의 수치는 다음
+회차로 낸다. 고친 버전으로 지난 회차를 다시 채점하지 않는다.
+
+라벨링 중인 파일(finalize 전)은 저장소 밖에 있어 골든셋으로 거를 수 없다. 그 사이에
+다시 뽑으면 sample --exclude 로 그 파일을 넘긴다. 넘긴 파일의 게시물은 뽑지 않는다.
 
 config · DB · LLM 은 함수 안에서 import 한다.
 """
@@ -26,8 +30,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import random
 import re
+import tempfile
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -53,7 +59,15 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
-    path.write_text("".join(dump_line(r) + "\n" for r in rows), encoding="utf-8", newline="\n")
+    """같은 폴더의 임시 파일에 다 쓴 뒤 바꿔 끼운다. 쓰다 끊겨도 이전 완전본이 남는다."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write("".join(dump_line(r) + "\n" for r in rows))
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 # ── 뽑기 ─────────────────────────────────────────────────────────────
@@ -84,11 +98,11 @@ def stratified_sample(posts: list[dict], n_rule: int, n_llm: int, seed: int) -> 
     return picked
 
 
-def _seen_post_ids() -> tuple[set[int], set[str]]:
-    """골든셋·검수 파일에 이미 들어간 게시물. 다시 뽑지 않는다."""
+def _seen_post_ids(extra: list[Path] = ()) -> tuple[set[int], set[str]]:
+    """골든셋 · 라벨링 중인 검수 파일(extra)에 이미 들어간 게시물. 다시 뽑지 않는다."""
     db_ids: set[int] = set()
     platform_ids: set[str] = set()
-    for path in GOLDEN_DIR.glob("*.jsonl"):
+    for path in [*GOLDEN_DIR.glob("*.jsonl"), *extra]:
         for rec in read_jsonl(path):
             inp = rec.get("input", {})
             if inp.get("post_id") is not None:
@@ -98,7 +112,26 @@ def _seen_post_ids() -> tuple[set[int], set[str]]:
     return db_ids, platform_ids
 
 
-async def _sample(days: int, n_rule: int, n_llm: int, seed: int) -> list[dict]:
+def build_pool(posts: list[dict], stage_of, seen_db: set[int], seen_platform: set[str]) -> tuple[list[dict], dict]:
+    """기간 안 게시물 → (뽑기 후보, 1차 · 2차 비율).
+
+    stage_of(post) 는 "RULE" | "LLM" 을 돌려준다.
+    계정 이름이 바뀌면 같은 게시물이 새 account_id 로 다시 저장되고 이전 행이 남는다.
+    platform_post_id 가 같은 행은 id 가 가장 작은 하나만 본다.
+    비율은 이미 뽑힌 게시물을 빼기 전, 그 기간 전체로 센다. 이전 회차와 기간이 겹칠 때
+    빼고 세면 비율이 틀어지고, 그 비율로 가중하는 전체 정확도도 틀어진다.
+    """
+    unique: dict[str, dict] = {}
+    for p in sorted(posts, key=lambda p: p["id"]):
+        if (p.get("caption") or "").strip():
+            unique.setdefault(p["platform_post_id"], p)
+    staged = [{**p, "stage": stage_of(p)} for p in unique.values()]
+    population = dict(Counter(p["stage"] for p in staged))
+    pool = [p for p in staged if p["id"] not in seen_db and p["platform_post_id"] not in seen_platform]
+    return pool, population
+
+
+async def _sample(days: int, n_rule: int, n_llm: int, seed: int, exclude: list[Path] = ()) -> list[dict]:
     from db.supabase_client import get_supabase
     from rules.ad_disclosure import UNSURE, classify
     from services.ad_classifier import classify_post, owned_brand_aliases
@@ -108,7 +141,7 @@ async def _sample(days: int, n_rule: int, n_llm: int, seed: int) -> list[dict]:
     sb = get_supabase()
     usernames = {a["id"]: a["username"] for a in sb.table("influencer_accounts").select("id, username").execute().data}
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    seen_db, seen_platform = _seen_post_ids()
+    seen_db, seen_platform = _seen_post_ids(exclude)
 
     posts, start = [], 0
     while True:
@@ -120,14 +153,14 @@ async def _sample(days: int, n_rule: int, n_llm: int, seed: int) -> list[dict]:
             break
         start += 100
 
-    pool = []
     for p in posts:
-        if not (p.get("caption") or "").strip() or p["id"] in seen_db or p["platform_post_id"] in seen_platform:
-            continue
-        username = usernames.get(p["account_id"], "")
-        verdict = classify(p["caption"], owned_brand_aliases(owned.get(username)))["verdict"]
-        pool.append({**p, "username": username, "stage": "LLM" if verdict == UNSURE else "RULE"})
-    population = dict(Counter(p["stage"] for p in pool))
+        p["username"] = usernames.get(p["account_id"], "")
+
+    def stage_of(p: dict) -> str:
+        verdict = classify(p["caption"], owned_brand_aliases(owned.get(p["username"])))["verdict"]
+        return "LLM" if verdict == UNSURE else "RULE"
+
+    pool, population = build_pool(posts, stage_of, seen_db, seen_platform)
 
     picked = stratified_sample(pool, n_rule, n_llm, seed)
     records = []
@@ -180,6 +213,8 @@ def next_ids(existing_ids: list[str], n: int, prefix: str = "trend-g") -> list[s
 
 def finalize(path: Path) -> Path:
     rows = read_jsonl(path)
+    if not rows:
+        raise SystemExit(f"{path} 에 검수할 게시물이 없다. 골든셋에 옮기지 않는다")
     left = sum(r["expected"]["is_ad"] is None for r in rows)
     if left:
         raise SystemExit(f"라벨이 안 붙은 {left}건이 있다. label 을 먼저 끝낸다")
@@ -270,6 +305,7 @@ def main() -> None:
     s.add_argument("--rule", type=int, default=15, help="1차가 확정한 것에서 뽑을 수")
     s.add_argument("--llm", type=int, default=15, help="2차로 넘어간 것에서 뽑을 수")
     s.add_argument("--seed", type=int, default=int(date.today().strftime("%Y%m%d")))
+    s.add_argument("--exclude", action="append", default=[], help="라벨링 중인 검수 파일. 그 게시물은 뽑지 않는다 (반복 가능)")
     lb = sub.add_parser("label")
     lb.add_argument("path")
     fz = sub.add_parser("finalize")
@@ -280,8 +316,16 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.cmd == "sample":
-        records = asyncio.run(_sample(args.days, args.rule, args.llm, args.seed))
-        write_jsonl(Path(args.out), records)
+        out = Path(args.out).expanduser()
+        if out.exists():
+            # 라벨은 finalize 전까지 이 파일에만 있다. 덮어쓰면 붙인 라벨이 사라진다
+            raise SystemExit(f"{out} 이 이미 있다. 다른 경로를 주거나, 라벨링 중이면 label 로 이어서 한다")
+        exclude = [Path(p).expanduser() for p in args.exclude]
+        missing = [str(p) for p in exclude if not p.exists()]
+        if missing:
+            raise SystemExit(f"--exclude 파일이 없다: {', '.join(missing)}")
+        records = asyncio.run(_sample(args.days, args.rule, args.llm, args.seed, exclude))
+        write_jsonl(out, records)
         print(f"{len(records)}건 저장: {args.out}. label 로 라벨링한다")
     elif args.cmd == "label":
         label(Path(args.path))
