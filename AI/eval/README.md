@@ -134,7 +134,15 @@ python -m eval.run_ad_audit finalize ~/ad_audit.jsonl        # eval/golden/trend
 python -m eval.run_ad_audit score --out eval/reports/ad_audit_<날짜>.md
 ```
 
-라벨링 파일은 저장소 밖에 둔다. 다 붙인 뒤 `finalize` 로 골든셋에 옮긴다. 검수 회차의 split 은 `test` 다. 그 회차를 보고 규칙이나 프롬프트를 고쳤으면 split 을 `dev` 로 바꾸고, 수치는 다음 회차로 낸다.
+라벨링 파일은 저장소 밖에 둔다. 다 붙인 뒤 `finalize` 로 골든셋에 옮긴다. `sample` 은 `--out` 파일이 이미 있으면 멈춘다. 라벨을 붙이던 파일을 덮어쓰지 않기 위해서다.
+
+라벨링 중인 파일은 아직 골든셋에 없어서, 그 사이에 다시 뽑으면 같은 게시물이 또 나올 수 있다. 이때는 그 파일을 `--exclude` 로 넘긴다(여러 개면 반복).
+
+```bash
+python -m eval.run_ad_audit sample --out ~/ad_audit_2.jsonl --exclude ~/ad_audit.jsonl
+```
+
+검수 회차의 split 은 `test` 이고, 위 split 규칙대로 나중에 `dev` 로 바꾸지 않는다. 한 회차는 뽑을 때 쓰던 규칙 · 프롬프트 버전(`audit.prediction.version`)의 성능 기록이다. 그 회차를 보고 규칙이나 프롬프트를 고쳤으면, 고친 버전의 수치는 다음 회차로 낸다.
 
 ## 2차 멘토링 전 최소 개수
 
