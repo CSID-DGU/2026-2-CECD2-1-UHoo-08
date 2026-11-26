@@ -306,3 +306,15 @@ async def run_schedule() -> None:
         except Exception:
             # 배치 하나가 실패해도 다음 시각에는 다시 돌아야 한다
             logger.exception("인스타 수집 배치 실패")
+        try:
+            from services.ad_label_job import label as label_ads
+            from db.supabase_client import get_supabase
+            await label_ads(get_supabase())
+        except Exception:
+            logger.exception("광고 판별 배치 실패")
+        try:
+            # 수집 · 판별이 일부 실패해도 이미 쌓인 게시물로 그날 트렌드는 다시 계산한다
+            from services.keyword_trend_job import run as run_keyword_trend
+            await asyncio.to_thread(run_keyword_trend)
+        except Exception:
+            logger.exception("키워드 트렌드 배치 실패")
