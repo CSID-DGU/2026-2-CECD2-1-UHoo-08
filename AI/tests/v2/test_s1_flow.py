@@ -17,11 +17,16 @@ _S1_예시 = _BE_예시.with_name("S1_EVALUATE.json")
 
 
 @pytest.fixture
-def 평가_바깥(바깥):
+def 평가_바깥(바깥, monkeypatch):
     """조건 탐색의 가짜에 기준 상품 벡터와 대체 후보 검색을 더한다.
 
     기준 상품은 p1 이다. 대체 후보로 o1(보유), p2, p4 가 나온다.
+
+    보유 제품 가격은 예산을 말하지 않은 요청의 가격 기준(카테고리 중앙값)에 들어간다.
+    이 시험은 평소 4만 원대 쿠션을 쓰는 사람으로 둔다. 조건 탐색 시험의 2만 원대 그대로면
+    대체 후보(2.5만, 5.8만)가 모두 평소보다 비싼 쪽으로 읽혀 점수 하한에 걸린다.
     """
+    monkeypatch.setitem(_상품, "o1", {**_상품["o1"], "original_price": 45000, "lowest_price": 45000})
     def get_product_meta_with_vec(pid):
         return {"id": pid, **_상품[pid], "feature_vec": [0.3]}
 
@@ -43,8 +48,6 @@ def _처음_상태():
         "query_spec": {"request_type": "EVALUATE", "target": "SELF", "base_product_ref": "p1"},
         "user_profile": {"skin_type": "OILY", "personal_color": "SPRING_WARM", "skin_concerns": []},
         "weight_prior": None,
-        # 보유 제품 단계(B)가 아직 없어, 그 단계가 채울 값을 처음부터 넣어 둔다
-        "inventory": [{"user_product_id": "up1", "product_id": "o1", "name": "네오 쿠션 21N"}],
     }
 
 
@@ -54,7 +57,7 @@ async def test_상품_평가_경로가_끝까지_돌아_계약을_지키는_결�
     결과 = 상태["result"]
 
     assert 상태["trace"] == [
-        "discovery", "inventory(stub)", "prefilter", "score", "alternative", "score_lite",
+        "discovery", "inventory", "prefilter", "score", "alternative", "score_lite",
         "collaborative", "compose", "guard",
     ]
     RecommendationResult.model_validate(결과)

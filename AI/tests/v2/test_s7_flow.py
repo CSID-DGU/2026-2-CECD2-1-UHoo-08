@@ -63,7 +63,6 @@ def _처음_상태():
         "query_spec": {"request_type": "REFINE", "target": "SELF"},
         "user_profile": {"skin_type": "OILY", "personal_color": "SPRING_WARM", "skin_concerns": []},
         "weight_prior": None,
-        "inventory": [{"user_product_id": "up1", "product_id": "o1", "name": "네오 쿠션 21N"}],
     }
 
 
@@ -73,7 +72,7 @@ async def test_조건_수정_경로가_이전_후보를_다시_줄_세워_순위
     결과 = 상태["result"]
 
     assert 상태["trace"] == [
-        "refine", "retrieve", "inventory(stub)", "prefilter", "score", "rerank", "compose", "guard",
+        "refine", "retrieve", "inventory", "prefilter", "score", "rerank", "compose", "guard",
     ]
     RecommendationResult.model_validate(결과)
     assert set(결과) == set(json.loads(_S7_예시.read_text()))
