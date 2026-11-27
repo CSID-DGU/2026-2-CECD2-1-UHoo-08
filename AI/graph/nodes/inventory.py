@@ -1,90 +1,95 @@
-"""보유 제품을 불러오고 성분을 표준명으로 정규화한다.
+"""보유 제품을 불러오고 성분을 표준명으로 맞춘다.
 
-READS:  user_id
+READS:  user_id, query_spec
 WRITES: inventory
 
-`user_products`는 조회 이력(VIEWED)·위시리스트(INTERESTED)까지 한 테이블에
-있다. 지금 보유한 것은 USING·ONBOARDING 뿐이라 그 둘만 읽는다
-(db/migrations/018_user_products_extend.sql).
+항목 하나는 user_products 한 줄이다. 상품 정보(product_meta 와 같은 모양)에 보유 정보와
+성분을 붙인다.
 
-성분은 `products.feature_json.key_ingredient`에 원문 그대로 들어 있다
-("나이아신아마이드" / "니아신아마이드" / "Niacinamide"가 전부 다른 문자열).
-`rules/ingredient_normalize.py`로 표준명으로 묶어 돌려준다. 여기서 정규화해
-두지 않으면 PreFilter·Compatibility가 매번 같은 변환을 반복해야 하고, 한쪽만
-고치면 둘이 어긋난다.
+    user_product_id, product_id, name, brand, category, price, image_url, feature_json,
+    rating, opened_at, remaining_pct, expiry_date, pao_months, ingredients
+
+    PreFilter     product_id 로 보유 제품을 빼고, ingredients 로 성분 충돌을 본다
+    Coverage      category, feature_json 으로 환경에 필요한 기능을 채우는지 본다
+    Score         category, price 로 평소 쓰는 가격대를 잡는다
+    Alternative   rating, opened_at 으로 바꿀 제품을 고른다
+
+다른 사람 기준(target=OTHER)이면 빈 목록이다. 받을 사람의 보유 제품은 모른다.
+요청한 사람 것을 넣으면 PreFilter 가 엉뚱한 제품을 뺀다.
 
 DB 모듈은 함수 안에서 가져온다. 최상단에서 가져오면 config 를 타고 API 키를
 요구해, 키 없는 CI(tests/v2)에서는 이 노드를 불러오지도 못한다.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
+
+from contracts.query_spec import Target
 from graph.state import GraphState
-from rules.ingredient_normalize import normalize_key, resolve_canonical
+
+logger = logging.getLogger(__name__)
+
+_보유_칸 = ("rating", "opened_at", "remaining_pct", "expiry_date", "pao_months")
 
 
-def _fetch_owned(user_id: str) -> list[dict]:
+def _owned(user_id: str) -> list[dict]:
     from db.user_product_reader import get_owned_user_products
     return get_owned_user_products(user_id)
 
 
-def _fetch_product_metas(product_ids: list[str]) -> dict:
-    from db.product_reader import get_products_meta
-    return get_products_meta(product_ids)
+async def _metas(product_ids: list[str]) -> dict[str, dict]:
+    from services.product_meta import ensure
+    return await ensure({}, product_ids)
 
 
-def _fetch_product_features(product_ids: list[str]) -> dict:
-    from db.product_reader import get_product_features
-    return get_product_features(product_ids)
+async def _canonicalize(raw_by_product: dict[str, list[str]]) -> dict[str, list[str]]:
+    from services.ingredient_store import canonicalize
+    return await canonicalize(raw_by_product)
 
 
-def _fetch_alias_map(keys: list[str]) -> dict[str, str]:
-    from db.ingredient_alias_reader import get_alias_map
-    return get_alias_map(keys)
+def build_items(owned: list[dict], metas: dict[str, dict],
+                ingredients: dict[str, list[str]]) -> list[dict]:
+    """보유 행 + 상품 정보 + 표준 성분 → inventory 항목. 상품이 DB 에 없는 행은 뺀다."""
+    항목들 = []
+    for 행 in owned:
+        pid = 행.get("product_id")
+        메타 = metas.get(pid)
+        if 메타 is None:
+            continue
+        항목들.append({
+            "user_product_id": 행.get("id"),
+            "product_id": pid,
+            "name": 메타.get("name"),
+            "brand": 메타.get("brand"),
+            "category": 메타.get("category"),
+            "price": 메타.get("price"),
+            "image_url": 메타.get("image_url"),
+            "feature_json": 메타.get("feature_json") or {},
+            **{칸: 행.get(칸) for 칸 in _보유_칸},
+            "ingredients": ingredients.get(pid) or [],
+        })
+    return 항목들
 
 
 async def inventory(state: GraphState) -> dict:
     user_id = state.get("user_id")
     if not user_id:
         return {"inventory": []}
+    if (state.get("query_spec") or {}).get("target") == Target.OTHER.value:
+        return {"inventory": []}
 
-    owned = _fetch_owned(user_id)
+    owned = await asyncio.to_thread(_owned, user_id)
     if not owned:
         return {"inventory": []}
 
-    product_ids = sorted({row["product_id"] for row in owned if row.get("product_id")})
-    metas = _fetch_product_metas(product_ids)
-    features = _fetch_product_features(product_ids)
+    from services.ingredient_store import raw_ingredients
 
-    # 별칭 조회는 한 번에 한다. 보유 제품 수만큼 DB를 부르면 보유 제품이
-    # 많은 사용자일수록 이 노드가 느려진다.
-    raw_by_product: dict[str, list[str]] = {
-        pid: list((features.get(pid) or {}).get("key_ingredient") or [])
-        for pid in product_ids
-    }
-    all_keys = sorted({
-        normalize_key(name)
-        for names in raw_by_product.values()
-        for name in names
-        if name
-    })
-    alias_map = _fetch_alias_map(all_keys)
+    ids = list(dict.fromkeys(행["product_id"] for 행 in owned if 행.get("product_id")))
+    metas = await _metas(ids)
+    성분 = await _canonicalize({pid: raw_ingredients(m.get("feature_json")) for pid, m in metas.items()})
 
-    result = []
-    for row in owned:
-        pid = row.get("product_id")
-        meta = metas.get(pid, {})
-        result.append({
-            "user_product_id": row.get("id"),
-            "product_id": pid,
-            "name": meta.get("name"),
-            "brand": meta.get("brand"),
-            "category": meta.get("category"),
-            "usage_type": row.get("usage_type"),
-            "opened_at": row.get("opened_at"),
-            "remaining_pct": row.get("remaining_pct"),
-            "expiry_date": row.get("expiry_date"),
-            "pao_months": row.get("pao_months"),
-            "ingredients": resolve_canonical(raw_by_product.get(pid, []), alias_map),
-        })
-
-    return {"inventory": result}
+    항목들 = build_items(owned, metas, 성분)
+    if len(항목들) < len(owned):
+        logger.warning("inventory: 상품 정보가 없는 보유 제품 %d개를 뺐다", len(owned) - len(항목들))
+    return {"inventory": 항목들}

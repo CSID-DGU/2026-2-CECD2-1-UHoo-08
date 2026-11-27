@@ -1,93 +1,92 @@
-"""Inventory 가 지켜야 할 성질.
+"""Inventory 가 지켜야 할 성질. DB 없이 돈다.
 
-DB 모듈은 함수 안에서 가져오므로(README 규칙), 노드 자신의 private 함수
-(`_fetch_*`)를 monkeypatch 한다. 그래야 supabase 가 없는 tests/v2 환경에서도
-돈다 — 실제 db.* 모듈은 한 번도 import 되지 않는다.
+DB 를 읽는 함수(_owned, _metas, _canonicalize)를 바꿔 끼운다. 실제 db.* 모듈은
+한 번도 불러오지 않는다.
 """
 import pytest
 
 from graph.nodes import inventory as inv
 
 
+def _터짐(*a, **k):
+    raise AssertionError("DB 를 부르면 안 된다")
+
+
+@pytest.fixture
+def 보유(monkeypatch):
+    """보유 행 3개. p3 은 상품 마스터에 없다."""
+    행들 = [
+        {"id": "up1", "product_id": "p1", "usage_type": "USING", "rating": 4,
+         "opened_at": "2026-09-01", "remaining_pct": 60, "expiry_date": None, "pao_months": 12},
+        {"id": "up2", "product_id": "p2", "usage_type": "USING", "rating": None,
+         "opened_at": None, "remaining_pct": None, "expiry_date": "2027-01-01", "pao_months": None},
+        {"id": "up3", "product_id": "p3", "usage_type": "USING"},
+    ]
+    메타 = {
+        "p1": {"name": "레티놀 세럼", "brand": "A", "category": "skincare", "price": 30000,
+               "feature_json": {"product_type": "세럼", "key_ingredient": ["Retinol", "판테놀"]}},
+        "p2": {"name": "선크림", "brand": "B", "category": "sun", "price": 18000,
+               "feature_json": {"product_type": "선크림"}},
+    }
+    기록 = {}
+
+    async def metas(ids):
+        기록["ids"] = list(ids)
+        return {pid: 메타[pid] for pid in ids if pid in 메타}
+
+    async def canonicalize(raw):
+        기록["raw"] = raw
+        별칭 = {"Retinol": "레티놀"}
+        return {pid: [별칭.get(n, n) for n in names] for pid, names in raw.items()}
+
+    monkeypatch.setattr(inv, "_owned", lambda user_id: 행들)
+    monkeypatch.setattr(inv, "_metas", metas)
+    monkeypatch.setattr(inv, "_canonicalize", canonicalize)
+    return 기록
+
+
 @pytest.mark.asyncio
 async def test_user_id가_없으면_빈_목록이고_DB를_부르지_않는다(monkeypatch):
-    def 터짐(*a, **k):
-        raise AssertionError("user_id 가 없는데 DB를 불렀다")
+    monkeypatch.setattr(inv, "_owned", _터짐)
+    assert await inv.inventory({}) == {"inventory": []}
 
-    monkeypatch.setattr(inv, "_fetch_owned", 터짐)
 
-    나옴 = await inv.inventory({})
-    assert 나옴 == {"inventory": []}
+@pytest.mark.asyncio
+async def test_다른_사람_기준이면_요청한_사람의_보유_제품을_넣지_않는다(monkeypatch):
+    monkeypatch.setattr(inv, "_owned", _터짐)
+    상태 = {"user_id": "u1", "query_spec": {"target": "OTHER"}}
+    assert await inv.inventory(상태) == {"inventory": []}
 
 
 @pytest.mark.asyncio
 async def test_보유_제품이_없으면_빈_목록이다(monkeypatch):
-    monkeypatch.setattr(inv, "_fetch_owned", lambda user_id: [])
-
-    나옴 = await inv.inventory({"user_id": "u1"})
-    assert 나옴 == {"inventory": []}
-
-
-@pytest.mark.asyncio
-async def test_메타와_성분을_합쳐_표준명으로_돌려준다(monkeypatch):
-    monkeypatch.setattr(inv, "_fetch_owned", lambda user_id: [
-        {"id": "up1", "product_id": "p1", "usage_type": "USING",
-         "opened_at": "2026-09-01", "remaining_pct": 60,
-         "expiry_date": None, "pao_months": 12},
-    ])
-    monkeypatch.setattr(inv, "_fetch_product_metas", lambda ids: {
-        "p1": {"name": "레티놀 세럼", "brand": "A", "category": "skincare"},
-    })
-    monkeypatch.setattr(inv, "_fetch_product_features", lambda ids: {
-        "p1": {"key_ingredient": ["니아신아마이드", "레티놀"]},
-    })
-    monkeypatch.setattr(inv, "_fetch_alias_map", lambda keys: {
-        "니아신아마이드": "나이아신아마이드",
-    })
-
-    나옴 = await inv.inventory({"user_id": "u1"})
-    항목 = 나옴["inventory"][0]
-    assert 항목["user_product_id"] == "up1"
-    assert 항목["name"] == "레티놀 세럼"
-    assert 항목["ingredients"] == ["나이아신아마이드", "레티놀"]
+    monkeypatch.setattr(inv, "_owned", lambda user_id: [])
+    monkeypatch.setattr(inv, "_metas", _터짐)
+    assert await inv.inventory({"user_id": "u1"}) == {"inventory": []}
 
 
 @pytest.mark.asyncio
-async def test_성분_조회는_상품당_한_번이_아니라_한_번에_합쳐_부른다(monkeypatch):
-    """보유 제품이 많아질수록 이 노드가 느려지면 안 된다."""
-    monkeypatch.setattr(inv, "_fetch_owned", lambda user_id: [
-        {"id": "up1", "product_id": "p1", "usage_type": "USING"},
-        {"id": "up2", "product_id": "p2", "usage_type": "ONBOARDING"},
-    ])
-    monkeypatch.setattr(inv, "_fetch_product_metas", lambda ids: {
-        "p1": {"name": "A"}, "p2": {"name": "B"},
-    })
-    monkeypatch.setattr(inv, "_fetch_product_features", lambda ids: {
-        "p1": {"key_ingredient": ["글리세린"]},
-        "p2": {"key_ingredient": ["세라마이드"]},
-    })
+async def test_상품_정보와_보유_정보와_표준_성분을_한_항목에_담는다(보유):
+    나옴 = (await inv.inventory({"user_id": "u1"}))["inventory"]
 
-    호출_횟수 = {"n": 0}
+    첫 = 나옴[0]
+    assert 첫["user_product_id"] == "up1" and 첫["product_id"] == "p1"
+    assert (첫["name"], 첫["category"], 첫["price"]) == ("레티놀 세럼", "skincare", 30000)
+    assert 첫["feature_json"]["product_type"] == "세럼"
+    assert (첫["rating"], 첫["opened_at"], 첫["remaining_pct"], 첫["pao_months"]) == (4, "2026-09-01", 60, 12)
+    assert 첫["ingredients"] == ["레티놀", "판테놀"]
+    # 성분이 없는 상품은 빈 목록
+    assert 나옴[1]["ingredients"] == []
 
-    def alias_map(keys):
-        호출_횟수["n"] += 1
-        assert set(keys) == {"글리세린", "세라마이드"}
-        return {}
 
-    monkeypatch.setattr(inv, "_fetch_alias_map", alias_map)
+@pytest.mark.asyncio
+async def test_상품_마스터에_없는_보유_행은_뺀다(보유):
+    나옴 = (await inv.inventory({"user_id": "u1"}))["inventory"]
+    assert [i["user_product_id"] for i in 나옴] == ["up1", "up2"]
 
+
+@pytest.mark.asyncio
+async def test_상품과_성분은_한_번에_읽는다(보유):
     await inv.inventory({"user_id": "u1"})
-    assert 호출_횟수["n"] == 1
-
-
-@pytest.mark.asyncio
-async def test_성분이_없는_제품도_빈_목록으로_들어간다(monkeypatch):
-    monkeypatch.setattr(inv, "_fetch_owned", lambda user_id: [
-        {"id": "up1", "product_id": "p1", "usage_type": "USING"},
-    ])
-    monkeypatch.setattr(inv, "_fetch_product_metas", lambda ids: {"p1": {"name": "A"}})
-    monkeypatch.setattr(inv, "_fetch_product_features", lambda ids: {})
-    monkeypatch.setattr(inv, "_fetch_alias_map", lambda keys: {})
-
-    나옴 = await inv.inventory({"user_id": "u1"})
-    assert 나옴["inventory"][0]["ingredients"] == []
+    assert 보유["ids"] == ["p1", "p2", "p3"]
+    assert set(보유["raw"]) == {"p1", "p2"}
