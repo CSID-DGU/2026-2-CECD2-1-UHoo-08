@@ -58,7 +58,7 @@ async def test_기본은_관문을_건너뛴다():
 @pytest.mark.asyncio
 async def test_환경_요청이면_집계_단계가_돈다():
     결과 = await run_scenario("S2_SEARCH", {**_실행_정보, "query_spec": {"use_env": True}})
-    assert "env_history(stub)" in 결과["trace"]
+    assert "env_history" in [단계.removesuffix("(stub)") for 단계 in 결과["trace"]]
 
 
 @pytest.mark.asyncio
