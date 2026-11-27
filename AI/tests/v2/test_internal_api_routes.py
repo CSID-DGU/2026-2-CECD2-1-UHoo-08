@@ -20,6 +20,23 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
+def _성분_정보_없음(monkeypatch):
+    """궁합 확인은 상품 성분을 DB 에서 읽는다. 여기서는 성분 정보가 없는 상품으로 두어
+    판정하지 않았다는 응답(stub)의 모양만 본다. 실제 판정은 test_compatibility_api.py 가 본다."""
+    import sys
+    import types
+
+    async def load_product_ingredients(ids):
+        return {pid: [] for pid in ids}
+
+    async def load_rules():
+        return []
+
+    monkeypatch.setitem(sys.modules, "services.ingredient_store", types.SimpleNamespace(
+        load_product_ingredients=load_product_ingredients, load_rules=load_rules))
+
+
+@pytest.fixture(autouse=True)
 def _실행하지_않는다(monkeypatch):
     """경로 테스트는 라우팅과 검증만 본다.
 
@@ -53,7 +70,7 @@ POST_경로 = [
     ("/internal/products/recognize-photos", {"nameImage": "https://x/a.jpg"}, 200),
     ("/internal/home/run", {"userId": "u1", "kind": "ROUTINE"}, 202),
     ("/internal/feedback/apply", {"userId": "u1"}, 202),
-    ("/internal/compatibility/check", {"userId": "u1", "productId": "p1"}, 200),
+    ("/internal/compatibility/check", {"userId": "u1", "productId": "11111111-1111-1111-1111-111111111111"}, 200),
 ]
 
 
@@ -75,10 +92,11 @@ def test_피드백_반영은_stub이_아니다():
 
 
 # 실제로 실행되는 경로. 추천 실행은 결과 조립 단계가 생기면서 열렸다.
-# 홈 실행은 그 경로의 필수 단계(B)가 들어오기 전까지 stub 이다(test_home_runner.py).
+# 홈 실행(ROUTINE)은 필수 단계(compatibility)가 들어와 실제로 돈다. 아직 없는 경로의
+# stub 은 test_home_runner.py 가 본다. 궁합 확인의 stub 은 성분을 모를 때만이다(위 대역).
 _실행되는_경로 = {
     "/internal/feedback/apply", "/internal/agent/run/v2", "/internal/agent/clarify",
-    "/internal/products/recognize-photos",
+    "/internal/products/recognize-photos", "/internal/home/run",
 }
 
 
@@ -110,9 +128,9 @@ def test_질의도_기준_상품도_없으면_422다():
     assert 응답.status_code == 422
 
 
-def test_궁합_응답이_계약과_같다():
+def test_성분을_모르는_상품의_궁합_응답은_판정하지_않았다고_알린다():
     """stub 표시가 없으면 판정하지 않은 OK 가 괜찮다는 결과로 읽힌다."""
-    응답 = client.post("/internal/compatibility/check", json={"userId": "u1", "productId": "p1"})
+    응답 = client.post("/internal/compatibility/check", json={"userId": "u1", "productId": "11111111-1111-1111-1111-111111111111"})
     assert 응답.json() == {"level": "OK", "pairs": [], "stub": True}
     CompatibilityCheckResponse.model_validate(응답.json())
 
