@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 _TABLE = "recommendation_jobs"
 
+# 이어 돌리기에 읽는 컬럼
+기본_컬럼 = "id, user_id, status, state_snapshot"
+
 
 async def save_snapshot(job_id: str, snapshot: dict[str, Any]) -> None:
     """멈춘 시점의 값을 남긴다.
@@ -42,8 +45,11 @@ async def save_snapshot(job_id: str, snapshot: dict[str, Any]) -> None:
     await asyncio.to_thread(_쓰기)
 
 
-async def load_job(job_id: str) -> dict[str, Any] | None:
-    """job 하나를 읽는다. 없으면 None."""
+async def load_job(job_id: str, columns: str = 기본_컬럼) -> dict[str, Any] | None:
+    """job 하나를 읽는다. 없으면 None.
+
+    columns 는 읽을 컬럼이다. 조건 수정은 이전 job 의 결과, 질의 해석, 고른 선택지까지 읽는다.
+    """
     import asyncio
 
     from db.supabase_client import get_supabase
@@ -51,7 +57,7 @@ async def load_job(job_id: str) -> dict[str, Any] | None:
     def _읽기() -> list[dict]:
         return (
             get_supabase().table(_TABLE)
-            .select("id, user_id, status, state_snapshot")
+            .select(columns)
             .eq("id", job_id)
             .limit(1)
             .execute()

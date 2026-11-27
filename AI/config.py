@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     DASHSCOPE_API_KEY: str
     QWEN_VL_BASE_URL: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-    QWEN_VL_MODEL: str = "qwen3-vl-flash"
+    QWEN_VL_MODEL: str = "qwen3-vl-plus"
     QWEN_TEXT_BASE_URL: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     QWEN_TEXT_MODEL: str = "qwen-plus"
 
@@ -34,6 +34,38 @@ class Settings(BaseSettings):
     LLM_VLM_MODEL: str = ""
     LLM_VLM_BASE_URL: str = ""
     LLM_VLM_API_KEY: str = ""
+
+    LLM_AD_MODEL: str = ""
+    LLM_AD_BASE_URL: str = ""
+    LLM_AD_API_KEY: str = ""
+
+    # Claude (Anthropic). 역할의 모델 이름이 claude- 로 시작하면 OpenAI 호환 주소가
+    # 아니라 Anthropic SDK 로 부르고, 역할에 키를 따로 주지 않았으면 이 키를 쓴다.
+    # Claude 를 쓰는 역할이 없으면 비워 둬도 된다.
+    ANTHROPIC_API_KEY: str = ""
+
+    # Gemini 를 Vertex AI 로 부를 때 쓰는 구글 클라우드 프로젝트와 위치.
+    # 역할의 모델 이름이 gemini- 로 시작하고 주소를 따로 주지 않았으면 Vertex AI 로
+    # 부른다. 키 대신 로그인 정보를 쓴다(로컬은 gcloud auth application-default login).
+    # 프로젝트를 비워 두면 Vertex AI 로 부르지 않는다.
+    #
+    # GOOGLE_GENAI_USE_VERTEXAI 는 여기서 읽지 않는다. 그 값이 실제 환경 변수로
+    # 들어가면 키로 부르던 다른 Gemini 호출(상품 정보 추출 등)까지 Vertex AI 로 바뀐다.
+    GOOGLE_CLOUD_PROJECT: str = ""
+    GOOGLE_CLOUD_LOCATION: str = "global"
+
+    # 동국 AI Gateway (OpenAI 호환). 모델 비교 실험에서 Qwen 후보를 학교 크레딧으로
+    # 부를 때만 쓴다(eval/model_candidates.py). 서비스는 읽지 않는다.
+    QWEN_GATEWAY_BASE_URL: str = ""
+    QWEN_GATEWAY_API_KEY: str = ""
+
+    # 의사결정 모델 Jev (TypeSafe). 시나리오 결정 실험에서만 쓴다.
+    # 글은 쓰지 못하고, 미리 정한 보기 중 하나를 확률과 함께 고른다.
+    # 별칭(jev-latest) 대신 버전을 적어 둔다. 별칭은 가리키는 모델이 바뀌어
+    # 같은 실험을 다시 돌렸을 때 결과를 견줄 수 없다.
+    TYPESAFE_API_KEY: str = ""
+    TYPESAFE_BASE_URL: str = "https://api.typesafe.ai"
+    TYPESAFE_MODEL: str = "jev-1.14.0"
 
     # Supabase
     SUPABASE_URL: str
@@ -72,5 +104,21 @@ class Settings(BaseSettings):
 
     # 기상청 단기예보 (공공데이터포털)
     KMA_SERVICE_KEY: str = ""
+
+    # 지역별 실외 환경 매시 수집 (services/env_collector.py).
+    # 초단기실황이 매시 40분쯤 나오므로 그 뒤에 돈다. KMA_SERVICE_KEY 가 없으면 돌지 않는다.
+    ENV_COLLECT_ENABLED: bool = True
+    ENV_COLLECT_MINUTE: int = 50
+
+    # Instagram Graph API. 인플루언서 게시물 수집이 읽는다.
+    #
+    # 토큰은 화담 페이지 토큰이라 만료가 없다. 수집 배치를 쓰지 않는
+    # 환경에서도 서버가 떠야 하므로 필수 값으로 두지 않는다.
+    META_PAGE_ACCESS_TOKEN: str = ""
+    META_IG_USER_ID: str = ""
+    META_GRAPH_API_VERSION: str = "v26.0"
+    # 게시물 수집 시각 (KST, 쉼표 구분). 비우면 스케줄을 띄우지 않는다.
+    # 호출 횟수 제한이 있어 하루 몇 번만 돈다.
+    INFLUENCER_COLLECT_HOURS: str = "6,18"
 
 settings = Settings()

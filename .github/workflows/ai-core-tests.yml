@@ -9,11 +9,17 @@ on:
     branches: [main, develop]
     paths:
       - 'AI/**'
+      - 'docs/internal-api-fixtures/**'
+      - 'FE/src/mocks/recommendationV2/**'
+      - 'BE/src/test/resources/ai-results/**'
       - '.github/workflows/ai-core-tests.yml'
   push:
     branches: [main, develop]
     paths:
       - 'AI/**'
+      - 'docs/internal-api-fixtures/**'
+      - 'FE/src/mocks/recommendationV2/**'
+      - 'BE/src/test/resources/ai-results/**'
       - '.github/workflows/ai-core-tests.yml'
 
 jobs:

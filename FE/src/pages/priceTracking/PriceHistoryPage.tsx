@@ -87,7 +87,7 @@ export function PriceHistoryPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-body2 font-semibold text-gray-500">
-              {loading ? "로딩 중..." : (product?.name ?? "—")}
+              {loading ? "로딩 중…" : (product?.name ?? "—")}
             </p>
             <p className="text-caption text-gray-300">{product?.brand}</p>
             {stats?.currentLowestPrice != null && (
@@ -179,7 +179,7 @@ export function PriceHistoryPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-body2 text-gray-500">{store.storeName}</span>
                     {store.isLowest && (
-                      <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[10px] text-white">
+                      <span className="rounded-full bg-primary-700 px-2 py-0.5 text-[11px] text-white">
                         최저
                       </span>
                     )}
@@ -235,9 +235,9 @@ export function PriceHistoryPage() {
 
       {/* dim */}
       <div
-        className="fixed inset-0 z-40 transition-all duration-300"
+        className="fixed inset-0 z-40 transition-opacity duration-300 motion-reduce:transition-none"
         style={{
-          background: "rgba(0,0,0,0.35)",
+          background: "color-mix(in srgb, var(--color-gray-500) 35%, transparent)",
           opacity: showSheet ? 1 : 0,
           pointerEvents: showSheet ? "auto" : "none",
         }}
@@ -247,9 +247,15 @@ export function PriceHistoryPage() {
       {/* 바텀시트 */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] rounded-t-2xl bg-white p-6"
+        aria-hidden={!showSheet}
         style={{
           transform: showSheet ? "translateY(0)" : "translateY(105%)",
-          transition: sheetEverOpened ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+          // 닫힌 시트는 화면 아래에 밀어 두기만 하면, 끝까지 스크롤하거나 모바일 주소창이
+          // 접힐 때 아래로 비쳐 보인다. 닫히는 애니메이션이 끝나면 아예 숨긴다.
+          visibility: showSheet ? "visible" : "hidden",
+          transition: sheetEverOpened
+            ? `transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear ${showSheet ? "0s" : "0.32s"}`
+            : "none",
           willChange: "transform",
           pointerEvents: showSheet ? "auto" : "none",
         }}
@@ -272,12 +278,12 @@ export function PriceHistoryPage() {
           <span className="text-body2 text-gray-300">원</span>
         </div>
         <button
-          className="mt-4 h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+          className="mt-4 h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
           disabled={saving || !newTargetPrice}
           onClick={handleSaveTargetPrice}
           type="button"
         >
-          {saving ? "저장 중..." : "저장하기"}
+          {saving ? "저장 중…" : "저장하기"}
         </button>
       </div>
     </AppLayout>
@@ -334,14 +340,14 @@ function PriceChart({
 
   return (
     <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="가격 변동 그래프">
         {/* y축 라벨 */}
         {yLabels.map((val, i) => (
           <text
             key={i}
             x={PAD.left - 4}
             y={toY(val) + 4}
-            fill="#CBD0D6"
+            className="fill-gray-200"
             fontSize="9"
             textAnchor="end"
           >
@@ -357,7 +363,7 @@ function PriceChart({
             x2={W - PAD.right}
             y1={toY(val)}
             y2={toY(val)}
-            stroke="#F3F4F6"
+            className="stroke-gray-100"
           />
         ))}
 
@@ -369,31 +375,31 @@ function PriceChart({
               x2={W - PAD.right}
               y1={targetY}
               y2={targetY}
-              stroke="#5B8FD9"
+              className="stroke-primary-500"
               strokeDasharray="4 3"
               strokeWidth="1.5"
             />
-            <text x={W - PAD.right + 2} y={targetY + 4} fill="#5B8FD9" fontSize="8">
+            <text x={W - PAD.right + 2} y={targetY + 4} className="fill-primary-500" fontSize="8">
               목표
             </text>
           </>
         )}
 
         {/* 면적 채우기 */}
-        <path d={areaPath} fill="#DBE6F8" opacity="0.35" />
+        <path d={areaPath} className="fill-primary-100" opacity="0.35" />
 
         {/* 라인 */}
         <path
           d={linePath}
           fill="none"
-          stroke="#5B8FD9"
+          className="stroke-primary-500"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
 
         {/* 마지막 점 + 말풍선 */}
-        <circle cx={toX(history.length - 1)} cy={toY(last.price)} r="3.5" fill="#5B8FD9" />
+        <circle cx={toX(history.length - 1)} cy={toY(last.price)} r="3.5" className="fill-primary-500" />
 
         {/* x축 날짜 */}
         {xLabels.map((idx) => (
@@ -401,7 +407,7 @@ function PriceChart({
             key={idx}
             x={toX(idx)}
             y={H - 4}
-            fill="#9EA5AE"
+            className="fill-gray-300"
             fontSize="8"
             textAnchor="middle"
           >

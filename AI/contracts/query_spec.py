@@ -12,7 +12,7 @@ LLM이 흔들릴 수 있는 곳이 Normalize 한 곳으로 좁혀지고, 골든�
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class RequestType(str, Enum):
@@ -25,12 +25,14 @@ class RequestType(str, Enum):
 
 
 class Category(str, Enum):
-    """상품 카테고리. 현재 DB에 들어 있는 값 그대로다."""
+    """상품 카테고리. 카테고리마다 허용하는 제품 종류는 rules/product_types.py 에 있다."""
 
-    BASE = "base"          # 쿠션, 파운데이션, 프라이머, 컨실러
-    SUN = "sun"            # 선크림, 선스틱, 선쿠션, 선스프레이
-    LIP = "lip"            # 틴트, 립스틱, 립글로스, 립밤
-    SKINCARE = "skincare"  # 토너, 에센스, 세럼, 크림, 오일, 로션
+    BASE = "base"          # 베이스 메이크업. 쿠션, 파운데이션 등
+    SUN = "sun"            # 선케어. 선크림, 선스틱 등
+    LIP = "lip"            # 립 메이크업. 틴트, 립스틱 등
+    SKINCARE = "skincare"  # 스킨케어. 토너, 세럼, 크림 등
+    EYE = "eye"            # 아이 메이크업. 아이섀도, 아이라이너 등
+    CHEEK = "cheek"        # 치크. 블러셔, 하이라이터 등
 
 
 class Target(str, Enum):
@@ -60,7 +62,7 @@ class BundleStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     category: Category | None = None
-    product_type: str | None = None  # "토너", "세럼" 처럼 카테고리 안의 종류
+    product_type: str | None = None  # "토너", "세럼" 처럼 카테고리 안의 종류(rules/product_types.py)
     # 사용자가 쓴 표현 그대로. 화면에 그대로 보여준다.
     # 빈 값을 허용하면 무엇을 찾아야 하는지 모르는 단계가 세트에 들어가고,
     # bundle_steps 가 비어 있지 않다는 이유로 필수 필드 검사도 통과한다.
@@ -111,7 +113,17 @@ class QuerySpec(BaseModel):
     use_env: bool = False       # "요즘 날씨에 맞는" → env_fit 점수 항목을 켠다
     value_seeking: bool = False  # "가성비" → value_signal 가중치를 올린다
 
-    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    @model_validator(mode="before")
+    @classmethod
+    def _예전_확신_점수_버리기(cls, 값):
+        """예전에 저장한 스펙에 남아 있는 confidence 를 버린다.
+
+        되물을지는 이제 양식이 얼마나 비었는지로 정한다(rules/clarify.py). 이 칸을
+        없앴지만, 조건 수정은 예전 job 의 스펙을 다시 읽으므로 받아는 준다.
+        """
+        if isinstance(값, dict) and "confidence" in 값:
+            값 = {키: v for 키, v in 값.items() if 키 != "confidence"}
+        return 값
 
     @field_validator("conditions", "exclude_ingredients")
     @classmethod
@@ -138,7 +150,7 @@ class QuerySpec(BaseModel):
         return tuple(빠진)
 
 
-# 요청 유형별 필수 필드. 하나라도 비면 되묻는다.
+# 요청 유형별 필수 필드. 하나라도 비면 되묻는다. 되물을지는 rules/clarify.py 가 정한다.
 #
 # LLM에게 "빠진 게 뭔지도 같이 알려줘"라고 시키지 않고 코드로 계산한다.
 # 값을 못 채운 모델이 무엇을 못 채웠는지는 정확히 아는 쪽이 이상하다.
@@ -149,12 +161,3 @@ REQUIRED_FIELDS: dict[RequestType, tuple[str, ...]] = {
     # REFINE 의 parent_job_id 는 질의가 아니라 화면에서 온다. state 가 갖는다.
     RequestType.REFINE: (),
 }
-
-# 이 아래면 무엇을 물어야 할지 모르는 상태로 본다. 그대로 태우면
-# 엉뚱한 시나리오로 가므로 되묻는다.
-CONFIDENCE_THRESHOLD = 0.6
-
-
-def needs_clarification(spec: QuerySpec) -> bool:
-    """되물어야 하는 질의인가."""
-    return bool(spec.missing_required()) or spec.confidence < CONFIDENCE_THRESHOLD

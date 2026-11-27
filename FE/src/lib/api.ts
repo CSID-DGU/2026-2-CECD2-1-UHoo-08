@@ -1,16 +1,82 @@
-import { getAccessToken } from "./auth";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+} from "./auth";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-const AI_API_BASE_URL = (import.meta.env.VITE_AI_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(
+    /\/$/,
+    "",
+  ) ?? "";
+const AI_API_BASE_URL =
+  (import.meta.env.VITE_AI_API_BASE_URL as string | undefined)?.replace(
+    /\/$/,
+    "",
+  ) ?? "";
 
 function getApiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
-  if (AI_API_BASE_URL && path.startsWith("/ai/")) return `${AI_API_BASE_URL}${path.replace(/^\/ai/, "")}`;
+  if (AI_API_BASE_URL && path.startsWith("/ai/"))
+    return `${AI_API_BASE_URL}${path.replace(/^\/ai/, "")}`;
   if (!API_BASE_URL) return path;
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function readBody(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+let refreshing: Promise<boolean> | null = null;
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = (async () => {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) return false;
+      try {
+        const res = await fetch(getApiUrl("/auth/token/refresh"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) return false;
+        const body = (await readBody(res)) as {
+          data?: { accessToken?: string; refreshToken?: string };
+        } | null;
+        const access = body?.data?.accessToken;
+        if (typeof access !== "string" || !access) return false;
+        // 새 리프레시 토큰이 비어 있으면 기존 것을 그대로 쓴다.
+        const nextRefresh = body?.data?.refreshToken;
+        setTokens(access, typeof nextRefresh === "string" && nextRefresh ? nextRefresh : refreshToken);
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+function expireSession() {
+  clearTokens();
+  if (window.location.pathname !== "/") window.location.replace("/");
+}
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  retried = false,
+): Promise<T> {
   const token = getAccessToken();
   const isFormData = options.body instanceof FormData;
 
@@ -24,7 +90,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  const data = await res.json();
+  if (res.status === 401 && token && !retried && !path.startsWith("/auth/")) {
+    if (await refreshAccessToken()) return request<T>(path, options, true);
+    expireSession();
+    // 원래 401 본문 대신 세션 만료를 알린다. 호출한 쪽은 일반 오류와 구분할 수 있다.
+    throw { success: false, error: { code: "SESSION_EXPIRED", message: "다시 로그인해 주세요", status: 401 } };
+  }
+
+  const data = await readBody(res);
   if (!res.ok) throw data;
   return data as T;
 }
@@ -37,5 +110,7 @@ export const api = {
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   patchForm: <T>(path: string, form: FormData) =>
     request<T>(path, { method: "PATCH", body: form }),
+  postForm: <T>(path: string, form: FormData) =>
+    request<T>(path, { method: "POST", body: form }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

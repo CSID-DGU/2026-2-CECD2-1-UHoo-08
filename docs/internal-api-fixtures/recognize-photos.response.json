@@ -1,0 +1,19 @@
+{
+  "candidates": [
+    {
+      "productId": "11111111-1111-1111-1111-111111111111",
+      "name": "베어 워터 쿠션",
+      "brand": "ROMAND",
+      "imageUrl": "https://storage.example.com/products/cushion.jpg",
+      "confidence": 0.92
+    }
+  ],
+  "expiryDate": "2027-03-31",
+  "paoMonths": 12,
+  "mfgDate": "2026-03-31",
+  "raw": {
+    "nameText": "ROMAND BARE WATER CUSHION",
+    "dateText": "EXP 2027.03.31"
+  },
+  "stub": false
+}

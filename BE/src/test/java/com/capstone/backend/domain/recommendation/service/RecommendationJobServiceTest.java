@@ -1,11 +1,18 @@
 package com.capstone.backend.domain.recommendation.service;
 
 import com.capstone.backend.common.ai.AiInternalClient;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentClarifyRequest;
 import com.capstone.backend.common.ai.dto.AiInternalDtos.AgentRunV2Request;
+import com.capstone.backend.common.ai.dto.AiInternalDtos.FeedbackApplyRequest;
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
 import com.capstone.backend.common.util.JsonUtil;
+import com.capstone.backend.domain.product.entity.Product;
+import com.capstone.backend.domain.product.repository.ProductRepository;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest;
+import com.capstone.backend.domain.recommendation.dto.request.ClarificationRequest.Answers;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest;
+import com.capstone.backend.domain.recommendation.dto.response.ClarificationResponse;
 import com.capstone.backend.domain.recommendation.dto.request.RecommendationQueryRequest.TargetProfile;
 import com.capstone.backend.domain.recommendation.dto.response.RecommendationQueryResponse;
 import com.capstone.backend.domain.recommendation.entity.Recommendation;
@@ -39,8 +46,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -56,6 +65,8 @@ class RecommendationJobServiceTest {
     UserRepository userRepository;
     @Mock
     AiInternalClient aiInternalClient;
+    @Mock
+    ProductRepository productRepository;
 
     RecommendationJobService service;
 
@@ -65,7 +76,7 @@ class RecommendationJobServiceTest {
     @BeforeEach
     void setUp() {
         service = new RecommendationJobService(recommendationRepository, searchLogRepository, userRepository,
-                aiInternalClient, new JsonUtil(new ObjectMapper()));
+                aiInternalClient, new JsonUtil(new ObjectMapper()), productRepository);
     }
 
     @AfterEach
@@ -117,7 +128,72 @@ class RecommendationJobServiceTest {
         assertThat(log.getValue().isClarified()).isFalse();
 
         verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
-                "여름 가벼운 매트 쿠션", "SELF", null, null));
+                "여름 가벼운 매트 쿠션", null, "SELF", null, null));
+    }
+
+    private Product givenBaseProduct() {
+        Product product = Product.builder().id(UUID.randomUUID()).name("기준 쿠션").build();
+        given(productRepository.findById(product.getId())).willReturn(Optional.of(product));
+        return product;
+    }
+
+    @Test
+    void 기준_상품만_있으면_문장_없이_job을_만들고_검색_기록은_남기지_않는다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder().baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getProduct()).isEqualTo(product);
+        assertThat(saved.getValue().getRawQuery()).isNull();
+        verify(searchLogRepository, never()).save(any());
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                null, product.getId().toString(), "SELF", null, null));
+    }
+
+    @Test
+    void 문장과_기준_상품이_함께_오면_둘_다_남기고_AI에_넘긴다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder()
+                .query(" 이 쿠션 어때 ").baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getProduct()).isEqualTo(product);
+        assertThat(saved.getValue().getRawQuery()).isEqualTo("이 쿠션 어때");
+        verify(searchLogRepository).save(any());
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                "이 쿠션 어때", product.getId().toString(), "SELF", null, null));
+    }
+
+    @Test
+    void 문장이_공백이어도_기준_상품이_있으면_문장_없는_요청이다() {
+        givenUser("DRY");
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        Product product = givenBaseProduct();
+
+        service.requestQuery(userId, RecommendationQueryRequest.builder()
+                .query("   ").baseProductId(product.getId()).build());
+
+        assertThat(saved.getValue().getRawQuery()).isNull();
+        verify(searchLogRepository, never()).save(any());
+    }
+
+    @Test
+    void 없는_기준_상품이면_PRODUCT_NOT_FOUND이고_job을_만들지_않는다() {
+        givenUser("DRY");
+        UUID missing = UUID.randomUUID();
+        given(productRepository.findById(missing)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.requestQuery(userId,
+                RecommendationQueryRequest.builder().baseProductId(missing).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.PRODUCT_NOT_FOUND);
+
+        verify(recommendationRepository, never()).save(any());
+        verify(aiInternalClient, never()).runAgentV2(any());
     }
 
     @Test
@@ -196,5 +272,160 @@ class RecommendationJobServiceTest {
         List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
         synchronizations.forEach(TransactionSynchronization::afterCommit);
         verify(aiInternalClient).runAgentV2(any());
+    }
+    // 추가 질문 답변
+
+    private void givenClarifyingJob(JobStatus status) {
+        Recommendation job = Recommendation.builder().id(jobId).status(status).progress(10)
+                .basis(RecommendationBasis.SELF).build();
+        given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.of(job));
+        lenient().when(searchLogRepository.markClarified(jobId)).thenReturn(1);
+    }
+
+    @Test
+    void 되묻는_중인_job에_답을_문장으로_합쳐_AI에_넘기고_검색_기록에_남긴다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+
+        ClarificationResponse response = service.answerClarification(userId, jobId, new ClarificationRequest(
+                Answers.builder().budget(50000).bundleSteps(List.of("스킨", "로션")).build()));
+
+        assertThat(response.getJobId()).isEqualTo(jobId);
+        assertThat(response.getStatus()).isEqualTo(JobStatus.IN_PROGRESS);
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "예산 50000원, 구성: 스킨, 로션")), any());
+        verify(searchLogRepository).markClarified(jobId);
+    }
+
+    @Test
+    void job_상태는_바꾸지_않는다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(Answers.builder().text("쿠션").build()));
+
+        // AI 는 되묻는 중인 job 에만 답을 받는다
+        verify(recommendationRepository, never()).save(any());
+    }
+
+    @Test
+    void 기준_제품_답이_상품_ID면_제품_이름으로_바꿔_보낸다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        UUID productId = UUID.randomUUID();
+        given(productRepository.findById(productId)).willReturn(Optional.of(
+                Product.builder().id(productId).name("베어 워터 쿠션").brand("ROMAND").category("base").build()));
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(
+                Answers.builder().baseProduct(productId.toString()).build()));
+
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "기준 제품: 베어 워터 쿠션")), any());
+    }
+
+    @Test
+    void 기준_제품_답이_이름이면_그대로_보낸다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(
+                Answers.builder().baseProduct("롬앤 쿠션").build()));
+
+        verify(aiInternalClient).clarify(eq(new AgentClarifyRequest(jobId.toString(), "기준 제품: 롬앤 쿠션")), any());
+        verifyNoInteractions(productRepository);
+    }
+
+    @Test
+    void 되묻는_중이_아니면_CLARIFY_NOT_REQUIRED이고_AI를_부르지_않는다() {
+        givenClarifyingJob(JobStatus.IN_PROGRESS);
+
+        assertThatThrownBy(() -> service.answerClarification(userId, jobId,
+                new ClarificationRequest(Answers.builder().text("쿠션").build())))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.CLARIFY_NOT_REQUIRED);
+        verifyNoInteractions(aiInternalClient);
+        verify(searchLogRepository, never()).markClarified(any());
+    }
+
+    @Test
+    void 이미_답을_받은_job이면_CLARIFY_NOT_REQUIRED이고_AI를_부르지_않는다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        given(searchLogRepository.markClarified(jobId)).willReturn(0);
+
+        assertThatThrownBy(() -> service.answerClarification(userId, jobId,
+                new ClarificationRequest(Answers.builder().text("쿠션").build())))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.CLARIFY_NOT_REQUIRED);
+        verifyNoInteractions(aiInternalClient);
+    }
+
+    @Test
+    void 남의_job이면_NOT_FOUND다() {
+        given(recommendationRepository.findByIdAndUserId(jobId, userId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.answerClarification(userId, jobId,
+                new ClarificationRequest(Answers.builder().text("쿠션").build())))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    void 되묻기_답변의_AI_호출이_실패해도_접수_결과를_돌려준다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        willThrow(new RuntimeException("connection refused")).given(aiInternalClient).clarify(any(), any());
+
+        assertThat(service.answerClarification(userId, jobId,
+                new ClarificationRequest(Answers.builder().text("쿠션").build())).getStatus())
+                .isEqualTo(JobStatus.IN_PROGRESS);
+        // 다시 답할 수 있게 표시를 되돌린다
+        verify(searchLogRepository).unmarkClarified(jobId);
+    }
+
+    @Test
+    void AI가_답을_받았다고_응답하지_않으면_답_받음_표시를_되돌린다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(Answers.builder().text("쿠션").build()));
+
+        ArgumentCaptor<Runnable> onFailure = ArgumentCaptor.forClass(Runnable.class);
+        verify(aiInternalClient).clarify(any(), onFailure.capture());
+        verify(searchLogRepository, never()).unmarkClarified(any());
+        onFailure.getValue().run();
+        verify(searchLogRepository).unmarkClarified(jobId);
+    }
+
+    @Test
+    void 되묻기_답변도_트랜잭션_안에서는_커밋된_뒤에_AI를_부른다() {
+        givenClarifyingJob(JobStatus.NEEDS_CLARIFICATION);
+        TransactionSynchronizationManager.initSynchronization();
+
+        service.answerClarification(userId, jobId, new ClarificationRequest(Answers.builder().text("쿠션").build()));
+
+        verifyNoInteractions(aiInternalClient);
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        verify(aiInternalClient).clarify(any(), any());
+    }
+    // 조건 수정의 새 job, 가중치 반영 알림
+
+    @Test
+    void 조건_수정_job은_직전_job과_고른_조건을_남기고_AI에_직전_job을_알린다() {
+        User user = User.builder().id(userId).name("하림").provider("KAKAO").skinType("OILY").build();
+        ArgumentCaptor<Recommendation> saved = givenSave();
+        UUID parentJobId = UUID.randomUUID();
+
+        service.startJob(new RecommendationJobService.NewJob(user, "더 저렴한 제품으로", null, RecommendationBasis.SELF, null,
+                parentJobId, new String[]{"CHEAPER"}, null));
+
+        assertThat(saved.getValue().getParentJobId()).isEqualTo(parentJobId);
+        assertThat(saved.getValue().getRefinePresets()).containsExactly("CHEAPER");
+        assertThat(saved.getValue().getRefineText()).isNull();
+        verify(aiInternalClient).runAgentV2(new AgentRunV2Request(jobId.toString(), userId.toString(),
+                "더 저렴한 제품으로", null, "SELF", null, parentJobId.toString()));
+    }
+
+    @Test
+    void 가중치_반영은_커밋된_뒤에_알리고_실패해도_예외를_올리지_않는다() {
+        TransactionSynchronizationManager.initSynchronization();
+        willThrow(new RuntimeException("connection refused")).given(aiInternalClient).applyFeedback(any());
+
+        service.requestFeedbackApply(userId);
+
+        verifyNoInteractions(aiInternalClient);
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        verify(aiInternalClient).applyFeedback(new FeedbackApplyRequest(userId.toString()));
     }
 }

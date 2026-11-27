@@ -4,6 +4,7 @@ from langchain_core.messages import HumanMessage
 
 from config import settings
 from models.extracted_product import ExtractedProduct
+from prompts.product_types_text import category_lines
 
 PROMPT = """너는 화장품 상품 정보 추출 전문가이다.
 
@@ -33,11 +34,9 @@ PROMPT = """너는 화장품 상품 정보 추출 전문가이다.
 }
 
 [카테고리 분류 기준]
-- base: 쿠션, 파운데이션, 프라이머, 컨실러
-- sun: 선크림, 선스틱, 선쿠션, 선스프레이
-- lip: 틴트, 립스틱, 립글로스, 립밤
-- skincare: 토너, 에센스, 세럼, 크림, 오일, 로션, 핸드크림 등 기타 스킨케어
-category.sub에는 위 세부 제품 유형을 그대로 입력하라.
+__카테고리_절__
+category.main에는 위 카테고리 중 하나를 넣어라. 세부 유형이 목록에 없어도 속하는 카테고리가 분명하면 넣는다. 예: 핸드크림은 skincare.
+category.sub에는 위 세부 제품 유형을 글자 그대로 넣어라. 목록에 없는 유형이면 null.
 
 [규칙]
 - detected_objects: 텍스트에서 언급된 상품명, 성분, 특징 등 주요 키워드를 넣어라.
@@ -46,6 +45,9 @@ category.sub에는 위 세부 제품 유형을 그대로 입력하라.
 - volume: 숫자만 추출 (예: "15g" → 15, "100mL" → 100)
 - unit: g 또는 ml 중 하나만
 - 모르는 값은 null. 배열 정보가 없으면 빈 배열 []."""
+
+# 카테고리와 종류 목록은 상수로 만든다. 본문에 JSON 중괄호가 많아 format 대신 바꿔 끼운다
+PROMPT = PROMPT.replace("__카테고리_절__", category_lines())
 
 # TODO(llm): services.llm 으로 옮긴다. nfc_parser 와 같은 설정을 따로 만들고 있다.
 _client = ChatOpenAI(

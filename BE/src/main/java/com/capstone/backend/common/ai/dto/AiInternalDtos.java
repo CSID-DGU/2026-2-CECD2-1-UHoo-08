@@ -1,5 +1,8 @@
 package com.capstone.backend.common.ai.dto;
 
+import com.capstone.backend.domain.home.enums.CompatibilityLevel;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 import java.util.Map;
 
@@ -8,7 +11,8 @@ import java.util.Map;
  *
  * AI 쪽 {@code AI/contracts/internal_api.py} 와 같은 모양이다. 한쪽만 고치면
  * 필드가 조용히 빠지고, 빠진 자리는 기본값으로 채워져 정상처럼 보인다.
- * 필드를 바꿀 때는 두 파일과 {@code docs/internal-api.md} 를 같이 고친다.
+ * 필드를 바꿀 때는 두 파일과 {@code docs/internal-api.md}, {@code docs/internal-api-fixtures} 를 같이 고친다.
+ * 예시 JSON 과 어긋나면 AiContractTest 가 깨진다.
  *
  * 한 파일에 모아 둔 이유는 이 값들이 따로 쓰이지 않고 항상 이 계약 하나로
  * 함께 움직이기 때문이다. 파일이 열두 개로 흩어지면 계약이 바뀔 때 무엇을
@@ -32,7 +36,10 @@ public final class AiInternalDtos {
     public record AgentRunV2Request(
             String jobId,
             String userId,
+            /* 기준 상품만으로 요청했으면 null */
             String rawQuery,
+            /* 있으면 AI 가 문장을 해석하지 않고 평가 경로로 간다 */
+            String baseProductId,
             /* SELF | POPULAR | OTHER */
             String basis,
             /* basis 가 OTHER 일 때 화면에서 입력한 다른 사람의 조건 */
@@ -46,7 +53,8 @@ public final class AiInternalDtos {
     public record AgentClarifyRequest(String jobId, String answer) {
     }
 
-    /** 사진 두 장. 제품명 면은 필수, 기한 면은 선택이다. */
+    /** 제품명 면과 기한 면 사진. 둘 중 하나는 있어야 하고, 없는 면은 보내지 않는다. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record RecognizePhotosRequest(String nameImage, String dateImage) {
     }
 
@@ -80,24 +88,35 @@ public final class AiInternalDtos {
     public record HomeRunRequest(String userId, String kind) {
     }
 
-    public record BundleSwapRequest(String jobId, int bundleIndex, int slot, String productId) {
+    public record CompatibilityCheckRequest(String userId, String productId) {
     }
 
-    /** bundle 은 추천 결과의 BundleOption 모양이다. */
-    public record BundleSwapResponse(Map<String, Object> bundle, boolean stub) {
-    }
-
-    public record TrendItem(
-            String productId,
-            String name,
-            String brand,
-            String imageUrl,
-            double trendScore,
-            int mentionCount
+    /** 보유 제품 하나와 이 제품 사이에서 걸린 성분 조합 */
+    public record CompatibilityPairDetail(
+            String userProductId,
+            String ingredientA,
+            String ingredientB,
+            CompatibilityLevel level,
+            String advice,
+            String schedule
     ) {
     }
 
-    public record TrendsResponse(List<TrendItem> items, boolean stub) {
+    /**
+     * 쌍 중 가장 강한 단계가 level 이다.
+     *
+     * @param stub true 면 level 의 OK 는 판정 결과가 아니다
+     */
+    public record CompatibilityCheckResponse(CompatibilityLevel level, List<CompatibilityPairDetail> pairs, boolean stub) {
+
+        public CompatibilityCheckResponse {
+            pairs = pairs == null ? List.of() : pairs;
+        }
+
+        /** 호출에 실패했을 때 쓰는 값 */
+        public static CompatibilityCheckResponse ok() {
+            return new CompatibilityCheckResponse(CompatibilityLevel.OK, List.of(), false);
+        }
     }
 
     /** 이 사용자의 가중치 prior 재계산. 피드백 저장 뒤 한 번 던진다. */

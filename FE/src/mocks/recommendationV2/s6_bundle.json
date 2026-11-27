@@ -45,7 +45,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "toner",
+          "slotLabel": "토너"
         },
         {
           "productId": "prd_2002",
@@ -71,7 +73,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "serum",
+          "slotLabel": "세럼"
         },
         {
           "productId": "prd_2003",
@@ -97,7 +101,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "cream",
+          "slotLabel": "크림"
         }
       ],
       "overBudgetReason": null
@@ -130,7 +136,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "toner",
+          "slotLabel": "토너"
         },
         {
           "productId": "prd_2005",
@@ -156,7 +164,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "serum",
+          "slotLabel": "세럼"
         },
         {
           "productId": "prd_2006",
@@ -182,7 +192,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "cream",
+          "slotLabel": "크림"
         }
       ],
       "overBudgetReason": null
@@ -215,7 +227,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "toner",
+          "slotLabel": "토너"
         },
         {
           "productId": "prd_2008",
@@ -241,7 +255,9 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "serum",
+          "slotLabel": "세럼"
         },
         {
           "productId": "prd_2009",
@@ -267,12 +283,21 @@
           "badges": [],
           "reason": null,
           "change": null,
-          "rankDelta": null
+          "rankDelta": null,
+          "slotKey": "cream",
+          "slotLabel": "크림"
         }
       ],
       "overBudgetReason": "주름 개선 성분이 들어간 조합만 모으면 예산을 1만 2천원 넘습니다."
     }
   ],
   "excluded": [],
-  "clarify": null
+  "clarify": null,
+  "conditions": null,
+  "counts": null,
+  "pairs": null,
+  "replacement": null,
+  "schedule": null,
+  "uncomparedCount": null,
+  "checkedUserProductIds": null
 }

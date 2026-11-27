@@ -2,7 +2,7 @@
 
 노드가 신경 쓰지 않아도 되는 일을 여기서 한다.
 
-    진행률   각 단계 앞에서 "지금 무엇을 하는 중"을 기록한다
+    진행률   각 단계 앞에서 "지금 무엇을 하는 중"과 단계 목록을 기록한다
     trace    지나간 단계를 남긴다. 실패했을 때 어디까지 갔는지 보려면 필요하다
     실패     예외를 잡아 job 을 실패로 남기고 다시 올린다
 
@@ -22,15 +22,18 @@ from typing import Awaitable, Callable
 
 from langgraph.graph import END, START, StateGraph
 
-from graph.registry import NODE_LABELS, SEARCH_ENTRY, full_path
+from contracts.query_spec import QuerySpec, RequestType, Target
+from graph.registry import NODE_LABELS, ROUTE, SEARCH_ENTRY, full_path
 from graph.state import GraphState
 
 logger = logging.getLogger(__name__)
 
 Node = Callable[[GraphState], Awaitable[dict]]
-# (화면에 보일 문구, 0~100)
-ProgressHook = Callable[[str, int], Awaitable[None]]
+# (화면에 보일 문구, 0~100, 단계 목록)
+ProgressHook = Callable[[str, int, list[dict]], Awaitable[None]]
 FailHook = Callable[[Exception], Awaitable[None]]
+# 경로가 정해진 직후의 상태를 받는다. 부른 쪽이 시나리오와 질의 해석을 job 에 적는다.
+RouteHook = Callable[[dict], Awaitable[None]]
 
 
 async def _pass_through(state: GraphState) -> dict:
@@ -57,9 +60,26 @@ def _load(name: str) -> Node | None:
     return fn
 
 
+def 단계_목록(이름들: tuple[str, ...], 지금: int) -> list[dict]:
+    """화면에 보일 단계 목록. 지금 앞은 DONE, 지금은 NOW, 뒤는 TODO 다.
+
+    지금이 목록 길이와 같으면 모두 끝난 것이다.
+    """
+    def 상태(순번: int) -> str:
+        if 순번 < 지금:
+            return "DONE"
+        return "NOW" if 순번 == 지금 else "TODO"
+
+    return [
+        {"key": 이름, "label": NODE_LABELS.get(이름, 이름), "state": 상태(순번)}
+        for 순번, 이름 in enumerate(이름들)
+    ]
+
+
 def _wrap(
     name: str, fn: Node, 순번: int, 전체: int,
     on_progress: ProgressHook | None, 구간: tuple[int, int] = (0, 100),
+    끝난_단계: tuple[str, ...] = (), 단계들: tuple[str, ...] = (),
 ) -> Node:
     문구 = NODE_LABELS.get(name, name)
     stub = fn is _pass_through
@@ -68,13 +88,24 @@ def _wrap(
         if on_progress is not None:
             # 단계를 시작할 때 알린다. 끝나고 알리면 화면이 한 단계 늦는다.
             시작, 끝 = 구간
-            await on_progress(문구, 시작 + round(순번 / 전체 * (끝 - 시작)))
+            await on_progress(
+                문구,
+                시작 + round(순번 / 전체 * (끝 - 시작)),
+                단계_목록(끝난_단계 + 단계들, len(끝난_단계) + 순번),
+            )
         바뀐 = await fn(state)
         자취 = list(state.get("trace", []))
         자취.append(f"{name}(stub)" if stub else name)
         return {**(바뀐 or {}), "trace": 자취}
 
     return 실행
+
+
+def _경로_단계(scenario: str, use_env: bool, include_entry: bool) -> tuple[str, ...]:
+    단계들 = full_path(scenario, use_env=use_env)
+    if not include_entry:
+        단계들 = tuple(s for s in 단계들 if s not in SEARCH_ENTRY)
+    return 단계들
 
 
 def build(
@@ -84,6 +115,7 @@ def build(
     include_entry: bool = True,
     on_progress: ProgressHook | None = None,
     progress_from: int = 0,
+    done_steps: tuple[str, ...] = (),
 ):
     """시나리오 하나를 실행할 수 있는 그래프로 만든다.
 
@@ -92,10 +124,11 @@ def build(
 
     progress_from 은 진행률의 시작점이다. 관문을 먼저 돌린 뒤 경로를 도는
     경우, 0 부터 다시 세면 화면의 막대가 뒤로 돌아간다.
+
+    done_steps 는 이 그래프 앞에서 이미 끝난 단계다. 단계 목록의 앞에 끝난
+    것으로 싣는다. 그래프에는 넣지 않는다.
     """
-    단계들 = full_path(scenario, use_env=use_env)
-    if not include_entry:
-        단계들 = tuple(s for s in 단계들 if s not in SEARCH_ENTRY)
+    단계들 = _경로_단계(scenario, use_env, include_entry)
 
     중복 = [s for s in 단계들 if 단계들.count(s) > 1]
     if 중복:
@@ -111,7 +144,9 @@ def build(
         if 구현 is None:
             logger.info("노드 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
             구현 = _pass_through
-        그래프.add_node(이름, _wrap(이름, 구현, 순번, 전체, on_progress, (progress_from, 100)))
+        그래프.add_node(이름, _wrap(
+            이름, 구현, 순번, 전체, on_progress, (progress_from, 100), done_steps, 단계들,
+        ))
         그래프.add_edge(이전, 이름)
         이전 = 이름
     그래프.add_edge(이전, END)
@@ -126,6 +161,7 @@ async def run_scenario(
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
     progress_from: int = 0,
+    done_steps: tuple[str, ...] = (),
 ) -> GraphState:
     """경로 하나를 끝까지 돌린다.
 
@@ -144,6 +180,7 @@ async def run_scenario(
         include_entry=include_entry,
         on_progress=on_progress,
         progress_from=progress_from,
+        done_steps=done_steps,
     )
 
     try:
@@ -156,8 +193,74 @@ async def run_scenario(
         raise
 
     if on_progress is not None:
-        await on_progress("완료", 100)
+        전체_단계 = done_steps + _경로_단계(scenario, use_env, include_entry)
+        await on_progress("완료", 100, 단계_목록(전체_단계, len(전체_단계)))
     return 결과
+
+
+def _기준_상품_스펙(상태: dict) -> dict:
+    """Normalize 를 거치지 않아도 뒤 단계가 같은 자리에서 값을 읽게 한다."""
+    return QuerySpec(
+        request_type=RequestType.EVALUATE,
+        base_product_ref=상태["base_product_id"],
+        target=상태.get("basis") or Target.SELF,
+    ).model_dump(mode="json")
+
+
+def _기준을_맞춘다(상태: dict) -> None:
+    """화면에서 고른 추천 기준 탭이 문장에서 읽은 기준보다 우선한다.
+
+    "엄마 선물" 이라고 써도 사용자가 '내 기준' 탭에 있으면 내 기준으로 찾는다.
+    뒤 단계는 query_spec.target 만 보므로 여기서 한 번 맞춰 둔다.
+    """
+    기준 = 상태.get("basis")
+    spec = 상태.get("query_spec")
+    if 기준 and isinstance(spec, dict):
+        상태["query_spec"] = {**spec, "target": 기준}
+
+
+# 평가할 상품을 찾지 못했을 때 되묻는 문장. 라우터가 같은 경우에 묻는 문장과 같다.
+상품_되묻기 = "어떤 제품을 말씀하시는지 알려주세요."
+
+
+async def _기준_상품을_찾는다(상태: dict) -> None:
+    """평가 경로인데 상품 id 가 없으면 질의 속 상품 이름으로 찾는다.
+
+    못 찾았으면 처음에는 되묻는다. 이미 한 번 물었는데도 못 찾으면 그 이름을
+    조건으로 넣어 조건 탐색으로 바꾼다. 결과를 아예 안 주는 것보다 낫다.
+
+    라우터가 이미 되묻기로 정했으면 건드리지 않는다. 답을 받아 다시 돌 때 찾는다.
+    """
+    if 상태.get("scenario") != ROUTE[RequestType.EVALUATE]:
+        return
+    if 상태.get("base_product_id") or 상태.get("clarify_question"):
+        return
+
+    from services import product_resolver
+
+    spec = dict(상태.get("query_spec") or {})
+    이름 = (spec.get("base_product_ref") or "").strip()
+    찾은 = await product_resolver.resolve(이름)
+    if 찾은:
+        상태["base_product_id"] = 찾은
+        return
+
+    if (상태.get("clarify_count") or 0) == 0:
+        상태["clarify_question"] = 상품_되묻기
+        상태["clarify_missing_fields"] = ["base_product_ref"]
+        return
+
+    logger.info("평가할 상품 '%s' 를 끝내 찾지 못했다. 조건 탐색으로 바꾼다.", 이름)
+    조건 = list(spec.get("conditions") or [])
+    if 이름 and 이름 not in 조건:
+        조건.append(이름)
+    상태["query_spec"] = {**spec, "request_type": RequestType.SEARCH.value, "conditions": 조건}
+    상태["scenario"] = ROUTE[RequestType.SEARCH]
+
+
+async def _경로를_알린다(상태: dict, on_route: RouteHook | None) -> None:
+    if on_route is not None:
+        await on_route(상태)
 
 
 # 관문이 차지하는 진행률. 질의 해석은 전체에서 짧은 부분이라 앞쪽 10%만 쓴다.
@@ -169,18 +272,40 @@ async def run_query(
     *,
     on_progress: ProgressHook | None = None,
     on_fail: FailHook | None = None,
+    on_route: RouteHook | None = None,
 ) -> GraphState:
     """질의를 해석하고, 그 결과가 가리키는 경로를 돈다.
 
     관문(Normalize·Router)은 그래프 안에 넣을 수 없다. 빌더는 시나리오를
     알아야 경로를 조립하는데, 그 시나리오를 정하는 것이 라우터이기 때문이다.
     그래서 관문을 먼저 돌리고, 나온 시나리오로 경로를 조립한다.
+    단계 목록도 같은 이유로 관문 동안에는 관문만 싣고, 경로가 정해지면 이어서 싣는다.
 
     되물어야 하는 질의면 경로를 돌지 않고 돌아온다. 부른 쪽이 job 을
     멈춘 상태로 남기고 사용자의 답을 기다린다.
+
+    기준 상품이 있으면 해석할 것이 없으므로 관문 없이 평가 경로를 돈다.
+    관문이 평가 경로를 골랐는데 기준 상품이 없으면 질의 속 상품 이름으로 찾는다.
+
+    경로가 정해지면 on_route 를 부른다. 되묻느라 멈추는 경우도 부른다.
+    끝날 때까지 기다리면 진행 중인 job 의 시나리오가 화면에 보이지 않는다.
     """
     상태: dict = dict(initial or {})
     상태.setdefault("trace", [])
+
+    if 상태.get("base_product_id"):
+        상태["query_spec"] = _기준_상품_스펙(상태)
+        상태["scenario"] = ROUTE[RequestType.EVALUATE]
+        try:
+            await _경로를_알린다(상태, on_route)
+        except Exception as e:
+            logger.exception("경로 기록 실패")
+            if on_fail is not None:
+                await on_fail(e)
+            raise
+        return await run_scenario(
+            ROUTE[RequestType.EVALUATE], 상태, on_progress=on_progress, on_fail=on_fail,
+        )
 
     try:
         for 순번, 이름 in enumerate(SEARCH_ENTRY):
@@ -188,8 +313,15 @@ async def run_query(
             if 구현 is None:
                 logger.info("관문 %s 는 아직 없다. 그대로 흘려보낸다.", 이름)
                 구현 = _pass_through
-            단계 = _wrap(이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간))
+            단계 = _wrap(
+                이름, 구현, 순번, len(SEARCH_ENTRY), on_progress, (0, 관문_구간), (), SEARCH_ENTRY,
+            )
             상태.update(await 단계(상태))
+        if not 상태.get("scenario"):
+            상태["scenario"] = 기본_시나리오()
+        await _기준_상품을_찾는다(상태)
+        _기준을_맞춘다(상태)
+        await _경로를_알린다(상태, on_route)
     except Exception as e:
         logger.exception("관문 실행 실패")
         if on_fail is not None:
@@ -199,19 +331,17 @@ async def run_query(
     if 상태.get("clarify_question"):
         return 상태
 
-    시나리오 = 상태.get("scenario") or 기본_시나리오()
+    시나리오 = 상태["scenario"]
     return await run_scenario(
         시나리오,
         상태,
         on_progress=on_progress,
         on_fail=on_fail,
         progress_from=관문_구간,
+        done_steps=SEARCH_ENTRY,
     )
 
 
 def 기본_시나리오() -> str:
     """라우터가 아직 없을 때 갈 곳. 조건 탐색은 빈손으로도 돌아간다."""
-    from contracts.query_spec import RequestType
-    from graph.registry import ROUTE
-
     return ROUTE[RequestType.SEARCH]

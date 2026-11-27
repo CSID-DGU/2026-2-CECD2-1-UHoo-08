@@ -46,6 +46,7 @@ public class UserMeResponse {
     public static class StatsInfo {
         private long wishlistCount;
         private long trackingCount;
+        /** 쓰는 중인 보유 제품 수. 마이페이지의 "구매 제품" 칸이다 */
         private long registeredCount;
     }
 

@@ -178,11 +178,23 @@ public class ProductTextSearchService {
                 storeName, price, purchaseUrl != null ? purchaseUrl : "");
     }
 
-    private String mapCategory(String category1, String name) {
+    /** 아이 메이크업 종류 이름. "아이" 만으로는 찾지 않는다. 아이크림은 스킨케어다 */
+    private static final List<String> EYE_WORDS = List.of(
+            "섀도", "쉐도우", "라이너", "마스카라", "브로우", "눈썹", "아이프라이머");
+    private static final List<String> CHEEK_WORDS = List.of(
+            "블러셔", "블러쉬", "하이라이터", "쉐딩", "컨투어");
+
+    /**
+     * 네이버 상품의 카테고리. 이름에 든 종류 이름으로 나누고, 어디에도 걸리지 않으면 스킨케어다.
+     * 앞 카테고리부터 보므로 립라이너는 립, 쿠션 블러셔는 베이스가 된다.
+     */
+    static String mapCategory(String category1, String name) {
         String combined = (category1 + " " + name).toLowerCase();
         if (combined.contains("파운데이션") || combined.contains("쿠션") || combined.contains("비비") || combined.contains("컨실러")) return "base";
         if (combined.contains("선크림") || combined.contains("선스크린") || combined.contains("자외선")) return "sun";
         if (combined.contains("립") || combined.contains("틴트") || combined.contains("립스틱")) return "lip";
+        if (EYE_WORDS.stream().anyMatch(combined::contains)) return "eye";
+        if (CHEEK_WORDS.stream().anyMatch(combined::contains)) return "cheek";
         return "skincare";
     }
 

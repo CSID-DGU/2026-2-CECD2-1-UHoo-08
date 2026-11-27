@@ -2,6 +2,8 @@ package com.capstone.backend.domain.product.service;
 
 import com.capstone.backend.common.exception.BusinessException;
 import com.capstone.backend.common.exception.ErrorCode;
+import com.capstone.backend.domain.home.enums.HomeRecommendationKind;
+import com.capstone.backend.domain.home.service.HomeResultReader;
 import com.capstone.backend.domain.product.dto.request.UserProductCreateRequest;
 import com.capstone.backend.domain.product.dto.request.UserProductUpdateRequest;
 import com.capstone.backend.domain.product.dto.response.UserProductCreateResponse;
@@ -20,6 +22,9 @@ import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.enums.UserProductStatus;
 import com.capstone.backend.domain.product.repository.ProductRepository;
 import com.capstone.backend.domain.product.repository.UserProductRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +34,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +61,8 @@ class UserProductServiceTest {
     ProductRepository productRepository;
     @Mock
     PhotoRecognitionService photoRecognitionService;
+    @Mock
+    HomeResultReader homeResultReader;
     @InjectMocks
     UserProductService service;
 
@@ -285,6 +294,189 @@ class UserProductServiceTest {
         assertThat(item.getReplaceProgress()).isEqualTo(100);
         assertThat(item.getReplaceText()).isEqualTo("기한이 2주 지났어요");
         assertThat(item.getConflictText()).isNull();
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** 지금 쓰는 제품을 그대로 점검한 결과 */
+    private void givenRoutineResult(JsonNode result, List<UUID> usingIds) {
+        givenRoutineResult(result, usingIds, usingIds);
+    }
+
+    private void givenRoutineResult(JsonNode result, List<UUID> checkedIds, List<UUID> usingIds) {
+        ((ObjectNode) result).set("checkedUserProductIds", MAPPER.valueToTree(checkedIds));
+        given(homeResultReader.find(userId, HomeRecommendationKind.ROUTINE))
+                .willReturn(Optional.of(new HomeResultReader.Card(UUID.randomUUID(), OffsetDateTime.now(), result)));
+        given(userProductRepository.findIdsByUserIdAndUsageType(userId, UsageType.USING)).willReturn(usingIds);
+    }
+
+    private UserProductListResponse listUsing() {
+        return service.list(userId, UserProductFilter.USING, UserProductSort.RECENT, 1, 20, TODAY);
+    }
+
+    private static String pair(UUID a, String aName, UUID b, String bName, String level) {
+        return "{\"a\":{\"userProductId\":\"" + a + "\",\"name\":\"" + aName + "\"},"
+                + "\"b\":{\"userProductId\":\"" + b + "\",\"name\":\"" + bName + "\"},\"level\":\"" + level + "\"}";
+    }
+
+    private static JsonNode routine(int avoid, String... pairs) throws IOException {
+        return MAPPER.readTree("{\"counts\":{\"ok\":0,\"separate\":0,\"avoid\":" + avoid + "},\"pairs\":["
+                + String.join(",", pairs) + "]}");
+    }
+
+    private String conflictTextOf(UserProductListResponse response, UserProduct row) {
+        return response.getItems().stream()
+                .filter(item -> item.getUserProductId().equals(row.getId()))
+                .findFirst().orElseThrow().getConflictText();
+    }
+
+    private UserProduct using() {
+        return row(serum, UsageType.USING, null, null, LocalDateTime.of(2026, 1, 1, 0, 0));
+    }
+
+    @Test
+    void 샘플_루틴_점검_결과로_충돌_문장과_배너를_채운다() throws IOException {
+        UserProduct retinol = UserProduct.builder().id(UUID.fromString("aaaaaaaa-0000-0000-0000-000000000004"))
+                .userId(userId).productId(serum.getId()).usageType(UsageType.USING)
+                .createdAt(LocalDateTime.of(2026, 1, 1, 0, 0)).build();
+        UserProduct vitaminC = UserProduct.builder().id(UUID.fromString("aaaaaaaa-0000-0000-0000-000000000005"))
+                .userId(userId).productId(lip.getId()).usageType(UsageType.USING)
+                .createdAt(LocalDateTime.of(2026, 1, 1, 0, 0)).build();
+        UserProduct toner = UserProduct.builder().id(UUID.fromString("aaaaaaaa-0000-0000-0000-000000000003"))
+                .userId(userId).productId(serum.getId()).usageType(UsageType.USING)
+                .createdAt(LocalDateTime.of(2026, 1, 1, 0, 0)).build();
+        givenRows(List.of(UsageType.USING), List.of(retinol, vitaminC, toner));
+        JsonNode sample;
+        try (InputStream in = getClass().getResourceAsStream("/ai-results/HOME_ROUTINE.json")) {
+            sample = MAPPER.readTree(in);
+        }
+        givenRoutineResult(sample, List.of(
+                UUID.fromString("aaaaaaaa-0000-0000-0000-000000000001"),
+                UUID.fromString("aaaaaaaa-0000-0000-0000-000000000002"),
+                toner.getId(), retinol.getId(), vitaminC.getId()));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, retinol)).isEqualTo("비타민C 세럼과 같이 쓰지 마세요");
+        assertThat(conflictTextOf(response, vitaminC)).isEqualTo("레티놀 앰플과 같이 쓰지 마세요");
+        assertThat(conflictTextOf(response, toner)).as("시간을 나눠 쓰는 쌍은 충돌 문장을 띄우지 않는다").isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isEqualTo(1);
+        assertThat(response.getConflictSummary().getText()).isEqualTo("레티놀 앰플 × 비타민C 세럼");
+    }
+
+    @Test
+    void 충돌_문장의_조사는_상대_이름의_받침으로_고른다() throws IOException {
+        for (String[] c : new String[][]{
+                {"수분 크림", "과"}, {"토너", "와"}, {"세럼(대용량)", "과"}, {"크림 50", "과"}, {"크림 2", "와"},
+                {"Serum", "과"}, {"Toner", "과"}, {"Cream A", "와"}, {"Lotion", "과"}, {"!!", "와"}}) {
+            UserProduct mine = using();
+            UUID other = UUID.randomUUID();
+            givenRows(List.of(UsageType.USING), List.of(mine));
+            givenRoutineResult(routine(1, pair(mine.getId(), "내 제품", other, c[0], "AVOID")), List.of(mine.getId(), other));
+
+            assertThat(conflictTextOf(listUsing(), mine)).isEqualTo(c[0] + c[1] + " 같이 쓰지 마세요");
+        }
+    }
+
+    @Test
+    void 상대가_여럿이면_쉼표로_잇고_조사는_마지막_이름을_따른다() throws IOException {
+        UserProduct mine = using();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(routine(2,
+                pair(mine.getId(), "레티놀 앰플", first, "비타민C 세럼", "AVOID"),
+                pair(second, "AHA 토너", mine.getId(), "레티놀 앰플", "AVOID")), List.of(mine.getId(), first, second));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isEqualTo("비타민C 세럼, AHA 토너와 같이 쓰지 마세요");
+        assertThat(response.getConflictSummary().getAvoidCount()).isEqualTo(2);
+        assertThat(response.getConflictSummary().getText()).isEqualTo("레티놀 앰플 × 비타민C 세럼 외 1건");
+    }
+
+    @Test
+    void 쌍_목록이_일부만_실려도_개수는_루틴_점검의_값을_쓴다() throws IOException {
+        UserProduct mine = using();
+        UUID other = UUID.randomUUID();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(routine(3, pair(mine.getId(), "레티놀 앰플", other, "비타민C 세럼", "AVOID")),
+                List.of(mine.getId(), other));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(response.getConflictSummary().getAvoidCount()).isEqualTo(3);
+        assertThat(response.getConflictSummary().getText()).isEqualTo("레티놀 앰플 × 비타민C 세럼 외 2건");
+    }
+
+    @Test
+    void 쌍이_가리키는_제품을_지금_쓰지_않으면_지난_결과라_비워_둔다() throws IOException {
+        UserProduct mine = using();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(routine(1, pair(mine.getId(), "레티놀 앰플", UUID.randomUUID(), "비타민C 세럼", "AVOID")),
+                List.of(mine.getId(), UUID.randomUUID()));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+        assertThat(response.getConflictSummary().getText()).isNull();
+    }
+
+    @Test
+    void 점검_뒤에_제품을_추가하면_지난_결과라_비워_둔다() throws IOException {
+        UserProduct mine = using();
+        UUID other = UUID.randomUUID();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(routine(1, pair(mine.getId(), "레티놀 앰플", other, "비타민C 세럼", "AVOID")),
+                List.of(mine.getId(), other), List.of(mine.getId(), other, UUID.randomUUID()));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+        assertThat(response.getConflictSummary().getText()).isNull();
+    }
+
+    @Test
+    void 쌍_블록이_없는_옛_결과면_점검_전이라_비워_둔다() throws IOException {
+        UserProduct mine = using();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(MAPPER.readTree("{\"scenario\":\"HOME_ROUTINE\",\"items\":[]}"), List.of(mine.getId(), UUID.randomUUID()));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+    }
+
+    @Test
+    void 루틴_점검_결과가_없으면_비워_두고_보유_제품_id를_읽지_않는다() {
+        UserProduct mine = using();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        given(homeResultReader.find(userId, HomeRecommendationKind.ROUTINE)).willReturn(Optional.empty());
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isZero();
+        verify(userProductRepository, never()).findIdsByUserIdAndUsageType(any(), any());
+    }
+
+    @Test
+    void 이름이_없는_상대는_건너뛰고_개수는_유지한다() throws IOException {
+        UserProduct mine = using();
+        UUID other = UUID.randomUUID();
+        givenRows(List.of(UsageType.USING), List.of(mine));
+        givenRoutineResult(MAPPER.readTree("{\"counts\":{\"ok\":0,\"separate\":0,\"avoid\":1},\"pairs\":[{"
+                + "\"a\":{\"userProductId\":\"" + mine.getId() + "\",\"name\":\"레티놀 앰플\"},"
+                + "\"b\":{\"userProductId\":\"" + other + "\"},\"level\":\"AVOID\"}]}"), List.of(mine.getId(), other));
+
+        UserProductListResponse response = listUsing();
+
+        assertThat(conflictTextOf(response, mine)).isNull();
+        assertThat(response.getConflictSummary().getAvoidCount()).isEqualTo(1);
+        assertThat(response.getConflictSummary().getText()).isNull();
     }
 
     @Test

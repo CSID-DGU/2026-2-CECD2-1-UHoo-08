@@ -48,7 +48,7 @@ export function RecommendationTabs({
               "focus-visible:outline-primary-500",
               "disabled:cursor-not-allowed",
               selected
-                ? "bg-primary-500 text-white shadow-sm"
+                ? "bg-primary-600 text-white shadow-sm"
                 : "text-gray-300",
             ].join(" ")}
           >

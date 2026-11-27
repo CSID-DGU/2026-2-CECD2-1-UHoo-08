@@ -1,7 +1,9 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthGuard } from "./components/common/AuthGuard";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { KakaoCallbackPage } from "./pages/auth/KakaoCallbackPage";
+import { GoogleCallbackPage } from "./pages/auth/GoogleCallbackPage";
+import { IntroPage } from "./pages/onboarding/IntroPage";
 import { ProfileSetupPage } from "./pages/onboarding/ProfileSetupPage";
 import { PreferenceSetupPage } from "./pages/onboarding/PreferenceSetupPage";
 import { KnownProductSetupPage } from "./pages/onboarding/KnownProductSetupPage";
@@ -15,7 +17,6 @@ import { SearchResultPage } from "./pages/search/SearchResultPage";
 import { ProductDetailPage } from "./pages/product/ProductDetailPage";
 import { ProductRecognizePage } from "./pages/product/ProductRecognizePage";
 import { NotificationPage } from "./pages/notification/NotificationPage";
-import { ProductLookupPage } from "./pages/recommendation/ProductLookupPage";
 import { NfcScanPage } from "./pages/recommendation/NfcScanPage";
 import { ExtraInfoPage } from "./pages/recommendation/ExtraInfoPage";
 import { RecommendationLoadingPage } from "./pages/recommendation/RecommendationLoadingPage";
@@ -39,12 +40,14 @@ export const router = createBrowserRouter([
   // 인증 불필요
   { path: "/", element: <LoginPage /> },
   { path: "/auth/social", element: <KakaoCallbackPage /> },
+  { path: "/auth/google", element: <GoogleCallbackPage /> },
   { path: "/kiosk", element: <KioskPage /> },
 
   // 인증 필요
   {
     element: <AuthGuard />,
     children: [
+      { path: "/onboarding/intro", element: <IntroPage /> },
       { path: "/onboarding/profile", element: <ProfileSetupPage /> },
       { path: "/onboarding/preference", element: <PreferenceSetupPage /> },
       { path: "/onboarding/products", element: <KnownProductSetupPage /> },
@@ -61,7 +64,8 @@ export const router = createBrowserRouter([
       { path: "/my/products", element: <MyProductListPage /> },
       { path: "/my/products/new", element: <MyProductRegisterPage /> },
       { path: "/recommendation/care", element: <CareRecommendationPage /> },
-      { path: "/recommendation/lookup", element: <ProductLookupPage /> },
+      // 제품 조회는 검색 화면의 고르기 모드로 합쳤다. 예전 주소는 그리로 보낸다.
+      { path: "/recommendation/lookup", element: <Navigate to="/search?pick=evaluate" replace /> },
       { path: "/recommendation/nfc-scan", element: <NfcScanPage /> },
       { path: "/recommendation/nfc-scan/demo", element: <NfcScanPage /> },
       { path: "/recommendation/extra-info", element: <ExtraInfoPage /> },

@@ -1,0 +1,50 @@
+{"id": "router-g-2401", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "추천 부탁해"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2402", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "좋은 거 하나만"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2403", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "뭘 사야 할지 모르겠어"}, "expected": {"scenario": "S2_SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2404", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "요새 뭐가 잘 나가?"}, "expected": {"scenario": "S2_SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2405", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "화장품 좀 골라줘"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2406", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "인기템 알려줘"}, "expected": {"scenario": "S2_SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2407", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "괜찮은 제품 있을까"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2408", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "내 피부에 맞는 걸로"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2409", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "생일 선물 뭐가 좋을까"}, "expected": {"scenario": "S2_SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2410", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "무난한 거"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2411", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "이거 괜찮은 거야?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2412", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그 제품 나한테 맞을까?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2413", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "지난주에 산 거 계속 써도 돼?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2414", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그 파운데이션 어때?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2415", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "인스타에서 본 건데 살 만해?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2416", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "이 크림 민감성이 써도 돼?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2417", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그거 대신 쓸 만한 거 있어?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2418", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "엄마가 쓰던 에센스인데 나도 써도 될까"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2419", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "아까 그거 지속력 괜찮아?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2420", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "이 립스틱 발색 진한 편이야?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2421", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "기초 세트 짜줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2422", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "스킨케어 루틴 추천해줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2423", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "세럼이랑 선크림 같이 골라줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2424", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "메이크업 제품 한 번에 맞추고 싶어"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2425", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "건성 피부 세트 구성해줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2426", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "세트로 사려는데 추천 좀"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2427", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "풀 루틴으로 짜줄래"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2428", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "흠"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2429", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "몰라"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2430", "split": "test", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "가격은?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2431", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "추천해줄래"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2432", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "뭐 바르면 돼?"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2433", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "괜찮은 제품"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2434", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "하나만 골라줘"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2435", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "요즘 뭐가 유행이야?"}, "expected": {"scenario": "S2_SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2436", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "사고 싶은데 추천"}, "expected": {"scenario": "S2_SEARCH", "request_type": "SEARCH", "needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2437", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "이거 좋아?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2438", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그 토너 순해?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2439", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그저께 본 거 괜찮을까?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2440", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "이 제품 지성한테 맞아?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2441", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "동생이 쓰는 건데 어떨까"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2442", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그 쿠션 색 밝아?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2443", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "그거랑 비슷한 걸로"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2444", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "루틴 구성해줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2445", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "스킨케어 세트 뭐가 좋아?"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2446", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "토너랑 세럼 묶어줘"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2447", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "지성 피부 루틴 추천"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2448", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "전부 새로 사고 싶어"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2449", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "어…"}, "expected": {"needs_clarification": true}, "check": "contains"}
+{"id": "router-g-2450", "split": "dev", "source": "claude", "tags": ["ambiguous"], "input": {"raw_query": "얼마쯤 해?"}, "expected": {"needs_clarification": true}, "check": "contains"}

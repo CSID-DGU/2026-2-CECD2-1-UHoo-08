@@ -19,56 +19,16 @@ from google.genai import types
 
 from config import settings
 from db.supabase_client import get_supabase
+from prompts.gemini_extraction import FEATURE_SCHEMAS
+from prompts.product_types_text import PRODUCT_TYPE_RULE, category_label
+from rules.product_types import CATEGORY_TYPES
 from services.product_image import ensure_product_image, fetch_image, store_image
 
 # ── 카테고리 메타 ──────────────────────────────────────────────────────────
 
-_CATEGORY_LABEL = {
-    "base": "베이스 메이크업 (쿠션, 파운데이션, 프라이머, 컨실러)",
-    "sun": "선케어 (선크림, 선스틱, 선쿠션, 선스프레이)",
-    "lip": "립 메이크업 (틴트, 립스틱, 립글로스, 립밤)",
-    "skincare": "스킨케어 (토너, 에센스, 세럼, 크림, 오일, 로션)",
-}
-
-_FEATURE_SCHEMA = {
-    "base": """{
-  "product_type": "쿠션 | 파운데이션 | 프라이머 | 컨실러",
-  "coverage": "가벼운 | 중간 | 높음",
-  "finish": "매트 | 세미매트 | 글로우 | 촉촉",
-  "skin_type": "건성 | 지성 | 복합 | 민감",
-  "skin_concern": ["모공", "잡티", "칙칙함", "트러블"] 또는 null,
-  "personal_color": "웜톤 | 쿨톤 | 뉴트럴 | null",
-  "lasting_power": "낮음 | 중간 | 높음",
-  "spf": "예: SPF50+/PA++++ 또는 null"
-}""",
-    "sun": """{
-  "product_type": "선크림 | 선스틱 | 선쿠션 | 선스프레이",
-  "spf": "예: SPF50+",
-  "pa": "예: PA++++",
-  "finish": "매트 | 세미매트 | 촉촉",
-  "skin_type": "건성 | 지성 | 복합 | 민감",
-  "skin_concern": ["진정", "보습", "미백"] 또는 null,
-  "lasting_power": "낮음 | 중간 | 높음",
-  "white_cast": true | false
-}""",
-    "lip": """{
-  "product_type": "틴트 | 립스틱 | 립글로스 | 립밤",
-  "finish": "매트 | 세미매트 | 글로우 | 촉촉",
-  "personal_color": "웜톤 | 쿨톤 | 뉴트럴 | null",
-  "lasting_power": "낮음 | 중간 | 높음",
-  "moisturizing": true | false,
-  "skin_concern": ["보습", "각질"] 또는 null
-}""",
-    "skincare": """{
-  "product_type": "토너 | 에센스 | 세럼 | 크림 | 오일 | 로션",
-  "skin_type": "건성 | 지성 | 복합 | 민감",
-  "skin_concern": ["보습", "미백", "주름", "진정", "모공"] 또는 null,
-  "key_ingredient": ["히알루론산", "나이아신아마이드"] 또는 null,
-  "texture": "가벼운 | 중간 | 진한",
-  "lasting_power": null,
-  "fragrance_free": true | false
-}""",
-}
+# 카테고리 이름과 종류, 특징 스키마는 상품 보강과 같은 것을 쓴다. 따로 적어 두면
+# 크롤러로 넣은 상품만 다른 종류 이름으로 저장된다.
+_CATEGORY_LABEL = {카테고리: category_label(카테고리) for 카테고리 in CATEGORY_TYPES}
 
 
 
@@ -76,7 +36,7 @@ _FEATURE_SCHEMA = {
 
 def _make_prompt(category: str, limit: int) -> str:
     label = _CATEGORY_LABEL[category]
-    schema = _FEATURE_SCHEMA[category]
+    schema = FEATURE_SCHEMAS[category]
     return f"""올리브영에서 현재 실제 판매 중인 인기 {label} 제품을 {limit}개 검색하라.
 
 각 제품의 실제 정보를 아래 JSON 형식으로 반환하라.
@@ -113,6 +73,7 @@ def _make_prompt(category: str, limit: int) -> str:
 - skin_type_satisfaction: 리뷰에서 가장 많이 언급된 피부타입과 만족도 (모르면 null)
 - feature_json의 해당 없는 필드는 반드시 null (생략 금지)
 - 허용값 목록 외 값 사용 금지
+{PRODUCT_TYPE_RULE}
 - skin_concern, key_ingredient는 해당 항목만 배열로, 없으면 null
 - brand는 영문 대문자 공식 브랜드명
 - 모든 가격은 숫자만 (원 기호 제외)

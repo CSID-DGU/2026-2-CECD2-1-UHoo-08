@@ -86,7 +86,8 @@ public class PhotoRecognitionService {
         PhotoRecognition recognition = getUsable(userId, recognitionId);
 
         String dateImageUrl = storageService.upload(BUCKET, userId + "/" + UUID.randomUUID(), image);
-        RecognizePhotosResponse result = requestExpiry(recognition.getNameImageUrl(), dateImageUrl);
+        // 제품명은 이미 읽었으니 기한 사진만 보낸다
+        RecognizePhotosResponse result = callAi(new RecognizePhotosRequest(null, dateImageUrl));
 
         String expiryDate = dateOrNull(result.expiryDate(), "expiryDate");
         Integer paoMonths = result.paoMonths() != null && result.paoMonths() > 0 ? result.paoMonths() : null;
@@ -108,14 +109,6 @@ public class PhotoRecognitionService {
         return photoRecognitionRepository.findById(recognitionId)
                 .filter(r -> r.isUsableBy(userId, OffsetDateTime.now()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.RECOGNITION_NOT_FOUND));
-    }
-
-    /**
-     * 기한을 읽는 AI 호출. 지금 AI 계약은 두 장을 한 번에 받아서, 저장해 둔 제품명 사진과 새 기한 사진을 같이 보내고 기한 값만 쓴다.
-     * 기한만 받는 AI 경로가 생기면 여기만 바꾼다.
-     */
-    private RecognizePhotosResponse requestExpiry(String nameImageUrl, String dateImageUrl) {
-        return callAi(new RecognizePhotosRequest(nameImageUrl, dateImageUrl));
     }
 
     private RecognizePhotosResponse callAi(RecognizePhotosRequest request) {

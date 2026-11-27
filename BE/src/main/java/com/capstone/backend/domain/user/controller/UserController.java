@@ -3,15 +3,18 @@ package com.capstone.backend.domain.user.controller;
 import com.capstone.backend.common.response.ApiResponse;
 import com.capstone.backend.domain.user.dto.request.PreferencesRequest;
 import com.capstone.backend.domain.user.dto.request.PreferenceUpdateRequest;
+import com.capstone.backend.domain.user.dto.request.RegionUpdateRequest;
 import com.capstone.backend.domain.user.dto.request.SkinProfileUpdateRequest;
 import com.capstone.backend.domain.user.dto.response.PreferenceResponse;
 import com.capstone.backend.domain.user.dto.response.ProfileUpdateResponse;
+import com.capstone.backend.domain.user.dto.response.RegionResponse;
 import com.capstone.backend.domain.user.dto.response.SkinProfileResponse;
 import com.capstone.backend.domain.user.dto.response.UserMeResponse;
 import com.capstone.backend.domain.user.service.UserProfileService;
 import com.capstone.backend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -72,4 +75,17 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userProfileService.updatePreferences(userId, request)));
     }
 
+    @Operation(
+            summary = "사용자 지역 설정",
+            description = "생활 환경을 계산할 지역을 저장한다. 환경 데이터가 시·도 단위라 regionCode 는 시·도 이름이다: " +
+                    "서울, 부산, 대구, 인천, 대전, 울산, 세종, 경기, 강원, 충북, 충남, 전북, 전남광주, 경북, 경남, 제주. " +
+                    "광주와 전남은 전남광주 하나로 다룬다. regionName 은 화면 표시용 이름(예: 고양시 덕양구)으로 50자까지. " +
+                    "지원하지 않는 지역이거나 값이 비었으면 422 VALIDATION_ERROR."
+    )
+    @PatchMapping("/users/me/region")
+    public ResponseEntity<ApiResponse<RegionResponse>> updateRegion(
+            @AuthenticationPrincipal UUID userId,
+            @Valid @RequestBody RegionUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(userService.updateRegion(userId, request)));
+    }
 }

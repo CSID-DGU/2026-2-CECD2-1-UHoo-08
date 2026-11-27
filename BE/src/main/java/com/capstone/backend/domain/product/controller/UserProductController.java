@@ -14,6 +14,7 @@ import com.capstone.backend.domain.product.dto.response.UserProductUpdateRespons
 import com.capstone.backend.domain.product.enums.UserProductFilter;
 import com.capstone.backend.domain.product.enums.UserProductSort;
 import com.capstone.backend.domain.product.service.PhotoRecognitionService;
+import com.capstone.backend.domain.product.service.UserProductRegistrationService;
 import com.capstone.backend.domain.product.service.UserProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,11 +40,12 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "10. User Products", description = "보유 제품 API")
+@Tag(name = "9. User Products", description = "보유 제품 API")
 public class UserProductController {
 
     private final PhotoRecognitionService photoRecognitionService;
     private final UserProductService userProductService;
+    private final UserProductRegistrationService userProductRegistrationService;
 
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -51,14 +53,15 @@ public class UserProductController {
             summary = "보유 제품 등록",
             description = "고른 제품을 쓰는 중인 보유 제품으로 등록한다. 같은 제품을 이미 쓰는 중이면 409 ALREADY_REGISTERED. " +
                     "예전에 다 쓴 제품은 새 기록으로 다시 등록된다. recognitionId 를 보내면 사진 인식 원본을 함께 남긴다. " +
-                    "openedAt 이 없으면 오늘. conflicts 는 성분 궁합 확인이 연결되기 전까지 빈 배열."
+                    "openedAt 이 없으면 오늘. conflicts 는 이미 쓰는 제품과 충돌하는 조합으로, 보유 제품당 가장 심한 하나다. " +
+                    "궁합 확인에 실패해도 등록은 성공하고 빈 배열."
     )
     @PostMapping("/user-products")
     public ResponseEntity<ApiResponse<UserProductCreateResponse>> create(
             @AuthenticationPrincipal UUID userId,
             @Valid @RequestBody UserProductCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(userProductService.create(userId, request)));
+                .body(ApiResponse.success(userProductRegistrationService.create(userId, request)));
     }
 
     @Operation(
@@ -66,7 +69,10 @@ public class UserProductController {
             description = "status: USING(기본, 쓰는 중), FINISHED(다 쓰거나 버린 제품), ALL. " +
                     "sort: REPLACE_NEED(기본, 기한 지남 → 곧 교체 → 괜찮음, 같은 상태는 경과 비율순), RECENT(최근 등록순). " +
                     "page 는 1부터. 교체 시기는 유통기한과 개봉 후 사용 기간 중 이른 날로 계산한다. " +
-                    "conflictText, conflictSummary 는 루틴 점검 결과가 연결되기 전까지 null 과 avoidCount=0."
+                    "conflictText, conflictSummary 는 루틴 점검 결과의 같이 쓰면 안 되는 쌍으로 채운다. " +
+                    "avoidCount 는 루틴 점검 화면의 개수와 같고, text 는 첫 쌍이며 쌍이 더 있으면 외 N건을 붙인다. " +
+                    "이름이 있는 쌍이 실려 있지 않으면 avoidCount 가 0 보다 커도 text 는 null 이다. " +
+                    "결과가 없거나 지난 결과면 null 과 avoidCount=0."
     )
     @GetMapping("/user-products")
     public ResponseEntity<ApiResponse<UserProductListResponse>> list(

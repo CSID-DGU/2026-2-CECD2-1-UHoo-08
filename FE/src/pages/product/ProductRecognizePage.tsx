@@ -1,4 +1,5 @@
 ﻿import { useLocation, useNavigate } from "react-router-dom";
+import { Package } from "lucide-react";
 import { type RecognizeResult } from "../../api/productApi";
 import { PageHeader } from "../../components/common/PageHeader";
 import AppLayout from "../../layouts/AppLayout";
@@ -6,13 +7,19 @@ import AppLayout from "../../layouts/AppLayout";
 export function ProductRecognizePage() {
   const navigate = useNavigate();
   const { state } = useLocation() as {
-    state: { result: RecognizeResult } | null;
+    // next: 검색에서 찍었으면 "detail"(제품 상세로), 추천 흐름에서 왔으면 비어 있다.
+    state: { result: RecognizeResult; next?: "detail" } | null;
   };
 
   const result = state?.result;
+  const toDetail = state?.next === "detail";
 
   function handleConfirm() {
     if (!result?.productId) return;
+    if (toDetail) {
+      navigate(`/product/${result.productId}`, { replace: true });
+      return;
+    }
     navigate("/recommendation/extra-info", {
       state: { productId: result.productId },
     });
@@ -42,7 +49,7 @@ export function ProductRecognizePage() {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-[48px]">💄</span>
+                <Package aria-hidden="true" className="h-12 w-12 text-primary-300" strokeWidth={1.5} />
               )}
             </div>
             <div className="p-5">
@@ -58,12 +65,12 @@ export function ProductRecognizePage() {
 
         <div className="mt-auto grid gap-3">
           <button
-            className="h-14 w-full rounded-xl bg-primary-500 text-body1 font-semibold text-white disabled:opacity-50"
+            className="h-14 w-full rounded-xl bg-primary-600 text-body1 font-semibold text-white disabled:opacity-50"
             disabled={!result?.productId}
             onClick={handleConfirm}
             type="button"
           >
-            맞아요, 추천받기 →
+            {toDetail ? "맞아요, 제품 보기" : "맞아요, 추천받기"}
           </button>
           <button
             className="h-12 w-full rounded-xl border border-gray-200 text-body2 text-gray-500"

@@ -46,7 +46,7 @@ export function WishlistCategoryPage() {
         />
 
         {loading ? (
-          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중...</p>
+          <p className="mt-16 text-center text-body2 text-gray-300">불러오는 중…</p>
         ) : items.length === 0 ? (
           <div className="mt-24 flex flex-col items-center gap-3 text-center">
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-50">
@@ -109,8 +109,7 @@ export function WishlistCategoryPage() {
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     {item.matchScore != null && (
                       <span
-                        className="rounded-full px-2 py-0.5 text-caption"
-                        style={{ background: "#DBE6F8", color: "#3565B5" }}
+                        className="rounded-full bg-primary-100 px-2 py-0.5 text-caption text-primary-700"
                       >
                         {item.matchScore}%
                       </span>
