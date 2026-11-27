@@ -1,11 +1,5 @@
 import { api } from "../lib/api";
 import type { QueryResult } from "./recommendationQueryApi";
-import {
-  MOCK_UNREADY,
-  mockEnvironmentDaily,
-  mockEnvironmentSummary,
-  mockHomeEnvironmentRecommendation,
-} from "../mocks/unready";
 
 /**
  * 홈·생활 환경 API (BE).
@@ -124,29 +118,14 @@ export const updateRegion = (regionCode: string, regionName: string) =>
     regionName,
   });
 
-/**
- * 목데이터 모드(VITE_MOCK_UNREADY)에서도 지역은 실제 서버에서 확인한다. 지역이 없으면
- * REGION_NOT_SET 을 그대로 올려 지역 설정 화면이 뜨게 하고, 데이터 부분만 목데이터로 채운다.
- */
-export const getEnvironmentSummary = async () => {
-  const response = await api.get<ApiResponse<EnvironmentSummary>>("/environment/summary");
-  if (!MOCK_UNREADY) return response;
-  return { ...response, data: mockEnvironmentSummary(response.data.regionName) };
-};
+export const getEnvironmentSummary = () =>
+  api.get<ApiResponse<EnvironmentSummary>>("/environment/summary");
 
-export const getEnvironmentDaily = async (metric: EnvMetric, days = 28) => {
-  if (MOCK_UNREADY) return { success: true, data: mockEnvironmentDaily(metric) };
-  return api.get<ApiResponse<EnvironmentDaily>>(`/environment/daily?metric=${metric}&days=${days}`);
-};
+export const getEnvironmentDaily = (metric: EnvMetric, days = 28) =>
+  api.get<ApiResponse<EnvironmentDaily>>(`/environment/daily?metric=${metric}&days=${days}`);
 
-export const getHomeEnvironmentRecommendation = async () => {
-  const response = await api.get<ApiResponse<EnvironmentRecommendation>>(
-    "/home/recommendations/environment",
-  );
-  // 실제 결과가 준비되면(READY·FULLY_COVERED) 목데이터 모드여도 실제 값을 쓴다.
-  if (!MOCK_UNREADY || response.data?.state !== "NOT_READY") return response;
-  return { ...response, data: mockHomeEnvironmentRecommendation() };
-};
+export const getHomeEnvironmentRecommendation = () =>
+  api.get<ApiResponse<EnvironmentRecommendation>>("/home/recommendations/environment");
 
 export const getRoutineCheck = () => api.get<ApiResponse<RoutineCheck>>("/home/routine-check");
 
