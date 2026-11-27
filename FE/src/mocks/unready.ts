@@ -35,7 +35,8 @@ function toBundle(label: string, items: AiBundleItem[], index: number): Bundle {
     label,
     total,
     remaining: BUDGET != null ? BUDGET - total : null,
-    totalScore: Math.round(items.reduce((sum, item) => sum + item.totalScore, 0) / items.length),
+    // 세트 점수는 칸 점수의 합이다(BE ResultAssembler.bundles 와 같게). 화면은 칸 점수와 합을 함께 보여 준다
+    totalScore: items.reduce((sum, item) => sum + item.totalScore, 0),
     slots: items.map((item) => ({
       slotKey: item.slotKey,
       label: item.slotLabel,
@@ -131,7 +132,7 @@ export function mockSwapBundle(bundleIndex: number, body: { slotKey: string; pro
       slots,
       total,
       remaining: BUDGET != null ? BUDGET - total : null,
-      totalScore: Math.round(slots.reduce((sum, slot) => sum + (slot.score ?? 0), 0) / slots.length),
+      totalScore: slots.reduce((sum, slot) => sum + (slot.score ?? 0), 0),
     };
   });
   return bundles.find((b) => b.index === bundleIndex)!;
