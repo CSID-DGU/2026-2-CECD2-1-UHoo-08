@@ -42,14 +42,18 @@ def owned_brands(path: Path | None = None) -> dict[str, list[dict] | None]:
     return {a["username"]: a.get("owned_brands") for a in items}
 
 
+def _load_targets(sb) -> tuple[dict, dict[int, str], list[dict]]:
+    names = {a["id"]: a["username"] for a in sb.table("influencer_accounts").select("id,username").execute().data or []}
+    return owned_brands(), names, _unlabeled(sb)
+
+
 def hit_strings(rule_hits: list[dict]) -> list[str]:
     return [f"{h.get('rule')}:{h.get('text')}" for h in rule_hits]
 
 
 async def label(sb, llm=None, concurrency: int = CONCURRENCY) -> dict:
-    owned = owned_brands()
-    names = {a["id"]: a["username"] for a in sb.table("influencer_accounts").select("id,username").execute().data or []}
-    posts = _unlabeled(sb)
+    # 수집 스케줄이 앱의 이벤트 루프에서 부르므로, 동기 DB 조회는 스레드로 뺀다
+    owned, names, posts = await asyncio.to_thread(_load_targets, sb)
     sem = asyncio.Semaphore(concurrency)
     stats = Counter()
 
