@@ -102,7 +102,7 @@ export function mockBundleSlotOptions(bundleIndex: number, slotKey: string): Bun
           score: item.totalScore,
           newTotal,
           remaining,
-          current: item.productId === current.productId,
+          isCurrent: item.productId === current.productId,
           selectable: remaining == null || remaining >= 0,
           overBudgetBy: remaining != null && remaining < 0 ? -remaining : null,
         };

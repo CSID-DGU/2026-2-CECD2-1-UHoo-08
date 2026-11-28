@@ -139,8 +139,8 @@ export interface BundleSlotOptions {
     /** 이 후보로 바꿨을 때의 합계 */
     newTotal: number;
     remaining: number | null;
-    /** 지금 들어 있는 제품 */
-    current: boolean;
+    /** 지금 들어 있는 제품. BE 는 isCurrent 로 보낸다(BundleSlotOptionsResponse.Option) */
+    isCurrent: boolean;
     /** 예산 안이면 true */
     selectable: boolean;
     overBudgetBy: number | null;
