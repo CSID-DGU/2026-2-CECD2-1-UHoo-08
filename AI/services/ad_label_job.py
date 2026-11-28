@@ -2,7 +2,7 @@
 
 판정은 services/ad_classifier.classify_post 가 한다(1차 규칙 → 못 정하면 2차 LLM).
 2차 응답을 쓸 수 없으면(is_ad=None) 쓰지 않고 넘긴다. 다음 배치에서 다시 대상이 된다.
-LLM 호출 자체가 실패한 게시물도 마찬가지로 건너뛰고 개수만 센다. 하나가 실패했다고
+LLM 호출 자체가 실패하거나 DB 저장이 실패한 게시물도 마찬가지로 건너뛰고 개수만 센다. 하나가 실패했다고
 나머지 판정을 버리지 않는다.
 
 ad_rule_hits 에는 1차 규칙이 찾은 근거를 "규칙:표기" 로 넣는다(예: disclosure.hashtag:#광고).
@@ -69,8 +69,14 @@ async def label(sb, llm=None, concurrency: int = CONCURRENCY) -> dict:
         if r["is_ad"] is None:
             stats["unusable"] += 1
             return
-        await asyncio.to_thread(lambda: sb.table("influencer_posts").update(
-            {"is_ad": r["is_ad"], "ad_rule_hits": hit_strings(r["rule_hits"])}).eq("id", p["id"]).execute())
+        try:
+            await asyncio.to_thread(lambda: sb.table("influencer_posts").update(
+                {"is_ad": r["is_ad"], "ad_rule_hits": hit_strings(r["rule_hits"])}).eq("id", p["id"]).execute())
+        except Exception:
+            # 저장 하나가 실패해도 나머지 판정은 버리지 않는다. 다음 배치에서 다시 대상이 된다
+            logger.exception("광고 판별 저장 실패 post=%s", p["id"])
+            stats["write_failed"] += 1
+            return
         stats[f"{r['labeled_by'].lower()}_{'ad' if r['is_ad'] else 'organic'}"] += 1
 
     await asyncio.gather(*(one(p) for p in posts))
