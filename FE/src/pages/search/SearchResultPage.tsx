@@ -343,6 +343,18 @@ function SearchResultContent() {
       active = false;
     };
   }, []);
+  /** 예산 세트의 [이 조합 담기]. 담기 API 가 없어 아직 찜하지 않은 제품만 찜 목록에 담는다 */
+  async function saveAllToWishlist(productIds: string[]) {
+    let ids = wishlistIds ?? (await loadWishlistIds());
+    for (const productId of productIds) {
+      if (ids[productId]) continue;
+      const { data } = await addWishlist(productId);
+      if (!data?.wishlistId) throw new Error("INVALID_WISHLIST_RESPONSE");
+      ids = { ...ids, [productId]: data.wishlistId };
+    }
+    setWishlistIds(ids);
+  }
+
   async function toggleWishlist(productId: string) {
     const ids = wishlistIds ?? (await loadWishlistIds());
     const wishlistId = ids[productId];
@@ -1200,6 +1212,7 @@ function SearchResultContent() {
                   <BundleResult
                     jobId={jobId}
                     bundles={result.bundles}
+                    onSaveAll={isMockJob(jobId) ? undefined : saveAllToWishlist}
                     onChange={(updated) =>
                       setResult((previous) =>
                         previous
