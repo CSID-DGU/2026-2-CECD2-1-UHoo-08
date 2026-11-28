@@ -167,7 +167,7 @@ def compute_trend(mentions: list[Mention], as_of, allow_synthetic: bool = False,
     baseline_mentions: 평소 반응 계산에 쓸 게시물. 주지 않으면 mentions 로 계산한다.
       운영에서는 작성자의 최근 게시물 전체(제품 언급이 없는 글 포함)를 넘기는 게 맞다.
     """
-    if not allow_synthetic and any(m.source == "synthetic" for m in mentions):
+    if not allow_synthetic and any(m.source == "synthetic" for m in [*mentions, *(baseline_mentions or [])]):
         raise ValueError("합성 언급(source=synthetic)이 섞여 있다. 운영 트렌드에는 쓰지 않는다")
 
     as_of = _as_date(as_of)

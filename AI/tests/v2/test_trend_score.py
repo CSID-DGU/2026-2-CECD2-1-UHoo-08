@@ -150,6 +150,14 @@ def test_합성_언급은_명시적으로_허용해야_계산한다():
     assert compute_trend(ms, AS_OF, allow_synthetic=True)
 
 
+def test_평소_반응_자료에_섞인_합성_데이터도_거부한다():
+    ms = [m("1", "p", "a")]
+    base = [m("2", "", "a", source="synthetic")]
+    with pytest.raises(ValueError):
+        compute_trend(ms, AS_OF, baseline_mentions=base)
+    assert compute_trend(ms, AS_OF, allow_synthetic=True, baseline_mentions=base)
+
+
 # ── 합성 게시물 66개 (data/synthetic/trend/posts_v1.jsonl) ───────────────
 
 def _load():
