@@ -11,11 +11,13 @@ ad_rule_hits 에는 1차 규칙이 찾은 근거를 "규칙:표기" 로 넣는�
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections import Counter
+from pathlib import Path
 
 from services.ad_classifier import classify_post
-from services.influencer_collector import ACCOUNTS_PATH, load_accounts
+from services.influencer_collector import ACCOUNTS_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +36,18 @@ def _unlabeled(sb) -> list[dict]:
         start += PAGE
 
 
+def owned_brands(path: Path | None = None) -> dict[str, list[dict] | None]:
+    """계정별 운영 브랜드. load_accounts 는 수집 행 모양이라 owned_brands 가 없어 원본을 읽는다."""
+    items = json.loads((path or ACCOUNTS_PATH).read_text(encoding="utf-8"))
+    return {a["username"]: a.get("owned_brands") for a in items}
+
+
 def hit_strings(rule_hits: list[dict]) -> list[str]:
     return [f"{h.get('rule')}:{h.get('text')}" for h in rule_hits]
 
 
 async def label(sb, llm=None, concurrency: int = CONCURRENCY) -> dict:
-    owned = {a["username"]: a.get("owned_brands") for a in load_accounts(ACCOUNTS_PATH)}
+    owned = owned_brands()
     names = {a["id"]: a["username"] for a in sb.table("influencer_accounts").select("id,username").execute().data or []}
     posts = _unlabeled(sb)
     sem = asyncio.Semaphore(concurrency)
