@@ -30,6 +30,7 @@ SYNTHETIC_PREFIX = {
     "queries": "query",
     "feedback": "feedback",
     "env": "env",
+    "trend": "trend",
 }
 
 SPLITS = {"dev", "test"}
