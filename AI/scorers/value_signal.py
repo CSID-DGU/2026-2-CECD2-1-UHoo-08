@@ -39,12 +39,22 @@ def _load_master() -> list[dict[str, Any]]:
             break
         start += _PAGE
     for r in rows:
-        if isinstance(r.get("feature_json"), str):
-            try:
-                r["feature_json"] = json.loads(r["feature_json"])
-            except ValueError:
-                r["feature_json"] = {}
+        r["feature_json"] = _feature_dict(r.get("feature_json"))
     return rows
+
+
+def _feature_dict(f: Any) -> dict[str, Any]:
+    """feature_json → dict. 문자열이면 풀고, 풀 수 없거나 dict 가 아니면 {}.
+
+    한 행이라도 리스트 · 숫자가 섞이면 제품군을 나눌 때 .get 에서 터져, 가성비를 켠
+    요청 전체가 실패한다. 그런 행은 정보가 없는 상품으로 본다.
+    """
+    if isinstance(f, str):
+        try:
+            f = json.loads(f)
+        except ValueError:
+            return {}
+    return f if isinstance(f, dict) else {}
 
 
 def _load_preference_weight(user_id: str) -> Any:

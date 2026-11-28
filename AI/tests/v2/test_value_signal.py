@@ -21,6 +21,19 @@ GROUPS = group_prices(MASTER)
 
 # ── scorer ───────────────────────────────────────────────────────
 
+@pytest.mark.parametrize("raw, expected", [
+    ({"product_type": "선크림"}, {"product_type": "선크림"}),
+    ('{"product_type": "선크림"}', {"product_type": "선크림"}),
+    ('["cream"]', {}), ('"cream"', {}), ("1", {}), ("not json", {}), (None, {}), (["cream"], {}),
+])
+def test_feature_json_that_is_not_an_object_becomes_empty(raw, expected):
+    assert scorer._feature_dict(raw) == expected
+
+
+def test_group_prices_survives_normalized_bad_rows():
+    rows = MASTER + [{**p("bad", 15000), "feature_json": scorer._feature_dict('["cream"]')}]
+    group_prices(rows)  # 터지지 않는다
+
 def _ctx(budget=None) -> ScoreContext:
     return ScoreContext(job_id="j1", user_id="u1",
                         query_spec=QuerySpec(request_type=RequestType.SEARCH, budget=Budget(max=budget)))
