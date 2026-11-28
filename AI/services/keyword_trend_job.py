@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from rules.keyword_extract import load_keywords
 from rules.keyword_trend_daily import FORMULA_VERSION, Post, daily_rows, daily_scores
@@ -17,6 +17,7 @@ from rules.keyword_trend_daily import FORMULA_VERSION, Post, daily_rows, daily_s
 logger = logging.getLogger(__name__)
 
 PAGE = 1000
+KST = timezone(timedelta(hours=9))  # 배치 기준일과 같은 날짜 기준
 
 
 def _all(query_fn) -> list[dict]:
@@ -33,6 +34,14 @@ def _int(v) -> int | None:
     return None if v is None else int(v)
 
 
+def kst_date(ts) -> date:
+    """저장된 타임스탬프 → KST 날짜. 시간대가 없으면 UTC 로 본다."""
+    dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(KST).date()
+
+
 def load_posts(sb) -> list[Post]:
     accounts = {a["id"]: a for a in _all(lambda: sb.table("influencer_accounts").select("id,username,follower_count,age_group"))}
     rows = _all(lambda: sb.table("influencer_posts")
@@ -42,7 +51,7 @@ def load_posts(sb) -> list[Post]:
         a = accounts.get(r["account_id"]) or {}
         posts.append(Post(
             post_id=str(r["id"]), author=a.get("username") or str(r["account_id"]), caption=r.get("caption"),
-            posted_at=date.fromisoformat(str(r["posted_at"])[:10]),
+            posted_at=kst_date(r["posted_at"]),
             followers=_int(a.get("follower_count")), like_count=_int(r.get("like_count")),
             comment_count=_int(r.get("comment_count")), is_ad=r.get("is_ad"), age_group=a.get("age_group"),
         ))
@@ -76,8 +85,6 @@ def write(sb, result: dict) -> dict:
 
 def run(as_of: date | None = None) -> dict:
     from db.supabase_client import get_supabase
-    from services.influencer_collector import KST
-
     sb = get_supabase()
     as_of = as_of or datetime.now(KST).date()
     result = compute(sb, as_of)
