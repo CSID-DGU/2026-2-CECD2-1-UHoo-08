@@ -109,6 +109,13 @@ def test_게시물이_5개_이상이면_계정_중앙값_아니면_규모_중앙
     assert note == "규모 중앙값" and 0 < e < 1
 
 
+def test_집계일_이후_게시물은_평소_반응에_넣지_않는다():
+    ms = [m("1", "p", "a", likes=100), m("2", "p", "b", likes=100)]
+    future = [m(f"f{k}", "", "a", days_ago=-1, likes=10_000) for k in range(5)]
+    assert compute_trend(ms, AS_OF, baseline_mentions=ms + future)[0].raw_score == \
+        pytest.approx(compute_trend(ms, AS_OF, baseline_mentions=ms)[0].raw_score)
+
+
 def test_평소_반응이_0이면_평소_수준으로_본다():
     e, note = engagement(m("1", "p", "a", likes=0), {"a": 0}, {})
     assert e == pytest.approx(ENGAGEMENT_DEFAULT)

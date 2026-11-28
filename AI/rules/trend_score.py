@@ -172,7 +172,9 @@ def compute_trend(mentions: list[Mention], as_of, allow_synthetic: bool = False,
 
     as_of = _as_date(as_of)
     live = [m for m in mentions if 0 <= (as_of - _as_date(m.posted_at)).days < WINDOW_DAYS]
-    author_base, bucket_base = engagement_baselines(baseline_mentions or mentions)
+    # 집계일 이후 게시물이 평소 반응을 바꾸면 과거 날짜를 다시 계산할 때 순위가 달라진다
+    base = [m for m in (baseline_mentions or mentions) if _as_date(m.posted_at) <= as_of]
+    author_base, bucket_base = engagement_baselines(base)
 
     by_product: dict[str, list[tuple[Mention, PostScore]]] = defaultdict(list)
     seen = set()
