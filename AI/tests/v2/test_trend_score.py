@@ -148,6 +148,14 @@ def test_raw_score는_원본이고_score는_1위가_100인_표시용이다():
     assert t["b"].raw_score == pytest.approx(t["a"].raw_score / 2)
 
 
+def test_순위에_없는_제품이_더_높아도_1위가_100이다():
+    ms = [m(str(k), "solo", "x", likes=1000) for k in range(5)] + [m("a1", "duo", "x", days_ago=7), m("a2", "duo", "y", days_ago=7)]
+    t = by_id(compute_trend(ms, AS_OF))
+    assert t["solo"].raw_score > t["duo"].raw_score and t["solo"].rank is None
+    assert t["duo"].rank == 1 and t["duo"].score == 100.0
+    assert t["solo"].score == 100.0
+
+
 # ── 합성 데이터 격리 ──────────────────────────────────────────
 
 def test_합성_언급은_명시적으로_허용해야_계산한다():

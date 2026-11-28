@@ -220,9 +220,10 @@ def compute_trend(mentions: list[Mention], as_of, allow_synthetic: bool = False,
             },
         ))
 
-    best = max((t.raw_score for t in out), default=0.0)
+    # 1위가 100 이 되도록 순위 자격이 있는 제품 중 최댓값으로 맞춘다. 자격 없는 제품이 더 높으면 100 에서 자른다
+    best = max((t.raw_score for t in out if t.qualified), default=0.0) or max((t.raw_score for t in out), default=0.0)
     for t in out:
-        t.score = round(100 * math.log1p(t.raw_score) / math.log1p(best), 2) if best > 0 else 0.0
+        t.score = round(min(100.0, 100 * math.log1p(t.raw_score) / math.log1p(best)), 2) if best > 0 else 0.0
     out.sort(key=lambda t: (-t.raw_score, -t.author_count, t.product_id))
     for k, t in enumerate([t for t in out if t.qualified][:TOP_N], 1):
         t.rank = k
