@@ -95,3 +95,25 @@ def test_label_passes_owned_brands(monkeypatch):
     monkeypatch.setattr(job, "owned_brands", lambda: {"u": [{"brand": "B", "aliases": []}]})
     asyncio.run(job.label(FakeSB([{"id": 1, "account_id": 1, "caption": "x"}])))
     assert seen == [("u", [{"brand": "B", "aliases": []}])]
+
+
+def test_label_keeps_going_when_a_write_fails(monkeypatch):
+    async def fake_classify(caption, username, owned, llm=None):
+        return {"is_ad": True, "labeled_by": "RULE", "rule_hits": []}
+
+    monkeypatch.setattr(job, "classify_post", fake_classify)
+    monkeypatch.setattr(job, "owned_brands", lambda: {"u": None})
+    sb = FakeSB([{"id": i, "account_id": 1, "caption": "x"} for i in (1, 2, 3)])
+    real_execute = FakeQuery.execute
+
+    def flaky_execute(self):
+        if self.op == "update" and self.filters["id"] == 2:
+            raise TimeoutError
+        return real_execute(self)
+
+    monkeypatch.setattr(FakeQuery, "execute", flaky_execute)
+
+    summary = asyncio.run(job.label(sb))
+
+    assert sorted(i for i, _ in sb.updates) == [1, 3]
+    assert summary == {"targets": 3, "rule_ad": 2, "write_failed": 1}
