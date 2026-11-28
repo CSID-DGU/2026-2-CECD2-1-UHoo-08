@@ -63,7 +63,14 @@ from services.iot.recommend_rules import (
     build_candidates, build_node_candidates, context_line, pick_products,
     product_blurb, summarize_history,
 )
-from services.iot.weather import DEFAULT_REGION, fetch_outdoor
+from services.iot import user_region
+from services.iot.weather import DEFAULT_REGION, REGIONS, fetch_outdoor
+
+
+def _외출_지역(region: Optional[str], user_id: Optional[str]) -> str:
+    """요청에 지역이 없으면 사용자가 설정한 지역. 앱은 user_id 만 보낸다(services/iot/user_region.py)."""
+    return user_region.resolve(region, user_id, known=REGIONS, default=DEFAULT_REGION)
+
 
 logger = logging.getLogger(__name__)
 
@@ -486,7 +493,7 @@ class EnvironmentResponse(BaseModel):
 )
 def get_environment(
     user_id: Optional[str] = Query(None, description="지정하면 해당 사용자의 노드만"),
-    region: str = Query(DEFAULT_REGION, description="외출 지역"),
+    region: Optional[str] = Query(None, description="외출 지역. 비우면 사용자가 설정한 지역, 그것도 없으면 인천"),
 ) -> EnvironmentResponse:
     now = datetime.now(timezone.utc)
 
@@ -497,7 +504,7 @@ def get_environment(
         raise HTTPException(status_code=500, detail="실내 환경을 불러오지 못했습니다")
 
     # 외부 API는 우리가 통제할 수 없다. 실패해도 실내 값은 보여준다.
-    outdoor = fetch_outdoor(region)
+    outdoor = fetch_outdoor(_외출_지역(region, user_id))
 
     brief = build_brief(outdoor, indoor)
 
@@ -874,7 +881,7 @@ def _replacement_picks(
 )
 def get_recommendations(
     user_id: Optional[str] = Query(None, description="지정하면 해당 사용자의 노드만"),
-    region: str = Query(DEFAULT_REGION, description="외출 지역"),
+    region: Optional[str] = Query(None, description="외출 지역. 비우면 사용자가 설정한 지역, 그것도 없으면 인천"),
     limit: int = Query(3, ge=1, le=6),
     replace_for: Optional[str] = Query(
         None,
@@ -904,7 +911,7 @@ def get_recommendations(
         logger.exception("실내 노드 조회 실패 user_id=%s", user_id)
         raise HTTPException(status_code=500, detail="추천을 만들지 못했습니다")
 
-    outdoor = fetch_outdoor(region)
+    outdoor = fetch_outdoor(_외출_지역(region, user_id))
     candidates = build_candidates(outdoor, indoor)
 
     remaining = max(limit - len(replacements), 0)
@@ -939,7 +946,7 @@ def get_recommendations(
 )
 def get_recommendations_full(
     user_id: str = Query(..., description="예선 한정. 본선에서는 토큰에서 추출한다."),
-    region: str = Query(DEFAULT_REGION, description="외출 지역"),
+    region: Optional[str] = Query(None, description="외출 지역. 비우면 사용자가 설정한 지역, 그것도 없으면 인천"),
     per_group: int = Query(3, ge=1, le=6, description="묶음당 제품 수"),
 ) -> FullRecommendationsResponse:
     now = datetime.now(timezone.utc)
@@ -976,7 +983,7 @@ def get_recommendations_full(
     # ── 2. 보관 장소별 환경 추천 ─────────────────────────────────
     # 노드를 하나씩 따로 넣는다. 한꺼번에 넣으면 어느 장소 때문에 골랐는지
     # 알 수 없어, 사용자가 납득할 근거가 사라진다.
-    outdoor = fetch_outdoor(region)
+    outdoor = fetch_outdoor(_외출_지역(region, user_id))
     try:
         indoor = _indoor_nodes(user_id)
     except Exception:
