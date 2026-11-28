@@ -105,6 +105,11 @@ class Settings(BaseSettings):
     # 기상청 단기예보 (공공데이터포털)
     KMA_SERVICE_KEY: str = ""
 
+    # 지역별 실외 환경 매시 수집 (services/env_collector.py).
+    # 초단기실황이 매시 40분쯤 나오므로 그 뒤에 돈다. KMA_SERVICE_KEY 가 없으면 돌지 않는다.
+    ENV_COLLECT_ENABLED: bool = True
+    ENV_COLLECT_MINUTE: int = 50
+
     # Instagram Graph API. 인플루언서 게시물 수집이 읽는다.
     #
     # 토큰은 화담 페이지 토큰이라 만료가 없다. 수집 배치를 쓰지 않는

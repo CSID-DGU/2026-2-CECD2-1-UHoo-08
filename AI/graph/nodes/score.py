@@ -59,12 +59,29 @@ def score_context(state: GraphState) -> ScoreContext:
     )
 
 
+def 채점_대상(후보들: list[dict]) -> list[dict]:
+    """유사도 순 상위 채점_상한 개.
+
+    예산 세트처럼 칸마다 따로 찾은 후보(slot_key)는 칸마다 고르게 나눠 고른다. 검색 문장이
+    칸마다 달라 유사도를 칸끼리 견줄 수 없다. 전체 상위로 자르면 유사도가 낮게 나온 칸이
+    통째로 빠져 그 칸을 채울 수 없다.
+    """
+    정렬 = sorted(후보들, key=lambda 후보: 후보.get("similarity") or 0.0, reverse=True)
+    칸들 = {후보.get("slot_key") for 후보 in 정렬 if 후보.get("slot_key")}
+    if not 칸들:
+        return 정렬[:채점_상한]
+    칸마다 = max(1, 채점_상한 // len(칸들))
+    고른, 센 = [], dict.fromkeys(칸들, 0)
+    for 후보 in 정렬:
+        칸 = 후보.get("slot_key")
+        if 칸 in 센 and 센[칸] < 칸마다:
+            고른.append(후보)
+            센[칸] += 1
+    return 고른
+
+
 async def score(state: GraphState) -> dict:
-    후보들 = sorted(
-        state.get("candidates") or [],
-        key=lambda 후보: 후보.get("similarity") or 0.0,
-        reverse=True,
-    )[:채점_상한]
+    후보들 = 채점_대상(state.get("candidates") or [])
     if not 후보들:
         logger.info("score: 채점할 후보가 없다.")
         return {"scored": []}

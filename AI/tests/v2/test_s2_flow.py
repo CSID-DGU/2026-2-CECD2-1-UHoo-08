@@ -96,9 +96,24 @@ def 바깥(monkeypatch):
     _가짜_모듈(monkeypatch, "services.llm",
                LLMRole=types.SimpleNamespace(WEIGHT="weight", COMPOSE="compose"),
                get_llm=lambda role: LLM(role))
-    # 성분 부품(B)은 아직 없다
-    monkeypatch.setitem(sys.modules, "services.ingredient_store", None)
-    monkeypatch.setitem(sys.modules, "rules.compatibility", None)
+    # 보유 제품은 o1(네오 쿠션) 하나다
+    _가짜_모듈(monkeypatch, "db.user_product_reader", get_owned_user_products=lambda user_id: [
+        {"id": "up1", "product_id": "o1", "usage_type": "USING"},
+    ])
+
+    # 성분은 비워 둔다. 충돌 판정은 test_prefilter_node 가 본다
+    async def load_product_ingredients(ids):
+        return {pid: [] for pid in ids}
+
+    async def canonicalize(raw):
+        return {k: [] for k in raw}
+
+    async def load_rules():
+        return []
+
+    _가짜_모듈(monkeypatch, "services.ingredient_store",
+               raw_ingredients=lambda f: [], canonicalize=canonicalize,
+               load_product_ingredients=load_product_ingredients, load_rules=load_rules)
     return 기록
 
 
@@ -113,8 +128,6 @@ def _처음_상태():
         },
         "user_profile": {"skin_type": "OILY", "personal_color": "SPRING_WARM", "skin_concerns": []},
         "weight_prior": None,
-        # 보유 제품 단계(B)가 아직 없어, 그 단계가 채울 값을 처음부터 넣어 둔다
-        "inventory": [{"user_product_id": "up1", "product_id": "o1", "name": "네오 쿠션 21N"}],
     }
 
 
@@ -123,9 +136,9 @@ async def test_조건_탐색_경로가_끝까지_돌아_계약을_지키는_결�
     상태 = await run_scenario("S2_SEARCH", _처음_상태())
     결과 = 상태["result"]
 
-    # 모든 단계를 지났고, 아직 없는 것은 보유 제품 단계뿐이다
+    # 모든 단계를 실제 노드로 지난다
     assert 상태["trace"] == [
-        "retrieve", "inventory(stub)", "prefilter", "score", "collaborative", "compose", "guard",
+        "retrieve", "inventory", "prefilter", "score", "collaborative", "compose", "guard",
     ]
     RecommendationResult.model_validate(결과)
     예시 = json.loads(_BE_예시.read_text())

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronRight,
   History,
+  Loader2,
   Plus,
   Shuffle,
   Sparkles,
@@ -49,12 +50,13 @@ import {
   RefinementHistorySheet,
   type RefinementHistoryEntry,
 } from "../../components/recommendation/RefinementHistorySheet";
-import { SearchAnalysisLoading } from "../../components/search/SearchAnalysisLoading";
+import { AnalysisLoading, type AnalysisStep } from "../../components/recommendation/AnalysisLoading";
 import { SearchEntry } from "../../components/search/SearchEntry";
 import { SearchProductCard } from "../../components/search/SearchProductCard";
 import { SearchTopBar } from "../../components/search/SearchTopBar";
 import { RelatedProductRow } from "../../components/search/RelatedProductRow";
 import { BundleResult } from "../../components/search/BundleResult";
+import { EvaluationReport } from "../../components/search/EvaluationReport";
 import { MOCK_UNREADY, isMockJob, mockBundleResult } from "../../mocks/unready";
 import { ProductLensSheet } from "../../components/search/ProductLensSheet";
 import { useProductLens } from "../../components/search/useProductLens";
@@ -110,6 +112,11 @@ const searchViews = new Map<string, SavedSearchView>();
 // 개발 모드의 effect 재실행이나 연속 클릭으로 같은 추천 job 이 두 번 만들어지지 않게 한다.
 // AI 가 job 마다 LLM 을 돌리므로 중복은 그대로 비용이다.
 const pendingQueries = new Map<string, ReturnType<typeof requestQuery>>();
+/**
+ * 검색 기록(화면 항목)마다, 기준(내 피부·전체 인기)별로 마지막에 본 결과.
+ * 화면 밖에 두어 상품을 보고 뒤로 와도 남는다. 탭을 다시 누르면 다시 묻지 않고 쓴다.
+ */
+const basisResultCache = new Map<string, Partial<Record<RecommendationBasis, QueryResult>>>();
 function requestQueryOnce(
   entry: string,
   query: string,
@@ -240,6 +247,9 @@ function SearchResultContent() {
   const [error, setError] = useState("");
   const [step, setStep] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
+  // 로딩 화면 문구와 단계 목록. 서버 상태 응답의 scenario·steps 를 그대로 쓴다.
+  const [statusScenario, setStatusScenario] = useState<string | null>(null);
+  const [statusSteps, setStatusSteps] = useState<AnalysisStep[] | null>(null);
   const [clarify, setClarify] = useState<{
     message: string;
     fields: ClarifyField[];
@@ -333,6 +343,18 @@ function SearchResultContent() {
       active = false;
     };
   }, []);
+  /** 예산 세트의 [이 조합 담기]. 담기 API 가 없어 아직 찜하지 않은 제품만 찜 목록에 담는다 */
+  async function saveAllToWishlist(productIds: string[]) {
+    let ids = wishlistIds ?? (await loadWishlistIds());
+    for (const productId of productIds) {
+      if (ids[productId]) continue;
+      const { data } = await addWishlist(productId);
+      if (!data?.wishlistId) throw new Error("INVALID_WISHLIST_RESPONSE");
+      ids = { ...ids, [productId]: data.wishlistId };
+    }
+    setWishlistIds(ids);
+  }
+
   async function toggleWishlist(productId: string) {
     const ids = wishlistIds ?? (await loadWishlistIds());
     const wishlistId = ids[productId];
@@ -416,6 +438,10 @@ function SearchResultContent() {
   }, [toast, toastChangeId]);
 
   // ── job 흐름 ──────────────────────────────────────────────────────────
+  // 기준별로 본 결과는 basisResultCache 에 둔다. 새로 검색하면 비운다.
+  // 기준을 바꿔 다시 찾는 중. 지금 결과를 그대로 두고 작은 로딩만 보여준다.
+  const [switching, setSwitching] = useState(false);
+
   function showResult(next: QueryResult) {
     // 결과 모양이 어긋나도 화면이 깨지지 않게 목록은 배열로 맞춘다.
     const safe = {
@@ -428,6 +454,10 @@ function SearchResultContent() {
     };
     setResult(safe);
     setPhase("done");
+    setSwitching(false);
+    if (READY_BASES.includes(safe.basis)) {
+      basisResultCache.set(cacheKey, { ...basisResultCache.get(cacheKey), [safe.basis]: safe });
+    }
     saveLastSearch({
       query: baseQuery,
       category: safe.summary?.categoryLabel ?? "",
@@ -441,9 +471,15 @@ function SearchResultContent() {
    * answered: 방금 되묻기에 답했다. 답을 보낸 직후 잠깐은 서버가 아직 되묻는 중으로
    * 응답하므로, 다른 상태가 한 번 보이거나 일정 시간이 지날 때까지 그 상태를 무시한다.
    */
-  async function follow(nextJobId: string, current: number, answered = false) {
+  async function follow(
+    nextJobId: string,
+    current: number,
+    answered = false,
+    quiet = false,
+  ) {
     setJobId(nextJobId);
-    setPhase("loading");
+    // 기준만 바꾸는 중이면 지금 결과를 둔 채 기다린다.
+    if (!quiet) setPhase("loading");
     setClarify(null);
     setError("");
     const deadline = Date.now() + POLL_LIMIT_MS;
@@ -471,6 +507,8 @@ function SearchResultContent() {
         if (current !== version.current) return;
         const now = data.steps?.find((item) => item.state === "NOW");
         setStep(data.step ?? now?.label ?? "");
+        if (data.scenario) setStatusScenario(data.scenario);
+        setStatusSteps(Array.isArray(data.steps) ? data.steps : null);
         setProgress(typeof data.progress === "number" ? data.progress : null);
         if (data.status === "COMPLETED") {
           const response = await withDeadline(
@@ -498,6 +536,7 @@ function SearchResultContent() {
             },
           );
           setClarifyError("");
+          setSwitching(false);
           setPhase("clarify");
           return;
         }
@@ -516,6 +555,7 @@ function SearchResultContent() {
       }
     } catch (error) {
       if (current !== version.current) return;
+      setSwitching(false);
       setError(
         errorMessage(error, "추천을 완료하지 못했어요. 다시 시도해주세요."),
       );
@@ -531,6 +571,7 @@ function SearchResultContent() {
     query: string,
     nextBasis: RecommendationBasis,
     display?: string,
+    { switchBasis = false }: { switchBasis?: boolean } = {},
   ) {
     const text = query.trim();
     if (!text) return;
@@ -539,25 +580,35 @@ function SearchResultContent() {
     deleteSearchView(cacheKey);
     setBaseQuery((display ?? text).trim());
     setBasis(nextBasis);
-    setResult(null);
-    setProducts(null);
-    setJobId(null);
     setFeedbackSent({});
     setHistoryEntries([]);
     setSheet(null);
     setStep("입력하신 요청을 이해하고 있어요");
     setProgress(null);
+    setStatusScenario(null);
+    setStatusSteps(null);
     setError("");
-    setPhase("loading");
+    if (switchBasis) {
+      // 기준만 바꾼다. 지금 결과는 그대로 두고 작은 로딩만 띄운다.
+      setSwitching(true);
+    } else {
+      basisResultCache.delete(cacheKey);
+      setSwitching(false);
+      setResult(null);
+      setProducts(null);
+      setJobId(null);
+      setPhase("loading");
+    }
     try {
       const { data } = await withDeadline(
         requestQueryOnce(cacheKey, text, nextBasis),
         30_000,
       );
       if (current !== version.current) return;
-      await follow(data.jobId, current);
+      await follow(data.jobId, current, false, switchBasis);
     } catch (error) {
       if (current !== version.current) return;
+      setSwitching(false);
       setError(
         errorMessage(error, "검색을 시작하지 못했어요. 다시 시도해주세요."),
       );
@@ -665,6 +716,8 @@ function SearchResultContent() {
     setFeedbackSent({});
     setStep("조건을 더해 후보를 다시 찾고 있어요");
     setProgress(null);
+    setStatusScenario("S7_REFINE");
+    setStatusSteps(null);
     setPhase("loading");
     try {
       const { data } = await requestRefinement(jobId, {
@@ -762,12 +815,27 @@ function SearchResultContent() {
       setBasis(next);
       return;
     }
+    // 이 검색에서 이 기준으로 이미 본 결과가 있으면 다시 묻지 않고 그대로 보여준다.
+    const cached = basisResultCache.get(cacheKey)?.[next];
+    if (cached) {
+      ++version.current; // 진행 중인 다른 기준 요청의 응답은 버린다.
+      setSwitching(false);
+      setBasis(next);
+      setJobId(cached.jobId);
+      setFeedbackSent({});
+      setError("");
+      setResult(cached);
+      setPhase("done");
+      return;
+    }
     // 기준을 바꾸면 처음 문장으로 다시 찾는다. 조건 추가로 더한 조건은 이어지지 않으니 알려준다.
     if (result?.parentJobId)
       setToast(
         "기준을 바꿔 처음 검색 문장으로 다시 찾았어요. 더한 조건은 다시 추가해 주세요.",
       );
-    void startQuery(baseQuery, next);
+    void startQuery(baseQuery, next, undefined, {
+      switchBasis: phase === "done" && Boolean(result),
+    });
   }
 
   /** 사용자가 직접 한 검색. 최근 검색어에 남긴다. */
@@ -780,6 +848,8 @@ function SearchResultContent() {
   const ready = phase === "done" && READY_BASES.includes(basis);
   // 예산 세트 결과는 제품 목록 대신 조합을 보여준다.
   const bundleResult = ready && Boolean(result?.bundles?.length);
+  // "이 제품 어때?"는 목록 대신 평가한 제품 하나의 보고서를 보여준다.
+  const evaluation = ready && result?.scenario === "S1_EVALUATE" && items.length > 0;
   // 목데이터 결과는 서버에 job 이 없어, 조건 추가·피드백처럼 job 을 쓰는 동작을 숨긴다.
   const mockResult = isMockJob(jobId);
 
@@ -856,6 +926,19 @@ function SearchResultContent() {
               </div>
             )}
 
+            {switching && (
+              <p
+                role="status"
+                className="mt-3 flex items-center justify-center gap-2 text-xs text-slate-500"
+              >
+                <Loader2
+                  aria-hidden="true"
+                  className="h-4 w-4 text-primary-500 motion-safe:animate-spin"
+                />
+                결과를 불러오고 있어요
+              </p>
+            )}
+
             {!submitted && (
               <SearchEntry
                 onSearch={search}
@@ -895,8 +978,9 @@ function SearchResultContent() {
             )}
 
             {loading && (
-              <SearchAnalysisLoading
-                searching={false}
+              <AnalysisLoading
+                scenario={statusScenario}
+                steps={statusSteps}
                 step={step}
                 progress={progress}
               />
@@ -1005,6 +1089,8 @@ function SearchResultContent() {
                 id="basis-results"
                 role="tabpanel"
                 aria-labelledby={`basis-tab-${basis}`}
+                aria-busy={switching}
+                className={`transition-opacity ${switching ? "pointer-events-none opacity-50" : ""}`}
               >
                 {!READY_BASES.includes(basis) && (
                   <div className="px-4 py-14 text-center">
@@ -1052,7 +1138,20 @@ function SearchResultContent() {
                     </div>
                   );
                 })()}
-                {ready && items.length > 0 && (
+                {evaluation && (
+                  <EvaluationReport
+                    item={items[0]}
+                    onOpen={() =>
+                      openProduct({
+                        id: items[0].productId,
+                        name: items[0].name,
+                        brand: items[0].brand,
+                        imageUrl: items[0].imageUrl,
+                      })
+                    }
+                  />
+                )}
+                {ready && items.length > 0 && !evaluation && (
                   <>
                     <div className="mt-5 flex items-center justify-between gap-2">
                       <div>
@@ -1113,6 +1212,7 @@ function SearchResultContent() {
                   <BundleResult
                     jobId={jobId}
                     bundles={result.bundles}
+                    onSaveAll={isMockJob(jobId) ? undefined : saveAllToWishlist}
                     onChange={(updated) =>
                       setResult((previous) =>
                         previous
