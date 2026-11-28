@@ -25,6 +25,10 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # 직전 main 과 비교한다. base 를 비우면 레포 기본 브랜치(develop)와 비교하는데,
+          # develop → main 배포 PR 을 머지하면 둘이 같아져 "바뀐 파일 0개"가 되고 AI 빌드를
+          # 건너뛴다(#236). 수동 실행에는 before 가 없으므로 지금처럼 force_ai 를 쓴다.
+          base: ${{ github.event.before }}
           filters: |
             ai:
               - 'AI/**'
