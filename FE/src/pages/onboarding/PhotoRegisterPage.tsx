@@ -79,6 +79,12 @@ export function PhotoRegisterPage() {
     try {
       const res = await recognizeProduct("IMAGE", base64);
       const p = res.data;
+      // 못 찾으면 서버가 200 에 productId 를 비워 준다. 빈 제품을 등록 목록에 넣지 않는다.
+      if (!p?.productId) {
+        setErrorMsg("사진에서 제품을 찾지 못했어요. 제품 이름이 잘 보이게 다시 찍어주세요.");
+        setPhase("error");
+        return;
+      }
       setProduct({ id: p.productId, name: p.name, brand: p.brand, imageUrl: p.imageUrl });
       setPhase("result");
     } catch {

@@ -12,6 +12,7 @@ from api.iot.router import router as iot_router
 from api.care.router import router as care_router
 from api.internal.v2 import router as v2_router
 from services.influencer_collector import run_schedule
+from services.env_collector import run_schedule as run_env_schedule
 
 # LangSmith 트레이싱 활성화 (LANGSMITH_API_KEY가 있을 때만)
 if settings.LANGSMITH_API_KEY:
@@ -45,3 +46,5 @@ async def startup_event():
 
     # 인플루언서 게시물 수집. 오늘 안 모으면 오늘 것은 영영 없어서 앱과 같이 뜬다.
     app.state.influencer_schedule = asyncio.create_task(run_schedule())
+    # 지역별 실외 환경 매시 수집. 지난 날씨는 소급할 수 없어 앱과 같이 뜬다.
+    app.state.env_schedule = asyncio.create_task(run_env_schedule())
